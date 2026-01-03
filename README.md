@@ -27,6 +27,8 @@ docker-compose up -d
 docker-compose ps
 ```
 
+> **Note**: The PostgreSQL container initializes two separate databases: `gbferry_db` (Application) and `keycloak_db` (Identity). This ensures clean separation of concerns.
+
 ### 3. Setup Database
 
 ```bash
@@ -140,6 +142,8 @@ KEYCLOAK_CLIENT_ID="gbferry-web"
 NEXTAUTH_SECRET="generate-secure-secret"
 ENCRYPTION_KEY="generate-32-byte-hex-key"
 ```
+
+> **Important**: `KEYCLOAK_URL` must be reachable from both the browser and the Next.js server container.
 
 ## 📋 Regulatory Alignment
 

@@ -119,6 +119,7 @@ const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       // Send properties to the client
+      session.accessToken = token.accessToken as string;
       session.error = token.error as string | undefined;
       session.user = {
         ...session.user,

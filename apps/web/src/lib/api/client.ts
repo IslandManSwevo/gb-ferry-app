@@ -1,3 +1,5 @@
+import { getSession } from 'next-auth/react';
+
 // Default to same-origin BFF proxy routes under /api/v1
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const API_PREFIX = process.env.NEXT_PUBLIC_API_PREFIX || '/api/v1';
@@ -58,6 +60,12 @@ async function fetchWithAuth<T>(
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
   };
+
+  // Inject Auth Token
+  const session = await getSession();
+  if (session?.accessToken) {
+    headers['Authorization'] = `Bearer ${session.accessToken}`;
+  }
 
   // Only set JSON content type when sending JSON bodies
   if (!isFormDataBody && fetchOptions.body != null && !headers['Content-Type']) {
@@ -151,8 +159,7 @@ export const api = {
 
   // Certifications
   certifications: {
-    list: (crewId?: string) =>
-      fetchWithAuth<any[]>('/crew/certifications', { params: { crewId } }),
+    list: (crewId?: string) => fetchWithAuth<any[]>('/crew/certifications', { params: { crewId } }),
     get: (id: string) => fetchWithAuth<any>(`/crew/certifications/${id}`),
     create: (data: any) =>
       fetchWithAuth<any>('/crew/certifications', { method: 'POST', body: JSON.stringify(data) }),
