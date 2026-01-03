@@ -5,6 +5,7 @@ Enterprise-grade SaaS platform for passenger manifest management, crew complianc
 ## 🚢 Quick Start
 
 ### Prerequisites
+
 - Node.js 20+
 - pnpm 8+
 - Docker & Docker Compose
@@ -80,18 +81,19 @@ gbferry-platform/
 
 ## 🔐 Demo Users (Keycloak)
 
-| Email | Password | Role |
-|-------|----------|------|
-| admin@gbferry.com | admin123 | Administrator |
-| ops@gbferry.com | ops123 | Operations Staff |
+| Email                  | Password      | Role               |
+| ---------------------- | ------------- | ------------------ |
+| admin@gbferry.com      | admin123      | Administrator      |
+| ops@gbferry.com        | ops123        | Operations Staff   |
 | compliance@gbferry.com | compliance123 | Compliance Officer |
-| captain@gbferry.com | captain123 | Vessel Captain |
+| captain@gbferry.com    | captain123    | Vessel Captain     |
 
-*Note: Passwords are temporary and will require change on first login.*
+_Note: Passwords are temporary and will require change on first login._
 
 ## 🎯 Core Features
 
 ### MVP Features
+
 - ✅ Passenger check-in with consent capture
 - ✅ Manifest generation with manual approval workflow
 - ✅ Crew certification tracking (STCW compliance)
@@ -101,6 +103,7 @@ gbferry-platform/
 - ✅ Immutable audit logging
 
 ### Security
+
 - Role-based access control (RBAC) via Keycloak
 - MFA required for admin users
 - Field-level encryption for passport numbers
@@ -130,7 +133,7 @@ pnpm clean            # Clean build artifacts
 Copy `.env.example` to `.env` and configure:
 
 ```env
-DATABASE_URL="postgresql://gbferry:gbferry_dev@localhost:5432/gbferry_db"
+DATABASE_URL="postgresql://gbferry:gbferry_dev@localhost:5433/gbferry_db"
 KEYCLOAK_URL="http://localhost:8080"
 KEYCLOAK_REALM="gbferry"
 KEYCLOAK_CLIENT_ID="gbferry-web"

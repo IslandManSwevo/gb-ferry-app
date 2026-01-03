@@ -1,6 +1,11 @@
 -- PostgreSQL initialization script
 -- Creates additional schemas and extensions for GB Ferry
 
+-- Create a dedicated database for Keycloak so Prisma can manage gbferry_db
+-- without trying to drop Keycloak's tables.
+SELECT format('CREATE DATABASE %I', 'keycloak_db')
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'keycloak_db')\gexec
+
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

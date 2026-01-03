@@ -69,29 +69,20 @@
       "name": "GB Ferry Web Application",
       "description": "Next.js frontend application",
       "enabled": true,
-      "publicClient": true,
+      "publicClient": false,
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "authorizationServicesEnabled": false,
-      "redirectUris": [
-        "http://localhost:3000/*",
-        "http://127.0.0.1:3000/*"
-      ],
-      "webOrigins": [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
-      ],
+      "secret": "dev-web-secret-change-in-production",
+      "redirectUris": ["http://localhost:3000/*", "http://127.0.0.1:3000/*"],
+      "webOrigins": ["http://localhost:3000", "http://127.0.0.1:3000"],
       "protocol": "openid-connect",
       "attributes": {
         "pkce.code.challenge.method": "S256"
       },
-      "defaultClientScopes": [
-        "roles",
-        "profile",
-        "email"
-      ]
+      "defaultClientScopes": ["roles", "profile", "email"]
     },
     {
       "clientId": "gbferry-api",
@@ -106,11 +97,7 @@
       "authorizationServicesEnabled": true,
       "protocol": "openid-connect",
       "secret": "dev-api-secret-change-in-production",
-      "defaultClientScopes": [
-        "roles",
-        "profile",
-        "email"
-      ]
+      "defaultClientScopes": ["roles", "profile", "email"]
     }
   ],
   "users": [

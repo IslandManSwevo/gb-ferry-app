@@ -43,16 +43,57 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   }
 }
 
+// Test OIDC discovery at startup
+const oidcUrl = `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/.well-known/openid-configuration`;
+fetch(oidcUrl)
+  .then((res) => res.json())
+  .then((config) => {
+    console.log('[NextAuth] OIDC Discovery successful:', {
+      issuer: config.issuer,
+      authorization_endpoint: config.authorization_endpoint,
+      token_endpoint: config.token_endpoint,
+    });
+  })
+  .catch((err) => {
+    console.error('[NextAuth] OIDC Discovery FAILED:', err.message);
+  });
+
+// Log provider configuration at startup
+console.log('[NextAuth] Keycloak provider configuration:', {
+  issuer: `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}`,
+  clientId: process.env.KEYCLOAK_CLIENT_ID,
+  hasSecret: !!process.env.KEYCLOAK_CLIENT_SECRET,
+});
+
 const authOptions: NextAuthOptions = {
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET,
+  logger: {
+    error(code, metadata) {
+      console.error('[NextAuth][Error]', code, metadata);
+    },
+    warn(code) {
+      console.warn('[NextAuth][Warn]', code);
+    },
+    debug(code, metadata) {
+      console.log('[NextAuth][Debug]', code, metadata);
+    },
+  },
   providers: [
     KeycloakProvider({
       clientId: process.env.KEYCLOAK_CLIENT_ID!,
       clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || '',
       issuer: `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}`,
+      // Explicit wellKnown URL for OIDC discovery
+      wellKnown: `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/.well-known/openid-configuration`,
+      authorization: {
+        params: {
+          scope: 'openid email profile',
+        },
+      },
     }),
   ],
-  
+
   callbacks: {
     async jwt({ token, account, user }) {
       // Initial sign in
@@ -84,21 +125,28 @@ const authOptions: NextAuthOptions = {
         id: token.userId as string,
         roles: token.roles as string[],
       };
-      
+
       return session;
     },
 
     async redirect({ url, baseUrl }) {
       // Allow relative redirects
       if (url.startsWith('/')) return `${baseUrl}${url}`;
-      // Allow only same-origin absolute redirects
+
       try {
         const target = new URL(url);
         const base = new URL(baseUrl);
+
+        // Allow same-origin redirects
         if (target.origin === base.origin) return url;
+
+        // Allow Keycloak OAuth redirects (authorization endpoint)
+        const keycloakUrl = process.env.KEYCLOAK_URL;
+        if (keycloakUrl && url.startsWith(keycloakUrl)) return url;
       } catch {
-        // ignore
+        // ignore invalid URLs
       }
+
       return baseUrl;
     },
   },

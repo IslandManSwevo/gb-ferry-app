@@ -43,9 +43,7 @@ export default function SignInPage() {
               title={`Welcome, ${session.user?.name}`}
               subTitle={session.user?.email}
             />
-            <Text type="secondary">
-              Roles: {session.user?.roles?.join(', ') || 'None'}
-            </Text>
+            <Text type="secondary">Roles: {session.user?.roles?.join(', ') || 'None'}</Text>
             <Space>
               <Button type="primary" href="/">
                 Go to Dashboard
@@ -108,6 +106,13 @@ export default function SignInPage() {
 
           <Text type="secondary" style={{ fontSize: 12 }}>
             Enterprise Single Sign-On
+          </Text>
+
+          <Text type="secondary" style={{ fontSize: 11, marginTop: 8 }}>
+            If sign-in doesn&apos;t work, open in a real browser:{' '}
+            <a href="http://localhost:3000/auth/signin" target="_blank" rel="noopener noreferrer">
+              localhost:3000
+            </a>
           </Text>
         </Space>
       </Card>

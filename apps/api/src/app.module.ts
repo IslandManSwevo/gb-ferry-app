@@ -5,6 +5,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
 import { CrewModule } from './modules/crew/crew.module';
+import { DatabaseModule } from './modules/database/database.module';
 import { PassengersModule } from './modules/passengers/passengers.module';
 import { VesselsModule } from './modules/vessels/vessels.module';
 
@@ -18,6 +19,9 @@ import { VesselsModule } from './modules/vessels/vessels.module';
 
     // Authentication (Keycloak)
     AuthModule,
+
+    // Database
+    DatabaseModule,
 
     // Feature modules
     PassengersModule,
