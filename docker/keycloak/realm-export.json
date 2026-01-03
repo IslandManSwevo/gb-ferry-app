@@ -1,0 +1,326 @@
+{
+  "realm": "gbferry",
+  "enabled": true,
+  "displayName": "Grand Bahama Ferry",
+  "displayNameHtml": "<div class=\"kc-logo-text\"><span>Grand Bahama Ferry</span></div>",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrator - Full system access"
+      },
+      {
+        "name": "compliance_officer",
+        "description": "Compliance Officer - Manage certifications, inspections, exports"
+      },
+      {
+        "name": "operations",
+        "description": "Operations Staff - Passenger check-in, manifest management"
+      },
+      {
+        "name": "captain",
+        "description": "Vessel Captain - Crew management, sailing approval"
+      },
+      {
+        "name": "regulator",
+        "description": "Regulator - Read-only access to compliance reports"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "Administrators",
+      "realmRoles": ["admin"]
+    },
+    {
+      "name": "Compliance Team",
+      "realmRoles": ["compliance_officer"]
+    },
+    {
+      "name": "Operations Team",
+      "realmRoles": ["operations"]
+    },
+    {
+      "name": "Vessel Crew",
+      "realmRoles": ["captain"]
+    },
+    {
+      "name": "Regulators",
+      "realmRoles": ["regulator"]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "gbferry-web",
+      "name": "GB Ferry Web Application",
+      "description": "Next.js frontend application",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+      ],
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "roles",
+        "profile",
+        "email"
+      ]
+    },
+    {
+      "clientId": "gbferry-api",
+      "name": "GB Ferry API",
+      "description": "NestJS backend API",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "protocol": "openid-connect",
+      "secret": "dev-api-secret-change-in-production",
+      "defaultClientScopes": [
+        "roles",
+        "profile",
+        "email"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin@gbferry.com",
+      "email": "admin@gbferry.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "System",
+      "lastName": "Administrator",
+      "realmRoles": ["admin"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": true
+        }
+      ],
+      "requiredActions": ["UPDATE_PASSWORD", "CONFIGURE_TOTP"]
+    },
+    {
+      "username": "ops@gbferry.com",
+      "email": "ops@gbferry.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Operations",
+      "lastName": "Staff",
+      "realmRoles": ["operations"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ops123",
+          "temporary": true
+        }
+      ]
+    },
+    {
+      "username": "compliance@gbferry.com",
+      "email": "compliance@gbferry.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Compliance",
+      "lastName": "Officer",
+      "realmRoles": ["compliance_officer"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "compliance123",
+          "temporary": true
+        }
+      ]
+    },
+    {
+      "username": "captain@gbferry.com",
+      "email": "captain@gbferry.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Michael",
+      "lastName": "Johnson",
+      "realmRoles": ["captain"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "captain123",
+          "temporary": true
+        }
+      ]
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "roles",
+      "description": "OpenID Connect scope for roles",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    },
+    {
+      "name": "profile",
+      "description": "OpenID Connect scope for profile claims",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "user.attribute": "username"
+          }
+        },
+        {
+          "name": "given name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "given_name",
+            "jsonType.label": "String",
+            "user.attribute": "firstName"
+          }
+        },
+        {
+          "name": "family name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "family_name",
+            "jsonType.label": "String",
+            "user.attribute": "lastName"
+          }
+        },
+        {
+          "name": "full name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-full-name-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "email",
+      "description": "OpenID Connect scope for email claims",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "email",
+            "jsonType.label": "String",
+            "user.attribute": "email"
+          }
+        },
+        {
+          "name": "email verified",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "email_verified",
+            "jsonType.label": "boolean",
+            "user.attribute": "emailVerified"
+          }
+        }
+      ]
+    }
+  ],
+  "browserSecurityHeaders": {
+    "contentSecurityPolicyReportOnly": "",
+    "xContentTypeOptions": "nosniff",
+    "xRobotsTag": "none",
+    "xFrameOptions": "SAMEORIGIN",
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "xXSSProtection": "1; mode=block",
+    "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+  },
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA256",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30
+}

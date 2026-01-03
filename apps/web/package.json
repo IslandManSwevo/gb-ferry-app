@@ -1,0 +1,33 @@
+{
+  "name": "@gbferry/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "clean": "rimraf .next .turbo node_modules"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.3.0",
+    "@ant-design/nextjs-registry": "^1.0.0",
+    "@gbferry/dto": "workspace:*",
+    "antd": "^5.15.0",
+    "dayjs": "^1.11.10",
+    "next": "14.2.0",
+    "next-auth": "^4.24.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.2.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.0"
+  }
+}

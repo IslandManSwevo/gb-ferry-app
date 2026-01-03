@@ -1,0 +1,31 @@
+{
+  "name": "gbferry-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Grand Bahama Ferry: Maritime Passenger & Compliance Support Platform",
+  "license": "PROPRIETARY",
+  "author": "Grand Bahama Ferry",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rimraf node_modules",
+    "db:generate": "turbo run db:generate --filter=@gbferry/database",
+    "db:push": "turbo run db:push --filter=@gbferry/database",
+    "db:studio": "pnpm --filter @gbferry/database db:studio",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "prettier": "^3.1.0",
+    "rimraf": "^5.0.5",
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

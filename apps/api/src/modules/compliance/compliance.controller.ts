@@ -1,0 +1,104 @@
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    Post,
+    Query,
+    Res,
+} from '@nestjs/common';
+import {
+    ApiBearerAuth,
+    ApiOperation,
+    ApiQuery,
+    ApiResponse,
+    ApiTags,
+} from '@nestjs/swagger';
+import { Response } from 'express';
+import { ComplianceAdapterService } from './compliance-adapter.service';
+import { ComplianceService } from './compliance.service';
+
+@ApiTags('compliance')
+@ApiBearerAuth()
+@Controller('compliance')
+export class ComplianceController {
+  constructor(
+    private readonly complianceService: ComplianceService,
+    private readonly adapterService: ComplianceAdapterService,
+  ) {}
+
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Get compliance dashboard overview' })
+  @ApiResponse({ status: 200, description: 'Compliance dashboard data' })
+  async getDashboard() {
+    return this.complianceService.getDashboard();
+  }
+
+  @Get('reports')
+  @ApiOperation({ summary: 'List available compliance reports' })
+  @ApiQuery({ name: 'type', required: false })
+  @ApiQuery({ name: 'dateFrom', required: false })
+  @ApiQuery({ name: 'dateTo', required: false })
+  @ApiResponse({ status: 200, description: 'List of reports' })
+  async getReports(
+    @Query('type') type?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ): Promise<any> {
+    return this.complianceService.getReports({ type, dateFrom, dateTo });
+  }
+
+  @Get('export/manifest/:manifestId')
+  @ApiOperation({ summary: 'Export manifest in regulatory format' })
+  @ApiQuery({ name: 'format', enum: ['csv', 'xlsx', 'pdf', 'xml'] })
+  @ApiQuery({ name: 'jurisdiction', enum: ['bahamas', 'jamaica', 'barbados'], required: false })
+  @ApiResponse({ status: 200, description: 'Exported file' })
+  async exportManifest(
+    @Param('manifestId') manifestId: string,
+    @Query('format') format: string,
+    @Query('jurisdiction') jurisdiction: string = 'bahamas',
+    @Res() res: Response,
+  ) {
+    const exported = await this.adapterService.exportManifest(
+      manifestId,
+      format,
+      jurisdiction,
+    );
+
+    res.setHeader('Content-Type', exported.contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${exported.filename}"`,
+    );
+    res.send(exported.data);
+  }
+
+  @Get('export/crew-compliance/:vesselId')
+  @ApiOperation({ summary: 'Export crew compliance pack for a vessel' })
+  @ApiQuery({ name: 'format', enum: ['pdf', 'xlsx'] })
+  @ApiResponse({ status: 200, description: 'Crew compliance pack' })
+  async exportCrewCompliance(
+    @Param('vesselId') vesselId: string,
+    @Query('format') format: string,
+    @Res() res: Response,
+  ) {
+    const exported = await this.adapterService.exportCrewCompliance(
+      vesselId,
+      format,
+    );
+
+    res.setHeader('Content-Type', exported.contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${exported.filename}"`,
+    );
+    res.send(exported.data);
+  }
+
+  @Post('inspections')
+  @ApiOperation({ summary: 'Record an inspection event' })
+  @ApiResponse({ status: 201, description: 'Inspection recorded' })
+  async recordInspection(@Body() inspectionDto: any): Promise<any> {
+    return this.complianceService.recordInspection(inspectionDto);
+  }
+}
