@@ -13,6 +13,8 @@ export interface ComplianceDashboard {
   summary: {
     totalVessels: number;
     compliantVessels: number;
+    totalCrew: number;
+    todaysPassengers: number;
     expiringCertifications: number;
     pendingManifests: number;
     upcomingInspections: number;

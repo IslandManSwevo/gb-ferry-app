@@ -1,5 +1,14 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
-import { AuthGuard } from 'nest-keycloak-connect';
+import { ExecutionContext, Inject, Injectable, Logger } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import {
+  KEYCLOAK_CONNECT_OPTIONS,
+  KEYCLOAK_INSTANCE,
+  KEYCLOAK_LOGGER,
+  KEYCLOAK_MULTITENANT_SERVICE,
+} from 'nest-keycloak-connect/dist/constants';
+import { AuthGuard } from 'nest-keycloak-connect/dist/guards/auth.guard';
+import { KeycloakConnectConfig } from 'nest-keycloak-connect/dist/interface/keycloak-connect-options.interface';
+import { KeycloakMultiTenantService } from 'nest-keycloak-connect/dist/services/keycloak-multitenant.service';
 import { AuditService } from '../audit/audit.service';
 
 /**
@@ -7,24 +16,70 @@ import { AuditService } from '../audit/audit.service';
  */
 @Injectable()
 export class LoggingAuthGuard extends AuthGuard {
-  constructor(private readonly auditService: AuditService) {
-    super();
+  constructor(
+    @Inject(KEYCLOAK_INSTANCE) singleTenant: any,
+    @Inject(KEYCLOAK_CONNECT_OPTIONS) keycloakOpts: KeycloakConnectConfig,
+    @Inject(KEYCLOAK_LOGGER) logger: Logger,
+    @Inject(KEYCLOAK_MULTITENANT_SERVICE) multiTenant: KeycloakMultiTenantService,
+    reflector: Reflector,
+    private readonly auditService: AuditService
+  ) {
+    super(singleTenant, keycloakOpts, logger, multiTenant, reflector);
   }
 
-  handleRequest(err: any, user: any, info: any, context: ExecutionContext, status?: any) {
-    if (err || !user) {
-      const request: any = context.switchToHttp().getRequest();
-      const ipAddress = request?.ip;
-      const userAgent = request?.headers?.['user-agent'];
+  private extractClientIp(request: any): string | undefined {
+    const headers = request?.headers || {};
+    const xfwd = headers['x-forwarded-for'] || headers['X-Forwarded-For'];
+    const xreal = headers['x-real-ip'] || headers['X-Real-IP'];
+    const forwarded = Array.isArray(xfwd) ? xfwd.join(',') : xfwd;
+    const parsedForwarded = forwarded
+      ? forwarded
+          .split(',')
+          .map((v: string) => v.trim())
+          .filter((v: string) => v)
+      : [];
+    return (
+      parsedForwarded[0] || (typeof xreal === 'string' ? xreal.trim() : undefined) || request?.ip
+    );
+  }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request: any = context.switchToHttp().getRequest();
+    const headers = request?.headers || {};
+
+    try {
+      const result = (await super.canActivate(context)) as boolean;
+
+      // If result is truthy but user is absent, log a soft failure
+      const user = request?.user;
+      if (!user) {
+        const ipAddress = this.extractClientIp(request);
+        const userAgent = headers['user-agent'] || headers['User-Agent'];
+        this.auditService
+          .logAuthFailure({
+            userId: undefined,
+            userName: undefined,
+            ipAddress,
+            userAgent,
+            reason: 'unauthorized',
+          })
+          .catch(() => undefined);
+      }
+
+      return result;
+    } catch (err: any) {
+      const user = request?.user;
+      const ipAddress = this.extractClientIp(request);
+      const userAgent = headers['user-agent'] || headers['User-Agent'];
       const userName = user?.preferred_username || user?.email;
-      const reason = err?.message || info?.message || 'unauthorized';
+      const userId = user?.sub || user?.id || user?.userId || user?.preferred_username;
+      const reason = err?.message || 'unauthorized';
 
-      // Fire-and-forget; auth should still return the original error
       this.auditService
-        .logAuthFailure({ userId: undefined, userName, ipAddress, userAgent, reason })
+        .logAuthFailure({ userId, userName, ipAddress, userAgent, reason })
         .catch(() => undefined);
-    }
 
-    return super.handleRequest(err, user, info, context, status);
+      throw err;
+    }
   }
 }

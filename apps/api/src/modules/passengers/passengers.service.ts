@@ -5,7 +5,7 @@ import {
   validatePassportExpiry,
 } from '@/lib/validators';
 import { PrismaService, decryptField, encryptField, maskField } from '@gbferry/database';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 
 // Define passenger create interface locally - aligned with Prisma schema enums
@@ -31,6 +31,8 @@ export interface PassengerFilters {
   sailingId?: string;
   date?: string;
   status?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 @Injectable()
@@ -40,8 +42,13 @@ export class PassengersService {
     private auditService: AuditService
   ) {}
 
-  private encryptIdentityDocNumber(identityDocNumber?: string): string | undefined {
-    if (!identityDocNumber) return undefined;
+  private readonly logger = new Logger(PassengersService.name);
+
+  private encryptIdentityDocNumber(identityDocNumber: string): string {
+    // Identity document number is required wherever this helper is called
+    if (!identityDocNumber) {
+      throw new Error('identityDocNumber is required for encryption');
+    }
     return encryptField(identityDocNumber);
   }
 
@@ -50,7 +57,9 @@ export class PassengersService {
     try {
       const plain = decryptField(ciphertext);
       return maskField(plain);
-    } catch {
+    } catch (err: any) {
+      const message = err?.message || err?.stack || String(err);
+      this.logger.warn(`Failed to decrypt identity document: ${message}`);
       return '****';
     }
   }
@@ -70,8 +79,6 @@ export class PassengersService {
     checkInDto: PassengerCreateDTO & { sailingId: string; sailingDate: string },
     userId?: string
   ): Promise<any> {
-    const errors: string[] = [];
-
     // Step 1: IMO FAL Form 5 validation
     const imoErrors = validatePassengerIMOFields(checkInDto);
     if (imoErrors.length > 0) {
@@ -183,6 +190,17 @@ export class PassengersService {
       throw new BadRequestException('Invalid status filter');
     }
 
+    // Pagination with sensible defaults and caps
+    const maxPageSize = 200;
+    const parsedPage = Number(filters.page ?? 1);
+    const parsedPageSize = Number(filters.pageSize ?? 100);
+    const page = Number.isFinite(parsedPage) && parsedPage > 0 ? Math.floor(parsedPage) : 1;
+    const pageSize =
+      Number.isFinite(parsedPageSize) && parsedPageSize > 0
+        ? Math.min(Math.floor(parsedPageSize), maxPageSize)
+        : 100;
+    const skip = (page - 1) * pageSize;
+
     const passengers = await this.prisma.passenger.findMany({
       where: {
         ...(filters.sailingId && { sailingId: filters.sailingId }),
@@ -194,8 +212,8 @@ export class PassengersService {
       } as any,
       include: { sailing: true },
       orderBy: { createdAt: 'desc' },
-      take: 100,
-      skip: 0,
+      take: pageSize,
+      skip,
     });
 
     const sanitized = passengers.map((p: any) => ({
@@ -215,13 +233,15 @@ export class PassengersService {
     return {
       data: sanitized,
       total: passengers.length,
-      filters,
+      filters: { ...filters, page, pageSize },
+      page,
+      pageSize,
     };
   }
 
   /**
    * Get a single passenger record
-   * Note: PII fields should be masked unless user has explicit authorization (ISO 27001 A.8.23)
+   * Note: PII fields are masked in responses to prevent unauthorized exposure (ISO 27001 A.8.23)
    */
   async findOne(id: string, userId?: string): Promise<any> {
     const passenger = await this.prisma.passenger.findUnique({
@@ -236,7 +256,7 @@ export class PassengersService {
       throw new NotFoundException(`Passenger ${id} not found`);
     }
 
-    // Mask PII fields unless user is authorized
+    // Mask PII fields before returning
     const masked = {
       ...passenger,
       identityDocNumber: this.maskIdentityDoc(passenger.identityDocNumber),
@@ -281,15 +301,41 @@ export class PassengersService {
       );
     }
 
-    const data: any = { ...updateDto };
-    if (updateDto.identityDocNumber) {
-      data.identityDocNumber = this.encryptIdentityDocNumber(updateDto.identityDocNumber);
-    }
+    const data: any = {};
+    const assignIfPresent = <K extends keyof PassengerCreateDTO>(
+      key: K,
+      transform?: (value: any) => any
+    ) => {
+      if (updateDto[key] !== undefined) {
+        data[key] = transform ? transform(updateDto[key]) : updateDto[key];
+      }
+    };
+
+    assignIfPresent('familyName');
+    assignIfPresent('givenNames');
+    assignIfPresent('dateOfBirth', (value) => new Date(value as any));
+    assignIfPresent('nationality');
+    assignIfPresent('gender');
+    assignIfPresent('identityDocType');
+    assignIfPresent('identityDocNumber', (value) => this.encryptIdentityDocNumber(value as any));
+    assignIfPresent('identityDocCountry');
+    assignIfPresent('identityDocExpiry', (value) => new Date(value as any));
+    assignIfPresent('portOfEmbarkation');
+    assignIfPresent('portOfDisembarkation');
+    assignIfPresent('cabinOrSeat');
+    assignIfPresent('specialInstructions');
+    assignIfPresent('consentGiven');
+    assignIfPresent('consentProvidedAt', (value) => value);
 
     const updatedPassenger = await this.prisma.passenger.update({
       where: { id },
       data,
     });
+
+    const maskedUpdatedPassenger = {
+      ...updatedPassenger,
+      identityDocNumber: this.maskIdentityDoc(updatedPassenger.identityDocNumber),
+    };
 
     // Log audit trail with before/after values (immutable)
     await this.auditService.log({
@@ -299,12 +345,12 @@ export class PassengersService {
       userId,
       details: {
         previousValue: passenger,
-        newValue: updatedPassenger,
+        newValue: maskedUpdatedPassenger,
       },
       compliance: 'ISO 27001 A.8.15 - Immutable audit log of all changes',
     });
 
-    return updatedPassenger;
+    return maskedUpdatedPassenger;
   }
 
   /**

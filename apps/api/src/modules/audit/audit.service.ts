@@ -144,6 +144,11 @@ export class AuditService {
      * the user relation for bootstrapping/background processes.
      */
     try {
+      const metadata = {
+        ...(entry.details || {}),
+        ...(entry.compliance ? { compliance: entry.compliance } : {}),
+      };
+
       // Try to find user if userId is provided
       let user = null;
       if (entry.userId && entry.userId !== 'system') {
@@ -170,7 +175,7 @@ export class AuditService {
             newValue: entry.newValue,
             changedFields: entry.changedFields || [],
             reason: entry.reason,
-            metadata: entry.details || {},
+            metadata,
             timestamp: new Date(),
           } as any,
         });
@@ -183,6 +188,7 @@ export class AuditService {
         action: entry.action,
         entityType: entry.entityType,
         entityId: entry.entityId,
+        compliance: entry.compliance,
         timestamp: new Date().toISOString(),
       });
 
@@ -194,6 +200,7 @@ export class AuditService {
         userId: 'system',
         userName: 'System',
         userRole: 'system',
+        compliance: entry.compliance,
         timestamp: new Date(),
       };
     } catch (error) {
@@ -210,6 +217,16 @@ export class AuditService {
     userAgent?: string;
     reason?: string;
   }): Promise<any> {
+    /**
+     * Logs failed authentication attempts for security monitoring and detection.
+     * Delegates to this.log to persist the audit entry.
+     * @param params.userId Optional internal user id associated with the failure.
+     * @param params.userName Optional user name or identifier from the auth provider.
+     * @param params.ipAddress Source IP address of the request.
+     * @param params.userAgent User agent string from the client.
+     * @param params.reason Reason or error message describing the failure.
+     * @returns Promise resolving to the created audit record (or null on failure).
+     */
     return this.log({
       action: 'FAILED_LOGIN',
       entityType: 'auth',
@@ -232,6 +249,19 @@ export class AuditService {
     reason?: string;
     details?: any;
   }): Promise<any> {
+    /**
+     * Records data export events for regulator visibility and audit traceability.
+     * Delegates to this.log to persist the audit entry.
+     * @param params.entityType The domain entity being exported (e.g., Manifest).
+     * @param params.entityId Optional identifier of the exported entity.
+     * @param params.userId Optional internal user id performing the export.
+     * @param params.userName Optional user name from the auth context.
+     * @param params.ipAddress Source IP address of the export request.
+     * @param params.userAgent User agent string from the client.
+     * @param params.reason Optional reason or context for the export.
+     * @param params.details Optional additional metadata describing the export.
+     * @returns Promise resolving to the created audit record (or null on failure).
+     */
     return this.log({
       action: 'DATA_EXPORT',
       entityType: params.entityType,

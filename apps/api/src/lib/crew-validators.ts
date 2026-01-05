@@ -144,7 +144,16 @@ export function validateSafeManningRequirement(
   errors: CertificationError[];
   warnings: CertificationError[];
   required: Record<string, number>;
-  actual: Record<string, number>;
+  /**
+   * Assigned headcount by role as recorded on the roster.
+   * Does not account for substitutions.
+   */
+  actualByRole: Record<string, number>;
+  /**
+   * Headcount per required role based on substitution rules (roleMatches).
+   * Each requirement is evaluated independently, so a crew member may satisfy multiple required roles.
+   */
+  fulfillableByRole: Record<string, number>;
 } {
   const errors: CertificationError[] = [];
   const warnings: CertificationError[] = [];
@@ -160,12 +169,40 @@ export function validateSafeManningRequirement(
 
   // Fallback to tonnage-based heuristic only when no authoritative document exists
   if (!options.requirements || options.requirements.length === 0) {
-    const category = getVesselCategory(options.vesselGrossTonnage || 0);
+    if (options.vesselGrossTonnage === undefined || options.vesselGrossTonnage === null) {
+      return {
+        compliant: false,
+        errors: [
+          {
+            crewMemberId: '',
+            crewName: 'Vessel Manning',
+            certificateType: 'SAFE_MANNING',
+            message:
+              'Safe manning validation requires either vessel-specific requirements or gross tonnage.',
+            code: 'MISSING_SAFE_MANNING_INPUT',
+            severity: 'error',
+          },
+        ],
+        warnings,
+        required: {},
+        actualByRole: {},
+        fulfillableByRole: {},
+      };
+    }
+
+    const category = getVesselCategory(options.vesselGrossTonnage);
     Object.assign(requirements, SAFE_MANNING_REQUIREMENTS[category]);
   }
 
   if (Object.keys(requirements).length === 0) {
-    return { compliant: true, errors, warnings, required: {}, actual: {} };
+    return {
+      compliant: true,
+      errors,
+      warnings,
+      required: {},
+      actualByRole: {},
+      fulfillableByRole: {},
+    };
   }
 
   // Count crew by role
@@ -173,6 +210,9 @@ export function validateSafeManningRequirement(
   assignedCrew.forEach((crew) => {
     crewByRole[crew.role] = (crewByRole[crew.role] || 0) + 1;
   });
+
+  // Track how many crew can fulfill each required role (considering substitution rules)
+  const fulfillableByRole: Record<string, number> = {};
 
   // Check each requirement
   Object.entries(requirements).forEach(([requiredRole, requiredCount]) => {
@@ -184,6 +224,8 @@ export function validateSafeManningRequirement(
         actualCount++;
       }
     });
+
+    fulfillableByRole[requiredRole] = actualCount;
 
     if (actualCount < requiredCount) {
       errors.push({
@@ -202,7 +244,8 @@ export function validateSafeManningRequirement(
     errors,
     warnings,
     required: requirements,
-    actual: crewByRole,
+    actualByRole: crewByRole,
+    fulfillableByRole,
   };
 }
 

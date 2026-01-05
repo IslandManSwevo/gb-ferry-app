@@ -49,16 +49,20 @@ export class ComplianceController {
   ) {
     const exported = await this.adapterService.exportManifest(manifestId, format, jurisdiction);
 
-    await this.auditService.logDataExport({
-      entityType: 'Manifest',
-      entityId: manifestId,
-      details: {
-        action: 'MANIFEST_EXPORTED',
-        format,
-        jurisdiction,
-      },
-      reason: 'Compliance manifest export',
-    });
+    try {
+      await this.auditService.logDataExport({
+        entityType: 'Manifest',
+        entityId: manifestId,
+        details: {
+          action: 'MANIFEST_EXPORTED',
+          format,
+          jurisdiction,
+        },
+        reason: 'Compliance manifest export',
+      });
+    } catch (err) {
+      console.error('Audit log failed for MANIFEST_EXPORTED', err);
+    }
 
     res.setHeader('Content-Type', exported.contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${exported.filename}"`);
@@ -76,16 +80,20 @@ export class ComplianceController {
   ) {
     const exported = await this.adapterService.exportCrewCompliance(vesselId, format);
 
-    await this.auditService.logDataExport({
-      entityType: 'Vessel',
-      entityId: vesselId,
-      details: {
-        action: 'CREW_EXPORT',
-        format,
-        pack: 'crew-compliance',
-      },
-      reason: 'Crew compliance export',
-    });
+    try {
+      await this.auditService.logDataExport({
+        entityType: 'Vessel',
+        entityId: vesselId,
+        details: {
+          action: 'CREW_EXPORT',
+          format,
+          pack: 'crew-compliance',
+        },
+        reason: 'Crew compliance export',
+      });
+    } catch (err) {
+      console.error('Audit log failed for CREW_EXPORT', err);
+    }
 
     res.setHeader('Content-Type', exported.contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${exported.filename}"`);

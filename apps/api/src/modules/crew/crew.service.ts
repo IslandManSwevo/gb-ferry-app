@@ -1,6 +1,6 @@
 import { validateCrewCompliance, validateSafeManningRequirement } from '@/lib/crew-validators';
 import { PrismaService, decryptField, encryptField, maskField } from '@gbferry/database';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 
 export interface CrewFilters {
@@ -13,6 +13,7 @@ export interface CreateCrewDto {
   firstName: string;
   lastName: string;
   identificationNumber: string;
+  passportNumber?: string;
   nationality: string;
   role: string;
   vesselId: string;
@@ -22,7 +23,8 @@ export interface CreateCrewDto {
 export interface SafeManningStatus {
   compliant: boolean;
   required: Record<string, number>;
-  actual: Record<string, number>;
+  actualByRole: Record<string, number>;
+  fulfillableByRole: Record<string, number>;
   discrepancies: string[];
 }
 
@@ -33,17 +35,23 @@ export class CrewService {
     private auditService: AuditService
   ) {}
 
+  private readonly logger = new Logger(CrewService.name);
+
   private encryptValue(value?: string): string | undefined {
     if (!value) return undefined;
     return encryptField(value);
   }
 
-  private maskCiphertext(value?: string | null): string | null {
+  private maskCiphertext(value?: string | null, contextField?: string): string | null {
     if (!value) return null;
     try {
       const plain = decryptField(value);
       return maskField(plain);
-    } catch {
+    } catch (err: any) {
+      const message = err?.message || err?.stack || String(err);
+      this.logger.warn(
+        `Failed to decrypt ciphertext${contextField ? ` for ${contextField}` : ''}: ${message}`
+      );
       // Fallback in case legacy data is stored in plaintext
       return maskField(value);
     }
@@ -73,7 +81,7 @@ export class CrewService {
         dateOfBirth: new Date(), // TODO: Add to DTO
         nationality: createDto.nationality,
         gender: 'M', // TODO: Add to DTO
-        passportNumber: this.encryptValue(createDto.identificationNumber),
+        passportNumber: this.encryptValue(createDto.passportNumber),
         passportCountry: createDto.nationality,
         passportExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // TODO: Add to DTO
         identificationNumber: this.encryptValue(createDto.identificationNumber),
@@ -111,8 +119,11 @@ export class CrewService {
 
     const masked = crew.map((member: any) => ({
       ...member,
-      identificationNumber: this.maskCiphertext(member.identificationNumber),
-      passportNumber: this.maskCiphertext(member.passportNumber),
+      identificationNumber: this.maskCiphertext(
+        member.identificationNumber,
+        'identificationNumber'
+      ),
+      passportNumber: this.maskCiphertext(member.passportNumber, 'passportNumber'),
     }));
 
     await this.auditService.log({
@@ -168,6 +179,16 @@ export class CrewService {
       role: req.role,
       minimumCount: req.minimumCount,
     }));
+
+    if (
+      vesselGrossTonnage === undefined ||
+      vesselGrossTonnage === null ||
+      Number.isNaN(Number(vesselGrossTonnage))
+    ) {
+      throw new BadRequestException(
+        `Gross tonnage is required to validate safe manning for vessel ${vesselId}`
+      );
+    }
 
     // Validate safe manning requirement using vessel-specific Safe Manning Document when available
     const crewForValidation = [...currentRoster, crewMember].map((c) => ({
@@ -228,6 +249,12 @@ export class CrewService {
       throw new BadRequestException('Vessel not found');
     }
 
+    if (vessel.grossTonnage === null || vessel.grossTonnage === undefined) {
+      throw new BadRequestException(
+        `Vessel ${vesselId} is missing gross tonnage; cannot validate safe manning.`
+      );
+    }
+
     const crew = await this.prisma.crewMember.findMany({
       where: { vesselId, deletedAt: null } as any,
       include: {
@@ -263,7 +290,7 @@ export class CrewService {
 
     const safeManningValidation = validateSafeManningRequirement(crewForValidation, {
       requirements: safeManningRequirements,
-      vesselGrossTonnage: Number(vessel.grossTonnage || 0),
+      vesselGrossTonnage: Number(vessel.grossTonnage),
     });
 
     // Log access
@@ -283,7 +310,8 @@ export class CrewService {
     return {
       compliant: stcwValidation.compliant && safeManningValidation.compliant,
       required: safeManningValidation.required,
-      actual: safeManningValidation.actual,
+      actualByRole: safeManningValidation.actualByRole,
+      fulfillableByRole: safeManningValidation.fulfillableByRole,
       discrepancies: [
         ...stcwValidation.errors.map((e) => e.message),
         ...safeManningValidation.errors.map((e) => e.message),
@@ -318,8 +346,11 @@ export class CrewService {
     // Mask sensitive fields before returning:
     return {
       ...crew,
-      identificationNumber: this.maskCiphertext((crew as any).identificationNumber),
-      passportNumber: this.maskCiphertext((crew as any).passportNumber),
+      identificationNumber: this.maskCiphertext(
+        (crew as any).identificationNumber,
+        'identificationNumber'
+      ),
+      passportNumber: this.maskCiphertext((crew as any).passportNumber, 'passportNumber'),
     };
   }
 
