@@ -1,5 +1,10 @@
-import { validateDocumentNumber, validateMinimumAge, validatePassengerIMOFields, validatePassportExpiry } from '@/lib/validators';
-import { PrismaService } from '@gbferry/database';
+import {
+  validateDocumentNumber,
+  validateMinimumAge,
+  validatePassengerIMOFields,
+  validatePassportExpiry,
+} from '@/lib/validators';
+import { PrismaService, decryptField, encryptField, maskField } from '@gbferry/database';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 
@@ -9,8 +14,8 @@ export interface PassengerCreateDTO {
   givenNames: string;
   dateOfBirth: Date | string;
   nationality: string;
-  gender: 'M' | 'F' | 'X';  // Matches Prisma Gender enum
-  identityDocType: 'PASSPORT' | 'NATIONAL_ID' | 'TRAVEL_DOCUMENT' | 'SEAMAN_BOOK';  // Matches Prisma IdentityDocType enum
+  gender: 'M' | 'F' | 'X'; // Matches Prisma Gender enum
+  identityDocType: 'PASSPORT' | 'NATIONAL_ID' | 'TRAVEL_DOCUMENT' | 'SEAMAN_BOOK'; // Matches Prisma IdentityDocType enum
   identityDocNumber: string;
   identityDocCountry: string;
   identityDocExpiry: Date | string;
@@ -32,12 +37,27 @@ export interface PassengerFilters {
 export class PassengersService {
   constructor(
     private prisma: PrismaService,
-    private auditService: AuditService,
+    private auditService: AuditService
   ) {}
+
+  private encryptIdentityDocNumber(identityDocNumber?: string): string | undefined {
+    if (!identityDocNumber) return undefined;
+    return encryptField(identityDocNumber);
+  }
+
+  private maskIdentityDoc(ciphertext?: string | null): string | null {
+    if (!ciphertext) return null;
+    try {
+      const plain = decryptField(ciphertext);
+      return maskField(plain);
+    } catch {
+      return '****';
+    }
+  }
 
   /**
    * Check-in a passenger for a sailing
-   * 
+   *
    * Validation steps:
    * 1. Validate IMO FAL Form 5 required fields
    * 2. Validate passport expiry for sailing date
@@ -46,7 +66,10 @@ export class PassengersService {
    * 5. Verify consent
    * 6. Record audit trail
    */
-  async checkIn(checkInDto: PassengerCreateDTO & { sailingId: string; sailingDate: string }, userId?: string): Promise<any> {
+  async checkIn(
+    checkInDto: PassengerCreateDTO & { sailingId: string; sailingDate: string },
+    userId?: string
+  ): Promise<any> {
     const errors: string[] = [];
 
     // Step 1: IMO FAL Form 5 validation
@@ -58,12 +81,13 @@ export class PassengersService {
       });
     }
 
-    // Step 2: Identity document expiry validation  
+    // Step 2: Identity document expiry validation
     if (checkInDto.identityDocExpiry) {
       const sailingDate = new Date(checkInDto.sailingDate);
-      const expiryDate = typeof checkInDto.identityDocExpiry === 'string' 
-        ? checkInDto.identityDocExpiry 
-        : checkInDto.identityDocExpiry.toISOString();
+      const expiryDate =
+        typeof checkInDto.identityDocExpiry === 'string'
+          ? checkInDto.identityDocExpiry
+          : checkInDto.identityDocExpiry.toISOString();
       const expiryError = validatePassportExpiry(expiryDate, sailingDate);
       if (expiryError) {
         throw new BadRequestException({
@@ -77,7 +101,7 @@ export class PassengersService {
     if (checkInDto.identityDocType && checkInDto.identityDocNumber) {
       const docError = validateDocumentNumber(
         checkInDto.identityDocType,
-        checkInDto.identityDocNumber,
+        checkInDto.identityDocNumber
       );
       if (docError) {
         throw new BadRequestException({
@@ -89,9 +113,10 @@ export class PassengersService {
 
     // Step 4: Age validation
     if (checkInDto.dateOfBirth) {
-      const dobString = typeof checkInDto.dateOfBirth === 'string' 
-        ? checkInDto.dateOfBirth 
-        : checkInDto.dateOfBirth.toISOString();
+      const dobString =
+        typeof checkInDto.dateOfBirth === 'string'
+          ? checkInDto.dateOfBirth
+          : checkInDto.dateOfBirth.toISOString();
       const ageError = validateMinimumAge(dobString);
       if (ageError) {
         throw new BadRequestException({
@@ -116,7 +141,7 @@ export class PassengersService {
         nationality: checkInDto.nationality,
         gender: checkInDto.gender as any,
         identityDocType: checkInDto.identityDocType as any,
-        identityDocNumber: checkInDto.identityDocNumber, // AES-256-GCM encrypted at DB
+        identityDocNumber: this.encryptIdentityDocNumber(checkInDto.identityDocNumber),
         identityDocCountry: checkInDto.identityDocCountry,
         identityDocExpiry: new Date(checkInDto.identityDocExpiry),
         portOfEmbarkation: checkInDto.portOfEmbarkation,
@@ -151,7 +176,10 @@ export class PassengersService {
    */
   async findAll(filters: PassengerFilters, userId?: string): Promise<any> {
     // Validate filters
-    if (filters.status && !['CHECKED_IN', 'BOARDED', 'NO_SHOW', 'CANCELLED'].includes(filters.status)) {
+    if (
+      filters.status &&
+      !['CHECKED_IN', 'BOARDED', 'NO_SHOW', 'CANCELLED'].includes(filters.status)
+    ) {
       throw new BadRequestException('Invalid status filter');
     }
 
@@ -160,7 +188,7 @@ export class PassengersService {
         ...(filters.sailingId && { sailingId: filters.sailingId }),
         ...(filters.status && { status: filters.status as any }),
         ...(filters.date && {
-          sailing: { departureTime: { gte: new Date(filters.date) } }
+          sailing: { departureTime: { gte: new Date(filters.date) } },
         }),
         deletedAt: null,
       } as any,
@@ -169,6 +197,11 @@ export class PassengersService {
       take: 100,
       skip: 0,
     });
+
+    const sanitized = passengers.map((p: any) => ({
+      ...p,
+      identityDocNumber: this.maskIdentityDoc(p.identityDocNumber),
+    }));
 
     // Log query for audit trail (ISO 27001 A.8.15)
     await this.auditService.log({
@@ -180,7 +213,7 @@ export class PassengersService {
     });
 
     return {
-      data: passengers,
+      data: sanitized,
       total: passengers.length,
       filters,
     };
@@ -204,10 +237,9 @@ export class PassengersService {
     }
 
     // Mask PII fields unless user is authorized
-    // Mask identity document numbers (show only last 4 digits)
     const masked = {
       ...passenger,
-      identityDocNumber: passenger.identityDocNumber?.slice(-4).padStart(passenger.identityDocNumber.length, '*'),
+      identityDocNumber: this.maskIdentityDoc(passenger.identityDocNumber),
     };
 
     // Log access for audit trail
@@ -225,7 +257,7 @@ export class PassengersService {
   /**
    * Update passenger record
    * Immutably logged for audit compliance (ISO 27001 A.8.15)
-   * 
+   *
    * RESTRICTION: Cannot modify passengers in approved manifests
    */
   async update(id: string, updateDto: Partial<PassengerCreateDTO>, userId?: string): Promise<any> {
@@ -239,17 +271,24 @@ export class PassengersService {
     }
 
     // Check if passenger is in approved/submitted manifest - if so, immutable
-    if (passenger.manifestEntries?.some(m => 
-      m.manifest.status === 'APPROVED' || m.manifest.status === 'SUBMITTED'
-    )) {
+    if (
+      passenger.manifestEntries?.some(
+        (m) => m.manifest.status === 'APPROVED' || m.manifest.status === 'SUBMITTED'
+      )
+    ) {
       throw new BadRequestException(
-        'Cannot modify passenger that is part of an approved or submitted manifest',
+        'Cannot modify passenger that is part of an approved or submitted manifest'
       );
+    }
+
+    const data: any = { ...updateDto };
+    if (updateDto.identityDocNumber) {
+      data.identityDocNumber = this.encryptIdentityDocNumber(updateDto.identityDocNumber);
     }
 
     const updatedPassenger = await this.prisma.passenger.update({
       where: { id },
-      data: updateDto as any,
+      data,
     });
 
     // Log audit trail with before/after values (immutable)
@@ -275,7 +314,7 @@ export class PassengersService {
   async remove(id: string, userId?: string): Promise<any> {
     const passenger = await this.prisma.passenger.update({
       where: { id },
-      data: { 
+      data: {
         status: 'CANCELLED',
         deletedAt: new Date(),
       } as any,

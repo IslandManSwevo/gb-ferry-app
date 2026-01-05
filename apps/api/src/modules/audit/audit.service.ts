@@ -203,6 +203,49 @@ export class AuditService {
     }
   }
 
+  async logAuthFailure(params: {
+    userId?: string;
+    userName?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    reason?: string;
+  }): Promise<any> {
+    return this.log({
+      action: 'FAILED_LOGIN',
+      entityType: 'auth',
+      userId: params.userId,
+      userName: params.userName,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+      reason: params.reason,
+      compliance: 'Authentication failure logged for security monitoring',
+    });
+  }
+
+  async logDataExport(params: {
+    entityType: string;
+    entityId?: string;
+    userId?: string;
+    userName?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    reason?: string;
+    details?: any;
+  }): Promise<any> {
+    return this.log({
+      action: 'DATA_EXPORT',
+      entityType: params.entityType,
+      entityId: params.entityId,
+      userId: params.userId,
+      userName: params.userName,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+      reason: params.reason,
+      details: params.details,
+      compliance: 'Data export logged for regulator visibility',
+    });
+  }
+
   async getAuditLog(filters: AuditLogFilters): Promise<any> {
     const skip = (filters.page - 1) * filters.limit;
 

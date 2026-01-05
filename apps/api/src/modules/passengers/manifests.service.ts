@@ -19,22 +19,25 @@ interface ManifestApprovalDto {
 export class ManifestsService {
   constructor(
     private prisma: PrismaService,
-    private auditService: AuditService,
+    private auditService: AuditService
   ) {}
 
   /**
    * Generate a manifest from checked-in passengers
-   * 
+   *
    * Business Logic:
    * 1. Fetch all checked-in passengers for the sailing
    * 2. Run comprehensive validation (IMO FAL Form 5 compliance)
    * 3. Create manifest with draft status
    * 4. Attach validation errors/warnings
    * 5. Log audit trail
-   * 
+   *
    * Compliance: ISO 27001 A.8.28 (Input Validation)
    */
-  async generate(generateDto: { sailingId: string; sailingDate: string }, userId?: string): Promise<any> {
+  async generate(
+    generateDto: { sailingId: string; sailingDate: string },
+    userId?: string
+  ): Promise<any> {
     const passengers = await this.prisma.passenger.findMany({
       where: {
         sailingId: generateDto.sailingId,
@@ -159,13 +162,13 @@ export class ManifestsService {
 
   /**
    * Approve a manifest for submission
-   * 
+   *
    * Compliance Gate (ISO 27001 A.8.28):
    * 1. Manifest must have NO validation errors
    * 2. Approver must have captain/operations role
    * 3. Approver must explicitly confirm
    * 4. Approval is immutably logged
-   * 
+   *
    * This is a GATE, not automatic. Human approval required.
    */
   async approve(id: string, approvalDto: ManifestApprovalDto, userId?: string): Promise<any> {
@@ -218,7 +221,7 @@ export class ManifestsService {
 
   /**
    * Submit manifest as ready for regulator
-   * 
+   *
    * IMPORTANT: This does NOT automatically submit to government systems.
    * It only marks the manifest as having been prepared and approved
    * for the captain/operations staff to manually submit via their
@@ -237,7 +240,7 @@ export class ManifestsService {
     // Step 2: Verify manifest is already approved (business rule)
     if (manifest.status !== 'APPROVED') {
       throw new BadRequestException(
-        `Cannot submit manifest with status '${manifest.status}'. Must be 'APPROVED' first.`,
+        `Cannot submit manifest with status '${manifest.status}'. Must be 'APPROVED' first.`
       );
     }
 
@@ -269,7 +272,7 @@ export class ManifestsService {
 
   /**
    * Export manifest in jurisdiction-specific format
-   * 
+   *
    * The MOAT: Jurisdiction-specific transformation (business-logic-maritime-compliance.md)
    * Supports: BMA (CSV, XML, PDF), Jamaica (Phase 2), Barbados (Phase 2)
    */
@@ -277,7 +280,7 @@ export class ManifestsService {
     id: string,
     format: 'csv' | 'xml' | 'pdf',
     jurisdiction: string = 'bahamas',
-    userId?: string,
+    userId?: string
   ) {
     const manifest = await this.prisma.manifest.findUnique({
       where: { id },
@@ -298,18 +301,18 @@ export class ManifestsService {
       passengerCount: manifest.passengers.length,
     };
 
-    // Log export for audit compliance
-    await this.auditService.log({
-      action: 'MANIFEST_EXPORTED',
+    // Log export for audit compliance and regulator visibility
+    await this.auditService.logDataExport({
       entityType: 'Manifest',
       entityId: id,
       userId,
       details: {
+        action: 'MANIFEST_EXPORTED',
         format,
         jurisdiction,
         passengerCount: manifest.passengers.length,
       },
-      compliance: 'Export action logged per ISO 27001 A.8.15',
+      reason: 'Manifest export',
     });
 
     return exportData;

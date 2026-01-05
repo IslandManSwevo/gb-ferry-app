@@ -1,6 +1,6 @@
 /**
  * Crew & Certification Validators
- * 
+ *
  * Implements BMA Safe Manning Regulations (R106)
  * and STCW/Medical Certificate compliance checks
  */
@@ -77,17 +77,51 @@ export function getVesselCategory(grossTonnage: number): string {
  * Some roles can substitute (e.g., DECK_OFFICER for ABLE_SEAMAN)
  */
 export function roleMatches(actualRole: CrewRole, requiredRole: string): boolean {
+  // Allow only equal or higher-ranked substitutions; never allow junior crew to fill senior billets
   const roleMap: Record<string, string[]> = {
     MASTER: ['MASTER'],
-    CHIEF_OFFICER: ['CHIEF_OFFICER', 'SECOND_OFFICER'],
-    SECOND_OFFICER: ['SECOND_OFFICER', 'THIRD_OFFICER', 'DECK_OFFICER'],
-    ABLE_SEAMAN: ['ABLE_SEAMAN', 'ORDINARY_SEAMAN', 'RATING'],
+    CHIEF_OFFICER: ['CHIEF_OFFICER', 'MASTER'],
+    SECOND_OFFICER: ['SECOND_OFFICER', 'CHIEF_OFFICER', 'MASTER'],
+    THIRD_OFFICER: ['THIRD_OFFICER', 'SECOND_OFFICER', 'CHIEF_OFFICER', 'MASTER'],
+    DECK_OFFICER: ['DECK_OFFICER', 'THIRD_OFFICER', 'SECOND_OFFICER', 'CHIEF_OFFICER', 'MASTER'],
+
+    ABLE_SEAMAN: [
+      'ABLE_SEAMAN',
+      'DECK_OFFICER',
+      'THIRD_OFFICER',
+      'SECOND_OFFICER',
+      'CHIEF_OFFICER',
+      'MASTER',
+    ],
+    ORDINARY_SEAMAN: [
+      'ORDINARY_SEAMAN',
+      'ABLE_SEAMAN',
+      'DECK_OFFICER',
+      'THIRD_OFFICER',
+      'SECOND_OFFICER',
+      'CHIEF_OFFICER',
+      'MASTER',
+    ],
+    RATING: [
+      'RATING',
+      'ORDINARY_SEAMAN',
+      'ABLE_SEAMAN',
+      'DECK_OFFICER',
+      'THIRD_OFFICER',
+      'SECOND_OFFICER',
+      'CHIEF_OFFICER',
+      'MASTER',
+    ],
+
     CHIEF_ENGINEER: ['CHIEF_ENGINEER'],
-    SECOND_ENGINEER: ['SECOND_ENGINEER', 'THIRD_ENGINEER', 'ENGINE_OFFICER'],
-    RATING: ['RATING', 'ABLE_SEAMAN'],
+    SECOND_ENGINEER: ['SECOND_ENGINEER', 'CHIEF_ENGINEER'],
+    THIRD_ENGINEER: ['THIRD_ENGINEER', 'SECOND_ENGINEER', 'CHIEF_ENGINEER'],
+    ENGINE_OFFICER: ['ENGINE_OFFICER', 'THIRD_ENGINEER', 'SECOND_ENGINEER', 'CHIEF_ENGINEER'],
+    ELECTRO_TECHNICAL_OFFICER: ['ELECTRO_TECHNICAL_OFFICER', 'CHIEF_ENGINEER'],
+
     CHIEF_STEWARD: ['CHIEF_STEWARD'],
-    STEWARD: ['STEWARD', 'COOK'],
-    ELECTRO_TECHNICAL_OFFICER: ['ELECTRO_TECHNICAL_OFFICER'],
+    STEWARD: ['STEWARD', 'CHIEF_STEWARD'],
+    COOK: ['COOK', 'STEWARD', 'CHIEF_STEWARD'],
   };
 
   return (roleMap[requiredRole] || []).includes(actualRole);
@@ -95,24 +129,44 @@ export function roleMatches(actualRole: CrewRole, requiredRole: string): boolean
 
 /**
  * Validate safe manning for a vessel
- * 
+ *
  * BMA R106: "The shipowner shall ensure that the ship is manned in accordance
  * with the Safe Manning Document."
  */
 export function validateSafeManningRequirement(
-  vesselGrossTonnage: number,
   assignedCrew: Array<{ id: string; name: string; role: CrewRole }>,
+  options: {
+    requirements?: Array<{ role: string; minimumCount: number }>;
+    vesselGrossTonnage?: number;
+  } = {}
 ): {
   compliant: boolean;
   errors: CertificationError[];
   warnings: CertificationError[];
+  required: Record<string, number>;
+  actual: Record<string, number>;
 } {
   const errors: CertificationError[] = [];
   const warnings: CertificationError[] = [];
 
-  // Determine requirements based on vessel size
-  const category = getVesselCategory(vesselGrossTonnage);
-  const requirements = SAFE_MANNING_REQUIREMENTS[category];
+  // Build requirement map from the vessel's Safe Manning Document if provided
+  const requirements: Record<string, number> = (options.requirements || []).reduce(
+    (acc, req) => {
+      acc[req.role] = Math.max(acc[req.role] || 0, req.minimumCount);
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
+  // Fallback to tonnage-based heuristic only when no authoritative document exists
+  if (!options.requirements || options.requirements.length === 0) {
+    const category = getVesselCategory(options.vesselGrossTonnage || 0);
+    Object.assign(requirements, SAFE_MANNING_REQUIREMENTS[category]);
+  }
+
+  if (Object.keys(requirements).length === 0) {
+    return { compliant: true, errors, warnings, required: {}, actual: {} };
+  }
 
   // Count crew by role
   const crewByRole: Record<string, number> = {};
@@ -147,6 +201,8 @@ export function validateSafeManningRequirement(
     compliant: errors.length === 0,
     errors,
     warnings,
+    required: requirements,
+    actual: crewByRole,
   };
 }
 
@@ -176,7 +232,7 @@ export function validateCertificateExpiry(
   expiryDate: string,
   crewId: string,
   crewName: string,
-  certType: string,
+  certType: string
 ): CertificationError | null {
   try {
     const expiry = new Date(expiryDate);
@@ -213,13 +269,13 @@ export function checkCertificateExpiringWithin30Days(
   expiryDate: string,
   crewId: string,
   crewName: string,
-  certType: string,
+  certType: string
 ): CertificationError | null {
   try {
     const expiry = new Date(expiryDate);
     const today = new Date();
     const daysUntilExpiry = Math.floor(
-      (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
     );
 
     if (daysUntilExpiry <= 30 && daysUntilExpiry > 0) {
@@ -247,7 +303,7 @@ export function validateMedicalCertificate(
   crewId: string,
   crewName: string,
   hasMedical: boolean,
-  medicalExpiryDate?: string,
+  medicalExpiryDate?: string
 ): CertificationError[] {
   const errors: CertificationError[] = [];
 
@@ -267,7 +323,7 @@ export function validateMedicalCertificate(
       medicalExpiryDate,
       crewId,
       crewName,
-      'MEDICAL_ENG1',
+      'MEDICAL_ENG1'
     );
     if (expiryError) {
       errors.push(expiryError);
@@ -278,7 +334,7 @@ export function validateMedicalCertificate(
       medicalExpiryDate,
       crewId,
       crewName,
-      'MEDICAL_ENG1',
+      'MEDICAL_ENG1'
     );
     if (expiringWarning) {
       // Note: This would be added to warnings, not errors
@@ -303,7 +359,7 @@ export function validateCrewCompliance(
       type: string;
       expiryDate: string;
     }>;
-  }>,
+  }>
 ): {
   compliant: boolean;
   errors: CertificationError[];
@@ -318,7 +374,7 @@ export function validateCrewCompliance(
       crewMember.id,
       crewMember.name,
       crewMember.hasMedical,
-      crewMember.medicalExpiryDate,
+      crewMember.medicalExpiryDate
     );
     errors.push(...medicalErrors);
 
@@ -329,7 +385,7 @@ export function validateCrewCompliance(
         cert.expiryDate,
         crewMember.id,
         crewMember.name,
-        cert.type,
+        cert.type
       );
       if (expiryError) {
         errors.push(expiryError);
@@ -340,7 +396,7 @@ export function validateCrewCompliance(
         cert.expiryDate,
         crewMember.id,
         crewMember.name,
-        cert.type,
+        cert.type
       );
       if (expiringWarning) {
         warnings.push(expiringWarning);

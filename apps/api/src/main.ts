@@ -4,7 +4,20 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
+function validateEncryptionKey() {
+  const key = process.env.ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error('ENCRYPTION_KEY is required (64 hex characters)');
+  }
+  const isHex64 = /^[a-fA-F0-9]{64}$/.test(key);
+  if (!isHex64) {
+    throw new Error('ENCRYPTION_KEY must be 64 hex characters (32 bytes)');
+  }
+}
+
 async function bootstrap() {
+  validateEncryptionKey();
+
   const app = await NestFactory.create(AppModule);
 
   // Security middleware
@@ -25,7 +38,7 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
-    }),
+    })
   );
 
   // API prefix
@@ -36,7 +49,7 @@ async function bootstrap() {
     .setTitle('Grand Bahama Ferry API')
     .setDescription(
       'Maritime Passenger & Compliance Support Platform API. ' +
-      'Provides decision support for passenger manifests, crew compliance, and regulatory reporting.',
+        'Provides decision support for passenger manifests, crew compliance, and regulatory reporting.'
     )
     .setVersion('1.0')
     .addTag('passengers', 'Passenger check-in and manifest operations')

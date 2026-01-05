@@ -1,20 +1,7 @@
-import {
-    Body,
-    Controller,
-    Get,
-    Param,
-    Post,
-    Query,
-    Res,
-} from '@nestjs/common';
-import {
-    ApiBearerAuth,
-    ApiOperation,
-    ApiQuery,
-    ApiResponse,
-    ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Query, Res } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { AuditService } from '../audit/audit.service';
 import { ComplianceAdapterService } from './compliance-adapter.service';
 import { ComplianceService } from './compliance.service';
 
@@ -25,6 +12,7 @@ export class ComplianceController {
   constructor(
     private readonly complianceService: ComplianceService,
     private readonly adapterService: ComplianceAdapterService,
+    private readonly auditService: AuditService
   ) {}
 
   @Get('dashboard')
@@ -43,7 +31,7 @@ export class ComplianceController {
   async getReports(
     @Query('type') type?: string,
     @Query('dateFrom') dateFrom?: string,
-    @Query('dateTo') dateTo?: string,
+    @Query('dateTo') dateTo?: string
   ): Promise<any> {
     return this.complianceService.getReports({ type, dateFrom, dateTo });
   }
@@ -57,19 +45,23 @@ export class ComplianceController {
     @Param('manifestId') manifestId: string,
     @Query('format') format: string,
     @Query('jurisdiction') jurisdiction: string = 'bahamas',
-    @Res() res: Response,
+    @Res() res: Response
   ) {
-    const exported = await this.adapterService.exportManifest(
-      manifestId,
-      format,
-      jurisdiction,
-    );
+    const exported = await this.adapterService.exportManifest(manifestId, format, jurisdiction);
+
+    await this.auditService.logDataExport({
+      entityType: 'Manifest',
+      entityId: manifestId,
+      details: {
+        action: 'MANIFEST_EXPORTED',
+        format,
+        jurisdiction,
+      },
+      reason: 'Compliance manifest export',
+    });
 
     res.setHeader('Content-Type', exported.contentType);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${exported.filename}"`,
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${exported.filename}"`);
     res.send(exported.data);
   }
 
@@ -80,18 +72,23 @@ export class ComplianceController {
   async exportCrewCompliance(
     @Param('vesselId') vesselId: string,
     @Query('format') format: string,
-    @Res() res: Response,
+    @Res() res: Response
   ) {
-    const exported = await this.adapterService.exportCrewCompliance(
-      vesselId,
-      format,
-    );
+    const exported = await this.adapterService.exportCrewCompliance(vesselId, format);
+
+    await this.auditService.logDataExport({
+      entityType: 'Vessel',
+      entityId: vesselId,
+      details: {
+        action: 'CREW_EXPORT',
+        format,
+        pack: 'crew-compliance',
+      },
+      reason: 'Crew compliance export',
+    });
 
     res.setHeader('Content-Type', exported.contentType);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${exported.filename}"`,
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${exported.filename}"`);
     res.send(exported.data);
   }
 

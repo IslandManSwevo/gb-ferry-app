@@ -56,19 +56,19 @@ export interface ComplianceAlert {
 export class ComplianceService {
   constructor(
     private prisma: PrismaService,
-    private auditService: AuditService,
+    private auditService: AuditService
   ) {}
 
   async getDashboard(userId?: string): Promise<ComplianceDashboard> {
     /**
      * COMPLIANCE DASHBOARD: Real-time operational compliance view
-     * 
+     *
      * Aggregates data across all domains:
      * - Passenger Manifests: Pending approvals, validation errors
      * - Crew Management: Safe manning violations, certificate expiries
      * - Vessel Compliance: Inspection status, alert history
      * - Audit Trail: User actions, system events (ISO 27001 A.8.15)
-     * 
+     *
      * BMA Requirement: Dashboard must be accessible within 5 minutes of any change
      */
 
@@ -88,7 +88,7 @@ export class ComplianceService {
         where: { vesselId: vessel.id, deletedAt: null } as any,
         include: { certifications: { where: { status: 'VALID' } } },
       });
-      
+
       // Map crew to validation format
       const crewForValidation = crewMembers.map((c: any) => ({
         id: c.id,
@@ -100,7 +100,7 @@ export class ComplianceService {
           expiryDate: cert.expiryDate.toISOString(),
         })),
       }));
-      
+
       const validation = validateCrewCompliance(crewForValidation);
       if (validation.compliant) compliantVessels++;
     }
@@ -118,6 +118,29 @@ export class ComplianceService {
     // Fetch pending manifests
     const pendingManifests = await this.prisma.manifest.count({
       where: { status: { in: ['DRAFT', 'PENDING', 'APPROVED'] } },
+    });
+
+    // Calculate total crew
+    const totalCrew = await this.prisma.crewMember.count({
+      where: { status: 'ACTIVE', deletedAt: null },
+    });
+
+    // Calculate today's passengers
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const todaysPassengers = await this.prisma.passenger.count({
+      where: {
+        sailing: {
+          departureTime: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+        status: { not: 'CANCELLED' },
+      },
     });
 
     // Generate compliance alerts
@@ -149,8 +172,10 @@ export class ComplianceService {
         compliantVessels,
         expiringCertifications: expiringCerts.length,
         pendingManifests,
+        totalCrew,
+        todaysPassengers,
         upcomingInspections: 0, // Would query inspection table if available
-        nonCompliantAlertsCount: alerts.filter(a => a.severity === 'critical').length,
+        nonCompliantAlertsCount: alerts.filter((a) => a.severity === 'critical').length,
       },
       recentActivity: recentActivity.map((log: any) => ({
         timestamp: log.timestamp,
@@ -173,14 +198,14 @@ export class ComplianceService {
   async getReports(filters: ReportFilters, userId?: string): Promise<any> {
     /**
      * COMPLIANCE REPORTING: Historical compliance data export
-     * 
+     *
      * Report Types:
      * - 'safe_manning': BMA R106 compliance history (quarterly)
      * - 'manifest': Passenger manifest approval metrics
      * - 'certifications': Crew certificate validity report
      * - 'inspections': Port state control inspection readiness
      * - 'audit_log': Complete audit trail (ISO 27001 A.8.15)
-     * 
+     *
      * All reports include:
      * - Report generation timestamp
      * - Data completeness validation
@@ -192,15 +217,11 @@ export class ComplianceService {
       const to = new Date(filters.dateTo);
 
       if (from > to) {
-        throw new BadRequestException(
-          'dateFrom must be before dateTo',
-        );
+        throw new BadRequestException('dateFrom must be before dateTo');
       }
 
       if (to.getTime() - from.getTime() > 365 * 24 * 60 * 60 * 1000) {
-        throw new BadRequestException(
-          'Report period cannot exceed 365 days',
-        );
+        throw new BadRequestException('Report period cannot exceed 365 days');
       }
     }
 
@@ -249,10 +270,10 @@ export class ComplianceService {
   async recordInspection(inspectionDto: any, userId?: string): Promise<any> {
     /**
      * PORT STATE CONTROL INSPECTION RECORDING
-     * 
+     *
      * When vessel is inspected by port authority (BMA, Jamaica, etc.),
      * record findings and update compliance status.
-     * 
+     *
      * Compliance Gate: All non-conformities must be resolved before next voyage
      * ISO 27001 A.8.15: Immutable audit record of inspection
      */
@@ -322,11 +343,11 @@ export class ComplianceService {
 
   private async generateComplianceAlerts(
     vessels: any[],
-    expiringCerts: any[],
+    expiringCerts: any[]
   ): Promise<ComplianceAlert[]> {
     /**
      * ALERT GENERATION ENGINE
-     * 
+     *
      * Monitors all compliance data and generates alerts for:
      * 1. Safe Manning Violations (BMA R106)
      * 2. Certificate Expiries (< 30 days = warning, < 7 days = critical)
@@ -343,7 +364,7 @@ export class ComplianceService {
         where: { vesselId: vessel.id, deletedAt: null } as any,
         include: { certifications: { where: { status: 'VALID' } } },
       });
-      
+
       const crewForValidation = crewMembers.map((c: any) => ({
         id: c.id,
         name: `${c.familyName} ${c.givenNames}`,
@@ -354,7 +375,7 @@ export class ComplianceService {
           expiryDate: cert.expiryDate.toISOString(),
         })),
       }));
-      
+
       const validation = validateCrewCompliance(crewForValidation);
       if (!validation.compliant) {
         alerts.push({
@@ -362,7 +383,7 @@ export class ComplianceService {
           severity: 'critical',
           type: 'safe_manning_violation',
           title: `BMA R106 Safe Manning Violation: ${vessel.name}`,
-          description: validation.errors.map(e => e.message).join('; '),
+          description: validation.errors.map((e) => e.message).join('; '),
           affectedEntity: {
             type: 'vessel',
             id: vessel.id,
@@ -377,7 +398,7 @@ export class ComplianceService {
     const now = new Date();
     for (const cert of expiringCerts) {
       const daysUntilExpiry = Math.floor(
-        (cert.expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+        (cert.expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
       );
 
       // Fetch crew member name for alert
