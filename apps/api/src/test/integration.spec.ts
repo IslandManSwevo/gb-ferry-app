@@ -1,11 +1,11 @@
 /**
  * Grand Bahama Ferry - Integration Tests
- * 
+ *
  * End-to-end testing for all workflows:
  * - Passenger check-in → manifest generation → approval → export
  * - Crew assignment → safe manning validation → certification renewal
  * - Compliance dashboard updates and alert generation
- * 
+ *
  * These tests validate the complete flow with actual database operations
  * and compliance gate enforcement.
  */
@@ -17,8 +17,19 @@ import { AuditService } from '../modules/audit/audit.service';
 import { ComplianceService } from '../modules/compliance/compliance.service';
 import { CertificationsService } from '../modules/crew/certifications.service';
 import { CrewService } from '../modules/crew/crew.service';
+import { DocumentQueryService } from '../modules/documents/document-query.service';
+import { DocumentUploadService } from '../modules/documents/document-upload.service';
 import { ManifestsService } from '../modules/passengers/manifests.service';
 import { PassengersService } from '../modules/passengers/passengers.service';
+
+jest.mock('pdf-parse', () => ({
+  __esModule: true,
+  default: jest.fn(() =>
+    Promise.resolve({
+      text: 'valid until 01/01/2030 certificate number ABC123 issuing authority Bahamas',
+    })
+  ),
+}));
 
 describe('Grand Bahama Ferry - Integration Tests', () => {
   let app: INestApplication;
@@ -29,6 +40,8 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
   let certificationsService: CertificationsService;
   let complianceService: ComplianceService;
   let auditService: AuditService;
+  let documentUploadService: DocumentUploadService;
+  let documentQueryService: DocumentQueryService;
 
   // Test IDs
   const testUserId = 'test-user-001';
@@ -60,7 +73,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
     nationality: 'USA',
     gender: 'M' as const,
     identityDocType: 'PASSPORT' as const,
-    identityDocNumber: '123456789',  // 9 digits for US passport
+    identityDocNumber: '123456789', // 9 digits for US passport
     identityDocCountry: 'USA',
     identityDocExpiry: new Date('2028-05-15'),
     portOfEmbarkation: 'Nassau',
@@ -165,6 +178,10 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
       where: { userId: testUserId },
     });
 
+    await prisma.vesselDocument.deleteMany({
+      where: { vesselId: testVesselId },
+    });
+
     const crewMembers = await prisma.crewMember.findMany({
       where: { vesselId: testVesselId },
       select: { id: true },
@@ -209,6 +226,8 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
         CertificationsService,
         ComplianceService,
         AuditService,
+        DocumentUploadService,
+        DocumentQueryService,
       ],
     }).compile();
 
@@ -222,6 +241,8 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
     certificationsService = moduleRef.get<CertificationsService>(CertificationsService);
     complianceService = moduleRef.get<ComplianceService>(ComplianceService);
     auditService = moduleRef.get<AuditService>(AuditService);
+    documentUploadService = moduleRef.get<DocumentUploadService>(DocumentUploadService);
+    documentQueryService = moduleRef.get<DocumentQueryService>(DocumentQueryService);
 
     // Clean up and seed fresh test data
     await cleanupTestData();
@@ -246,7 +267,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           sailingDate: testSailing.departureTime.toISOString(),
           consentProvidedAt: new Date().toISOString(),
         },
-        testUserId,
+        testUserId
       );
 
       expect(result).toBeDefined();
@@ -263,9 +284,9 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
         consentProvidedAt: new Date().toISOString(),
       };
 
-      await expect(
-        passengersService.checkIn(expiredPassport, testUserId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(passengersService.checkIn(expiredPassport, testUserId)).rejects.toThrow(
+        BadRequestException
+      );
     });
 
     it('should reject passenger under 18 years old', async () => {
@@ -277,9 +298,9 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
         consentProvidedAt: new Date().toISOString(),
       };
 
-      await expect(
-        passengersService.checkIn(underage, testUserId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(passengersService.checkIn(underage, testUserId)).rejects.toThrow(
+        BadRequestException
+      );
     });
 
     it('should reject passenger without consent', async () => {
@@ -290,9 +311,9 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
         sailingDate: testSailing.departureTime.toISOString(),
       };
 
-      await expect(
-        passengersService.checkIn(noConsent, testUserId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(passengersService.checkIn(noConsent, testUserId)).rejects.toThrow(
+        BadRequestException
+      );
     });
 
     it('should retrieve passenger list with filtering', async () => {
@@ -304,17 +325,90 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           sailingDate: testSailing.departureTime.toISOString(),
           consentProvidedAt: new Date().toISOString(),
         },
-        testUserId,
+        testUserId
       );
 
       // Then retrieve the list
-      const result = await passengersService.findAll(
-        { sailingId: testSailingId },
-        testUserId,
-      );
+      const result = await passengersService.findAll({ sailingId: testSailingId }, testUserId);
 
       expect(result).toBeDefined();
       expect(result.data).toBeInstanceOf(Array);
+    });
+  });
+
+  // ============================================
+  // DOCUMENT MANAGEMENT TESTS
+  // ============================================
+  describe('Document Management', () => {
+    const storage = { uploadFile: jest.fn().mockResolvedValue('documents/vessel/test.pdf') } as any;
+
+    beforeAll(() => {
+      process.env.MINIO_BUCKET = process.env.MINIO_BUCKET || 'documents-test';
+      process.env.MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || 'http://localhost:9000';
+      process.env.AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+      process.env.MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || 'minio';
+      process.env.MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || 'minio123';
+    });
+
+    it('uploads a vessel document, extracts metadata, and records audit', async () => {
+      const service = new DocumentUploadService(prisma, auditService, storage);
+      const file = {
+        originalname: 'safemanning.pdf',
+        mimetype: 'application/pdf',
+        size: 512,
+        buffer: Buffer.from('pdf data'),
+      } as Express.Multer.File;
+
+      const result = await service.uploadWithMetadataExtraction(
+        file,
+        {
+          name: 'Safe Manning Cert',
+          entityType: 'vessel',
+          entityId: testVesselId,
+          documentType: 'SAFE_MANNING_CERTIFICATE',
+        } as any,
+        testUserId
+      );
+
+      const saved = await prisma.vesselDocument.findFirst({ where: { id: result.id } });
+      expect(saved).toBeTruthy();
+      expect(storage.uploadFile).toHaveBeenCalled();
+
+      const audit = await prisma.auditLog.findFirst({
+        where: { entityId: result.id, action: 'DOCUMENT_UPLOADED' as any },
+      });
+      expect(audit).toBeTruthy();
+      expect(audit?.userId).toBe(testUserId);
+    });
+
+    it('searches vessel documents with pagination and audit trail', async () => {
+      // Seed a document directly
+      await prisma.vesselDocument.create({
+        data: {
+          vesselId: testVesselId,
+          type: 'SAFE_MANNING_CERTIFICATE',
+          title: 'Safe Manning Cert',
+          description: 'Test doc',
+          fileName: 'doc.pdf',
+          fileSize: 100,
+          mimeType: 'application/pdf',
+          s3Key: 'documents/vessel/doc.pdf',
+          status: 'VALID' as any,
+          uploadedById: testUserId,
+        },
+      });
+
+      const result = await documentQueryService.search(
+        { vesselId: testVesselId, q: 'safe', page: 1, limit: 10 },
+        testUserId
+      );
+
+      expect(result.total).toBeGreaterThanOrEqual(1);
+
+      const audit = await prisma.auditLog.findFirst({
+        where: { action: 'DOCUMENT_LIST_READ' as any, userId: testUserId },
+      });
+      expect(audit).toBeTruthy();
     });
   });
 
@@ -331,7 +425,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           sailingDate: testSailing.departureTime.toISOString(),
           consentProvidedAt: new Date().toISOString(),
         },
-        testUserId,
+        testUserId
       );
 
       // Generate manifest
@@ -347,10 +441,10 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
 
     it('should block manifest approval if validation errors exist', async () => {
       // Generate manifest with validation errors
-      const manifest = await manifestsService.generate({
+      const manifest = (await manifestsService.generate({
         sailingId: testSailingId,
         sailingDate: testSailing.departureTime.toISOString(),
-      }) as any;
+      })) as any;
 
       // Attempt approval - should fail if validation errors exist
       if (manifest.validationErrors && manifest.validationErrors.length > 0) {
@@ -359,7 +453,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
             approverId: testUserId,
             approverEmail: 'captain@example.com',
             notes: 'Approved for sailing',
-          }),
+          })
         ).rejects.toThrow(BadRequestException);
       }
     });
@@ -373,13 +467,13 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           sailingDate: testSailing.departureTime.toISOString(),
           consentProvidedAt: new Date().toISOString(),
         },
-        testUserId,
+        testUserId
       );
 
-      const manifest = await manifestsService.generate({
+      const manifest = (await manifestsService.generate({
         sailingId: testSailingId,
         sailingDate: testSailing.departureTime.toISOString(),
-      }) as any;
+      })) as any;
 
       // Only approve if validation passed
       if (!manifest.validationErrors || manifest.validationErrors.length === 0) {
@@ -424,7 +518,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           role: testCrew.role,
           vesselId: testVesselId,
         },
-        testUserId,
+        testUserId
       );
 
       expect(result).toBeDefined();
@@ -441,7 +535,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           role: testCrew.role,
           vesselId: testVesselId,
         },
-        testUserId,
+        testUserId
       );
 
       // Safe manning validation may fail with only one crew member
@@ -450,7 +544,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
         const assigned = await crewService.assignCrewToVessel(
           crew.id,
           testVesselId,
-          testVessel.grossTonnage,
+          testVessel.grossTonnage
         );
 
         // If assignment succeeds, verify the result
@@ -472,16 +566,12 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           role: 'ORDINARY_SEAMAN', // Junior role, not sufficient for master requirement
           vesselId: testVesselId,
         },
-        testUserId,
+        testUserId
       );
 
       // This should fail because safe manning requires a master
       await expect(
-        crewService.assignCrewToVessel(
-          crew.id,
-          testVesselId,
-          testVessel.grossTonnage,
-        ),
+        crewService.assignCrewToVessel(crew.id, testVesselId, testVessel.grossTonnage)
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -511,7 +601,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           role: testCrew.role,
           vesselId: testVesselId,
         },
-        testUserId,
+        testUserId
       );
       crewId = crew.id;
     });
@@ -526,7 +616,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           issuingAuthority: testCertification.issuingAuthority,
           certificationNumber: testCertification.certificateNumber,
         },
-        testUserId,
+        testUserId
       );
 
       expect(cert).toBeDefined();
@@ -543,9 +633,9 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
         certificationNumber: testCertification.certificateNumber,
       };
 
-      await expect(
-        certificationsService.create(expiredCert, testUserId),
-      ).rejects.toThrow(BadRequestException);
+      await expect(certificationsService.create(expiredCert, testUserId)).rejects.toThrow(
+        BadRequestException
+      );
     });
 
     it('should retrieve certifications expiring within 30 days', async () => {
@@ -569,13 +659,13 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           issuingAuthority: testCertification.issuingAuthority,
           certificationNumber: testCertification.certificateNumber,
         },
-        testUserId,
+        testUserId
       );
 
-      const revoked = await certificationsService.revoke(
+      const revoked = (await certificationsService.revoke(
         cert.id,
-        'Non-compliance with medical standards',
-      ) as any;
+        'Non-compliance with medical standards'
+      )) as any;
 
       expect(revoked.status).toBe('REVOKED');
       expect(revoked.revocationReason).toBeDefined();
@@ -631,7 +721,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           sailingDate: testSailing.departureTime.toISOString(),
           consentProvidedAt: new Date().toISOString(),
         },
-        testUserId,
+        testUserId
       );
 
       const history = await auditService.getEntityHistory('Passenger', passenger.id);
@@ -649,10 +739,13 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
 
     it('should log manifest approval chain', async () => {
       // Generate manifest (this should create an audit entry)
-      const manifest = await manifestsService.generate({
-        sailingId: testSailingId,
-        sailingDate: testSailing.departureTime.toISOString(),
-      }, testUserId);  // Pass the userId to ensure audit logging
+      const manifest = await manifestsService.generate(
+        {
+          sailingId: testSailingId,
+          sailingDate: testSailing.departureTime.toISOString(),
+        },
+        testUserId
+      ); // Pass the userId to ensure audit logging
 
       const history = await auditService.getEntityHistory('Manifest', manifest.id);
 
@@ -673,11 +766,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
         sailingDate: testSailing.departureTime.toISOString(),
       });
 
-      const bmaExport = await manifestsService.exportManifest(
-        manifest.id,
-        'csv',
-        'bahamas',
-      );
+      const bmaExport = await manifestsService.exportManifest(manifest.id, 'csv', 'bahamas');
 
       expect(bmaExport).toBeDefined();
       expect(bmaExport.format).toBe('csv');
@@ -715,10 +804,10 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
   // ============================================
   describe('Error Handling & Validation Gates', () => {
     it('should validate manifest status before approval', async () => {
-      const manifest = await manifestsService.generate({
+      const manifest = (await manifestsService.generate({
         sailingId: testSailingId,
         sailingDate: testSailing.departureTime.toISOString(),
-      }) as any;
+      })) as any;
 
       // Attempting to approve twice should have proper error handling
       if (manifest.validationErrors?.length === 0) {
@@ -746,14 +835,14 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
           sailingDate: testSailing.departureTime.toISOString(),
           consentProvidedAt: new Date().toISOString(),
         },
-        testUserId,
+        testUserId
       );
 
       // Create and approve manifest
-      const manifest = await manifestsService.generate({
+      const manifest = (await manifestsService.generate({
         sailingId: testSailingId,
         sailingDate: testSailing.departureTime.toISOString(),
-      }) as any;
+      })) as any;
 
       if (manifest.validationErrors?.length === 0) {
         await manifestsService.approve(manifest.id, {
@@ -763,11 +852,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
 
         // Try to update passenger - should fail
         await expect(
-          passengersService.update(
-            passenger.id,
-            { cabinOrSeat: 'A202' },
-            testUserId,
-          ),
+          passengersService.update(passenger.id, { cabinOrSeat: 'A202' }, testUserId)
         ).rejects.toThrow(BadRequestException);
       }
     });
