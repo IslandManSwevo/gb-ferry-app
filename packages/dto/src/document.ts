@@ -6,13 +6,13 @@ export const DocumentUploadDtoSchema = z.object({
   entityType: z.enum(['vessel', 'crew', 'company']),
   entityId: z.string().uuid(),
   documentType: z.string().optional(),
-  expiryDate: z.date().optional(),
-  metadata: z.record(z.any()).optional(),
+  expiryDate: z.coerce.date().optional(),
+ metadata: z.record(z.unknown()).optional(),
 });
 
 export const DocumentMetadataSchema = z.object({
   detectedType: z.string().optional(),
-  extractedExpiryDate: z.date().optional(),
+  extractedExpiryDate: z.coerce.date().optional(),
   certificateNumber: z.string().optional(),
   issuingAuthority: z.string().optional(),
   confidence: z.number().min(0).max(1),

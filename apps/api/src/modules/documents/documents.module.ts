@@ -15,6 +15,6 @@ import { S3StorageService } from './s3-storage.service';
     S3StorageService,
     { provide: STORAGE_SERVICE, useExisting: S3StorageService },
   ],
-  exports: [DocumentUploadService, DocumentQueryService, S3StorageService],
+  exports: [DocumentUploadService, DocumentQueryService, S3StorageService, STORAGE_SERVICE],
 })
 export class DocumentsModule {}

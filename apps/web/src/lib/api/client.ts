@@ -178,14 +178,24 @@ export const api = {
       fetchWithAuth<any>(`/vessels/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   },
 
-  // Vessel Documents
+  // Documents (vessels-only for this phase)
   documents: {
-    list: (vesselId: string) => fetchWithAuth<any[]>(`/vessels/${vesselId}/documents`),
-    upload: (vesselId: string, formData: FormData) =>
-      fetchWithAuth<any>(`/vessels/${vesselId}/documents`, {
+    list: (params?: {
+      vesselId?: string;
+      type?: string;
+      status?: string;
+      q?: string;
+      page?: number;
+      limit?: number;
+    }) =>
+      fetchWithAuth<{ data: any[]; total: number; page: number; limit: number; pages: number }>(
+        `/documents`,
+        { params }
+      ),
+    upload: (formData: FormData) =>
+      fetchWithAuth<any>(`/documents/upload`, {
         method: 'POST',
         body: formData,
-        // Let the browser set Content-Type boundary for FormData
       }),
   },
 

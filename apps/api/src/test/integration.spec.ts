@@ -19,16 +19,13 @@ import { CertificationsService } from '../modules/crew/certifications.service';
 import { CrewService } from '../modules/crew/crew.service';
 import { DocumentQueryService } from '../modules/documents/document-query.service';
 import { DocumentUploadService } from '../modules/documents/document-upload.service';
+import { DocumentsController } from '../modules/documents/documents.controller';
 import { ManifestsService } from '../modules/passengers/manifests.service';
 import { PassengersService } from '../modules/passengers/passengers.service';
 
-jest.mock('pdf-parse', () => ({
-  __esModule: true,
-  default: jest.fn(() =>
-    Promise.resolve({
-      text: 'valid until 01/01/2030 certificate number ABC123 issuing authority Bahamas',
-    })
-  ),
+jest.mock('../modules/auth', () => ({
+  CurrentUser: () => () => undefined,
+  KeycloakUser: {} as any,
 }));
 
 describe('Grand Bahama Ferry - Integration Tests', () => {
@@ -341,13 +338,44 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
   // ============================================
   describe('Document Management', () => {
     const storage = { uploadFile: jest.fn().mockResolvedValue('documents/vessel/test.pdf') } as any;
+    const originalEnv: Record<string, string | undefined> = {};
 
     beforeAll(() => {
+      originalEnv.MINIO_BUCKET = process.env.MINIO_BUCKET;
+      originalEnv.MINIO_ENDPOINT = process.env.MINIO_ENDPOINT;
+      originalEnv.AWS_REGION = process.env.AWS_REGION;
+      originalEnv.MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY;
+      originalEnv.MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY;
+
       process.env.MINIO_BUCKET = process.env.MINIO_BUCKET || 'documents-test';
       process.env.MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || 'http://localhost:9000';
       process.env.AWS_REGION = process.env.AWS_REGION || 'us-east-1';
       process.env.MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || 'minio';
       process.env.MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || 'minio123';
+
+      jest.doMock('pdf-parse', () => ({
+        __esModule: true,
+        default: jest.fn(() =>
+          Promise.resolve({
+            text: 'valid until 01/01/2030 certificate number ABC123 issuing authority Bahamas',
+          })
+        ),
+      }));
+    });
+
+    afterAll(() => {
+      process.env.MINIO_BUCKET = originalEnv.MINIO_BUCKET;
+      process.env.MINIO_ENDPOINT = originalEnv.MINIO_ENDPOINT;
+      process.env.AWS_REGION = originalEnv.AWS_REGION;
+      process.env.MINIO_ACCESS_KEY = originalEnv.MINIO_ACCESS_KEY;
+      process.env.MINIO_SECRET_KEY = originalEnv.MINIO_SECRET_KEY;
+      jest.resetModules();
+      jest.clearAllMocks();
+      jest.unmock('pdf-parse');
+    });
+
+    beforeAll(() => {
+      jest.clearAllMocks();
     });
 
     it('uploads a vessel document, extracts metadata, and records audit', async () => {
@@ -375,10 +403,35 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
       expect(storage.uploadFile).toHaveBeenCalled();
 
       const audit = await prisma.auditLog.findFirst({
-        where: { entityId: result.id, action: 'DOCUMENT_UPLOADED' as any },
+        where: { entityId: result.id, action: 'CREATE' as any },
       });
       expect(audit).toBeTruthy();
       expect(audit?.userId).toBe(testUserId);
+    });
+
+    it('rejects upload when file is missing before invoking services', async () => {
+      const documentUploadServiceMock = {
+        uploadWithMetadataExtraction: jest.fn(),
+      } as Partial<DocumentUploadService> as DocumentUploadService;
+      const auditServiceMock = {
+        resolveOrCreateUserFromKeycloak: jest.fn(),
+      } as Partial<AuditService> as AuditService;
+      const documentQueryServiceMock = {
+        search: jest.fn(),
+      } as Partial<DocumentQueryService> as DocumentQueryService;
+
+      const controller = new DocumentsController(
+        documentUploadServiceMock as any,
+        auditServiceMock as any,
+        documentQueryServiceMock as any
+      );
+
+      await expect(
+        controller.uploadDocument(undefined as any, {} as any, { sub: 'user-1' } as any)
+      ).rejects.toThrow(BadRequestException);
+
+      expect(auditServiceMock.resolveOrCreateUserFromKeycloak).not.toHaveBeenCalled();
+      expect(documentUploadServiceMock.uploadWithMetadataExtraction).not.toHaveBeenCalled();
     });
 
     it('searches vessel documents with pagination and audit trail', async () => {
@@ -406,7 +459,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
       expect(result.total).toBeGreaterThanOrEqual(1);
 
       const audit = await prisma.auditLog.findFirst({
-        where: { action: 'DOCUMENT_LIST_READ' as any, userId: testUserId },
+        where: { action: 'READ' as any, userId: testUserId },
       });
       expect(audit).toBeTruthy();
     });
@@ -441,10 +494,10 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
 
     it('should block manifest approval if validation errors exist', async () => {
       // Generate manifest with validation errors
-      const manifest = (await manifestsService.generate({
+      const manifest = await manifestsService.generate({
         sailingId: testSailingId,
         sailingDate: testSailing.departureTime.toISOString(),
-      })) as any;
+      });
 
       // Attempt approval - should fail if validation errors exist
       if (manifest.validationErrors && manifest.validationErrors.length > 0) {
@@ -470,10 +523,10 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
         testUserId
       );
 
-      const manifest = (await manifestsService.generate({
+      const manifest = await manifestsService.generate({
         sailingId: testSailingId,
         sailingDate: testSailing.departureTime.toISOString(),
-      })) as any;
+      });
 
       // Only approve if validation passed
       if (!manifest.validationErrors || manifest.validationErrors.length === 0) {
@@ -581,7 +634,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
       expect(roster).toBeDefined();
       expect(roster.compliant).toBeDefined();
       expect(roster.required).toBeDefined();
-      expect(roster.actual).toBeDefined();
+      expect(roster.actualByRole).toBeDefined();
     });
   });
 
@@ -662,10 +715,10 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
         testUserId
       );
 
-      const revoked = (await certificationsService.revoke(
+      const revoked = await certificationsService.revoke(
         cert.id,
         'Non-compliance with medical standards'
-      )) as any;
+      );
 
       expect(revoked.status).toBe('REVOKED');
       expect(revoked.revocationReason).toBeDefined();

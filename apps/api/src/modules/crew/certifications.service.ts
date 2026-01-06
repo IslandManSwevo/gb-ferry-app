@@ -1,4 +1,4 @@
-import { PrismaService } from '@gbferry/database';
+import { Certification, PrismaService } from '@gbferry/database';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 
@@ -30,10 +30,10 @@ export interface ExpiringCertification {
 export class CertificationsService {
   constructor(
     private prisma: PrismaService,
-    private auditService: AuditService,
+    private auditService: AuditService
   ) {}
 
-  async create(createDto: CreateCertificationDto, userId?: string): Promise<any> {
+  async create(createDto: CreateCertificationDto, userId?: string): Promise<Certification> {
     /**
      * COMPLIANCE GATE: STCW and BMA Certification Validation
      * Before creating a certification record, validate:
@@ -53,9 +53,7 @@ export class CertificationsService {
     // Validate expiry date is in the future
     const now = new Date();
     if (new Date(createDto.expiryDate) <= now) {
-      throw new BadRequestException(
-        'Certification expiry date must be in the future',
-      );
+      throw new BadRequestException('Certification expiry date must be in the future');
     }
 
     // Validate certificate type (STCW compliance)
@@ -78,7 +76,7 @@ export class CertificationsService {
 
     if (!validTypes.includes(createDto.type)) {
       throw new BadRequestException(
-        `Invalid certification type. Must be one of: ${validTypes.join(', ')}`,
+        `Invalid certification type. Must be one of: ${validTypes.join(', ')}`
       );
     }
 
@@ -117,16 +115,21 @@ export class CertificationsService {
     return certification;
   }
 
-  async findAll(filters: CertificationFilters, userId?: string): Promise<any> {
+  async findAll(
+    filters: CertificationFilters,
+    userId?: string
+  ): Promise<{
+    data: Certification[];
+    total: number;
+    filters: CertificationFilters;
+  }> {
     /**
      * ISO 27001 A.8.28: Input Validation
      * All filter parameters are validated before database query
      */
 
     if (filters.expiringWithinDays && filters.expiringWithinDays < 0) {
-      throw new BadRequestException(
-        'expiringWithinDays must be a positive integer',
-      );
+      throw new BadRequestException('expiringWithinDays must be a positive integer');
     }
 
     const certifications = await this.prisma.certification.findMany({
@@ -167,18 +170,16 @@ export class CertificationsService {
     /**
      * OPERATIONAL ALERT: Returns all certifications expiring within specified days
      * Used for crew readiness planning and compliance scheduling
-     * 
+     *
      * Severity levels:
      * - critical: < 7 days (must be renewed before next voyage)
      * - warning: < 30 days (plan renewal, may be acceptable if renewal in progress)
-     * 
+     *
      * BMA R106 requirement: All crew certifications must be current before vessel departure
      */
 
     if (withinDays < 1 || withinDays > 365) {
-      throw new BadRequestException(
-        'withinDays must be between 1 and 365 days',
-      );
+      throw new BadRequestException('withinDays must be between 1 and 365 days');
     }
 
     const now = new Date();
@@ -205,9 +206,9 @@ export class CertificationsService {
       orderBy: { expiryDate: 'asc' },
     });
 
-    const result = expiring.map(cert => {
+    const result = expiring.map((cert) => {
       const daysUntilExpiry = Math.floor(
-        (cert.expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+        (cert.expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
       );
 
       return {
@@ -225,14 +226,18 @@ export class CertificationsService {
       action: 'CERTIFICATIONS_EXPIRY_CHECK',
       entityType: 'certification',
       userId,
-      details: { withinDays, resultCount: result.length, criticalCount: result.filter(r => r.severity === 'critical').length },
+      details: {
+        withinDays,
+        resultCount: result.length,
+        criticalCount: result.filter((r) => r.severity === 'critical').length,
+      },
       compliance: 'BMA R106 - Crew certification readiness check',
     });
 
     return result;
   }
 
-  async findOne(id: string, userId?: string): Promise<any> {
+  async findOne(id: string, userId?: string): Promise<Certification> {
     const certification = await this.prisma.certification.findUnique({
       where: { id },
       include: {
@@ -288,7 +293,7 @@ export class CertificationsService {
 
     // Check for expiry warnings
     const daysUntilExpiry = Math.floor(
-      (certification.expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+      (certification.expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
     );
 
     if (daysUntilExpiry < 30) {
@@ -325,7 +330,7 @@ export class CertificationsService {
     return verified;
   }
 
-  async update(id: string, updateDto: any, userId?: string): Promise<any> {
+  async update(id: string, updateDto: any, userId?: string): Promise<Certification> {
     const certification = await this.prisma.certification.update({
       where: { id },
       data: updateDto,
@@ -344,12 +349,12 @@ export class CertificationsService {
     return certification;
   }
 
-  async revoke(id: string, reason: string, userId?: string): Promise<any> {
+  async revoke(id: string, reason: string, userId?: string): Promise<Certification> {
     /**
      * CRITICAL OPERATION: Certification Revocation
      * Immediate effect - crew member loses certification status
      * Must trigger vessel crew roster compliance check
-     * 
+     *
      * Compliance: ISO 27001 A.8.15 (Immutable Audit Log)
      */
 

@@ -1,6 +1,6 @@
 import { DocumentStatus, PrismaService, VesselDocument } from '@gbferry/database';
 import { DocumentMetadata, DocumentUploadDto } from '@gbferry/dto';
-import { BadRequestException, Inject, Injectable, Optional } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 
 export interface StorageOptions {
@@ -16,6 +16,8 @@ export const STORAGE_SERVICE = 'STORAGE_SERVICE';
 
 @Injectable()
 export class DocumentUploadService {
+  private readonly logger = new Logger(DocumentUploadService.name);
+
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
@@ -35,6 +37,8 @@ export class DocumentUploadService {
       throw new BadRequestException('Only vessel documents are supported in this phase');
     }
 
+    const vesselId = this.validateAndNormalizeEntityId(uploadDto.entityId);
+
     const metadata = await this.extractDocumentMetadata(file);
     const bucket =
       process.env.NODE_ENV === 'production'
@@ -45,7 +49,7 @@ export class DocumentUploadService {
       throw new BadRequestException('Storage bucket is not configured');
     }
 
-    const storageKey = await this.storeFile(file, uploadDto, bucket);
+    const storageKey = await this.storeFile(file, vesselId, bucket);
 
     const expiryDate = this.normalizeDate(metadata.extractedExpiryDate || uploadDto.expiryDate);
 
@@ -64,14 +68,14 @@ export class DocumentUploadService {
         fileSize: file.size,
         mimeType: file.mimetype || 'application/octet-stream',
         s3Key: storageKey,
-        expiryDate: expiryDate || undefined,
+        expiryDate,
         status: DocumentStatus.VALID,
         uploadedById: userId,
       },
     });
 
     await this.auditService.log({
-      action: 'DOCUMENT_UPLOADED',
+      action: 'CREATE',
       entityId: document.id,
       entityType: 'document',
       userId,
@@ -89,10 +93,12 @@ export class DocumentUploadService {
 
   private async storeFile(
     file: Express.Multer.File,
-    uploadDto: DocumentUploadDto,
+    vesselId: string,
     bucket: string
   ): Promise<string> {
-    const key = `documents/${uploadDto.entityType}/${uploadDto.entityId}/${Date.now()}-${file.originalname}`;
+    const safeFileName = this.sanitizePathComponent(file.originalname || 'document');
+    const safeVesselId = this.sanitizePathComponent(vesselId);
+    const key = `documents/vessel/${safeVesselId}/${Date.now()}-${safeFileName}`;
     if (!this.storageService) {
       // No storage adapter wired yet; return key for later upload.
       return key;
@@ -118,6 +124,10 @@ export class DocumentUploadService {
         confidence: this.calculateConfidence(text),
       };
     } catch (err) {
+      this.logger.warn(
+        `extractDocumentMetadata failed for file=${file?.originalname || 'unknown'}: ${err}`,
+        err as any
+      );
       return {
         detectedType: 'OTHER',
         confidence: 0,
@@ -186,5 +196,21 @@ export class DocumentUploadService {
     if (input instanceof Date) return Number.isNaN(input.getTime()) ? null : input;
     const parsed = new Date(input);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  private validateAndNormalizeEntityId(entityId?: string): string {
+    if (!entityId || typeof entityId !== 'string' || !entityId.trim()) {
+      throw new BadRequestException('entityId is required and must be a non-empty string');
+    }
+    const trimmed = entityId.trim();
+    return trimmed;
+  }
+
+  private sanitizePathComponent(value: string): string {
+    const normalized = value.normalize('NFKD');
+    const strippedSeparators = normalized.replace(/[\\/]+/g, '');
+    const noTraversal = strippedSeparators.replace(/\.\./g, '').replace(/^[.]+/, '');
+    const safe = noTraversal.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 128);
+    return safe || 'file';
   }
 }

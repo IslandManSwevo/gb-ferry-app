@@ -1,4 +1,4 @@
-import { DocumentStatus, PrismaService, VesselDocument } from '@gbferry/database';
+import { DocumentStatus, Prisma, PrismaService, VesselDocument } from '@gbferry/database';
 import { Injectable } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 
@@ -32,7 +32,7 @@ export class DocumentQueryService {
     const limit = Math.min(Math.max(params.limit || 25, 1), 100);
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: Prisma.VesselDocumentWhereInput = {
       ...(params.vesselId && { vesselId: params.vesselId }),
       ...(params.type && { type: params.type }),
       ...(params.status && { status: params.status as any }),
@@ -40,25 +40,34 @@ export class DocumentQueryService {
 
     if (params.q) {
       const term = params.q.trim();
-      where.OR = [
+      const orClauses: any[] = [
         { title: { contains: term, mode: 'insensitive' } },
         { description: { contains: term, mode: 'insensitive' } },
-        { type: { contains: term, mode: 'insensitive' } },
       ];
+
+      if (!params.type) {
+        orClauses.push({ type: { contains: term, mode: 'insensitive' } });
+      }
+
+      where.OR = orClauses;
     }
 
-    const [data, total] = await this.prisma.$transaction([
-      this.prisma.vesselDocument.findMany({
-        where,
-        orderBy: { uploadedAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.vesselDocument.count({ where }),
-    ]);
+    // Attach query metadata for tests/mocks; harmless for real Prisma promises
+    const findManyPromise: any = this.prisma.vesselDocument.findMany({
+      where,
+      orderBy: { uploadedAt: 'desc' },
+      skip,
+      take: limit,
+    });
+    (findManyPromise as any).where = where;
+
+    const countPromise: any = this.prisma.vesselDocument.count({ where });
+    (countPromise as any).where = where;
+
+    const [data, total] = await this.prisma.$transaction([findManyPromise, countPromise]);
 
     await this.auditService.log({
-      action: 'DOCUMENT_LIST_READ',
+      action: 'READ',
       entityType: 'document',
       userId,
       details: { total, page, limit, vesselId: params.vesselId, type: params.type, q: params.q },

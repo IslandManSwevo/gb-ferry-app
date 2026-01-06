@@ -1,13 +1,10 @@
 import { DocumentStatus } from '@gbferry/database';
+import pdfParse from 'pdf-parse';
 import { DocumentUploadService } from './document-upload.service';
 
 jest.mock('pdf-parse', () => ({
   __esModule: true,
-  default: jest.fn(() =>
-    Promise.resolve({
-      text: 'valid until 01/01/2030 certificate number ABC123 issuing authority Bahamas',
-    })
-  ),
+  default: jest.fn(),
 }));
 
 describe('DocumentUploadService', () => {
@@ -27,6 +24,9 @@ describe('DocumentUploadService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (pdfParse as unknown as jest.Mock).mockResolvedValue({
+      text: 'valid until 01/01/2030 certificate number ABC123 issuing authority Bahamas',
+    });
   });
 
   it('uploads vessel documents, extracts metadata, and persists audit log', async () => {
@@ -41,7 +41,7 @@ describe('DocumentUploadService', () => {
     const dto = {
       name: 'Safe Manning',
       entityType: 'vessel',
-      entityId: 'vessel-1',
+      entityId: '123e4567-e89b-12d3-a456-426614174000',
       documentType: 'SAFE_MANNING_CERTIFICATE',
     } as any;
 
@@ -52,14 +52,31 @@ describe('DocumentUploadService', () => {
 
     const result = await service.uploadWithMetadataExtraction(file, dto, 'user-1');
 
-    expect(storageService.uploadFile).toHaveBeenCalledWith(file, expect.any(Object));
-    expect(prisma.vesselDocument.create).toHaveBeenCalledWith(
+    expect(storageService.uploadFile).toHaveBeenCalledWith(
+      file,
       expect.objectContaining({
-        data: expect.objectContaining({ vesselId: 'vessel-1', uploadedById: 'user-1' }),
+        bucket: expect.any(String),
+        key: expect.stringContaining('documents/vessel/123e4567-e89b-12d3-a456-426614174000'),
       })
     );
+
+    expect(prisma.vesselDocument.create).toHaveBeenCalled();
+    const createArgs = prisma.vesselDocument.create.mock.calls[0][0];
+    expect(createArgs).toMatchObject({
+      data: expect.objectContaining({
+        vesselId: '123e4567-e89b-12d3-a456-426614174000',
+        uploadedById: 'user-1',
+        expiryDate: expect.any(Date),
+      }),
+    });
+
+    const description = JSON.parse(createArgs.data.description);
+    expect(description.certificateNumber).toBe('ABC123');
+    expect(description.issuingAuthority).toBe('Bahamas');
+    expect(new Date(description.extractedExpiryDate).getTime()).not.toBeNaN();
+    expect(description.originalFileName).toBe('test.pdf');
     expect(auditService.log).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'DOCUMENT_UPLOADED', userId: 'user-1' })
+      expect.objectContaining({ action: 'CREATE', userId: 'user-1' })
     );
     expect(result).toEqual(expect.objectContaining({ id: 'doc-1' }));
   });

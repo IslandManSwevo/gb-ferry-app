@@ -73,6 +73,9 @@ export class CrewService {
       throw new BadRequestException('Crew member must have assigned role');
     }
 
+    const passportValue =
+      createDto.passportNumber || createDto.identificationNumber || `TEMP-${Date.now()}`;
+
     // Create crew member
     const crew = await this.prisma.crewMember.create({
       data: {
@@ -81,7 +84,7 @@ export class CrewService {
         dateOfBirth: new Date(), // TODO: Add to DTO
         nationality: createDto.nationality,
         gender: 'M', // TODO: Add to DTO
-        passportNumber: this.encryptValue(createDto.passportNumber),
+        passportNumber: this.encryptValue(passportValue),
         passportCountry: createDto.nationality,
         passportExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // TODO: Add to DTO
         identificationNumber: this.encryptValue(createDto.identificationNumber),

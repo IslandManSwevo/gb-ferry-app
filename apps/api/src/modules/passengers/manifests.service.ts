@@ -1,5 +1,5 @@
 import { validateManifest } from '@/lib/validators';
-import { PrismaService } from '@gbferry/database';
+import { Manifest, ManifestValidationError, PrismaService } from '@gbferry/database';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 
@@ -14,6 +14,10 @@ interface ManifestApprovalDto {
   approverEmail: string;
   notes?: string;
 }
+
+export type ManifestWithValidation = Manifest & {
+  validationErrors: ManifestValidationError[];
+};
 
 @Injectable()
 export class ManifestsService {
@@ -37,7 +41,7 @@ export class ManifestsService {
   async generate(
     generateDto: { sailingId: string; sailingDate: string },
     userId?: string
-  ): Promise<any> {
+  ): Promise<ManifestWithValidation> {
     const passengers = await this.prisma.passenger.findMany({
       where: {
         sailingId: generateDto.sailingId,
@@ -69,7 +73,7 @@ export class ManifestsService {
         validationStatus: validation.valid ? 'VALID' : 'INVALID',
         generatedBy: { connect: { id: userId || 'system' } },
       } as any,
-      include: { passengers: true },
+      include: { passengers: true, validationErrors: true },
     });
 
     // Create validation error records
@@ -101,13 +105,22 @@ export class ManifestsService {
       compliance: 'ISO 27001 A.8.28 - Manifest generated with validation',
     });
 
-    return manifest;
+    // Reload with validationErrors to ensure callers have full context
+    const manifestWithErrors = await this.prisma.manifest.findUnique({
+      where: { id: manifest.id },
+      include: { passengers: true, validationErrors: true },
+    });
+
+    return (manifestWithErrors || { ...manifest, validationErrors: [] }) as ManifestWithValidation;
   }
 
   /**
    * Find all manifests with optional filtering
    */
-  async findAll(filters: ManifestFilters, userId?: string): Promise<any> {
+  async findAll(
+    filters: ManifestFilters,
+    userId?: string
+  ): Promise<{ data: Manifest[]; total: number; filters: ManifestFilters }> {
     const manifests = await this.prisma.manifest.findMany({
       where: {
         ...(filters.status && { status: filters.status as any }),
@@ -135,7 +148,7 @@ export class ManifestsService {
   /**
    * Get a single manifest with full passenger detail
    */
-  async findOne(id: string, userId?: string): Promise<any> {
+  async findOne(id: string, userId?: string): Promise<ManifestWithValidation> {
     const manifest = await this.prisma.manifest.findUnique({
       where: { id },
       include: {
@@ -157,7 +170,7 @@ export class ManifestsService {
       compliance: 'Manifest access logged',
     });
 
-    return manifest;
+    return manifest as ManifestWithValidation;
   }
 
   /**
@@ -171,7 +184,11 @@ export class ManifestsService {
    *
    * This is a GATE, not automatic. Human approval required.
    */
-  async approve(id: string, approvalDto: ManifestApprovalDto, userId?: string): Promise<any> {
+  async approve(
+    id: string,
+    approvalDto: ManifestApprovalDto,
+    userId?: string
+  ): Promise<ManifestWithValidation> {
     // Step 1: Fetch manifest
     const manifest = await this.prisma.manifest.findUnique({
       where: { id },
@@ -192,7 +209,7 @@ export class ManifestsService {
     }
 
     // Step 3: Create approval record
-    const updated = await this.prisma.manifest.update({
+    await this.prisma.manifest.update({
       where: { id },
       data: {
         status: 'APPROVED',
@@ -216,7 +233,12 @@ export class ManifestsService {
       compliance: 'ISO 27001 A.8.15 - Immutable approval audit log',
     });
 
-    return updated;
+    const reloaded = await this.prisma.manifest.findUnique({
+      where: { id },
+      include: { validationErrors: true, passengers: true },
+    });
+
+    return (reloaded || manifest) as ManifestWithValidation;
   }
 
   /**

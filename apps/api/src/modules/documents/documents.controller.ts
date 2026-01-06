@@ -4,9 +4,12 @@ import {
   BadRequestException,
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
+  ParseIntPipe,
   Post,
   Query,
+  UnauthorizedException,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -20,6 +23,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
+import { extname } from 'path';
 import { AuditService } from '../audit/audit.service';
 import { CurrentUser, KeycloakUser } from '../auth';
 import { DocumentQueryService } from './document-query.service';
@@ -65,6 +69,24 @@ export class DocumentsController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
+      limits: {
+        files: 1,
+        fileSize: 10 * 1024 * 1024, // 10MB cap to prevent oversized uploads
+      },
+      fileFilter: (_req, file, callback) => {
+        const allowedMimeTypes = ['application/pdf', 'image/png', 'image/jpeg'];
+        const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+        const extension = extname(file.originalname || '').toLowerCase();
+
+        if (!allowedMimeTypes.includes(file.mimetype) || !allowedExtensions.includes(extension)) {
+          return callback(
+            new BadRequestException('Invalid file type. Only PDF or image files are allowed.'),
+            false
+          );
+        }
+
+        callback(null, true);
+      },
     })
   )
   async uploadDocument(
@@ -72,6 +94,10 @@ export class DocumentsController {
     @Body() body: UploadBody,
     @CurrentUser() user: KeycloakUser
   ): Promise<{ data: VesselDocument }> {
+    if (!file) {
+      throw new BadRequestException('file is required');
+    }
+
     const mappedUser = await this.mapUser(user);
     const uploadDto = this.mapUploadDto(body);
     const document = await this.documentUploadService.uploadWithMetadataExtraction(
@@ -104,8 +130,8 @@ export class DocumentsController {
     @Query('type') type: string | undefined,
     @Query('status') status: string | undefined,
     @Query('q') q: string | undefined,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(25), ParseIntPipe) limit: number,
     @CurrentUser() user?: KeycloakUser
   ): Promise<{
     data: VesselDocument[];
@@ -133,7 +159,7 @@ export class DocumentsController {
 
   private async mapUser(user?: KeycloakUser) {
     if (!user?.sub) {
-      throw new BadRequestException('Authenticated user is required');
+      throw new UnauthorizedException('Authenticated user is required');
     }
 
     const mapped = await this.auditService.resolveOrCreateUserFromKeycloak({
@@ -146,7 +172,7 @@ export class DocumentsController {
     });
 
     if (!mapped) {
-      throw new BadRequestException('Unable to map authenticated user');
+      throw new UnauthorizedException('Unable to map authenticated user');
     }
 
     return mapped;
@@ -178,12 +204,17 @@ export class DocumentsController {
 
   private parseMetadata(raw: UploadBody['metadata']): Record<string, any> | undefined {
     if (!raw) return undefined;
-    if (typeof raw === 'object') return raw as Record<string, any>;
+    if (typeof raw === 'object') {
+      return Array.isArray(raw) ? undefined : (raw as Record<string, any>);
+    }
     if (typeof raw !== 'string') return undefined;
 
     try {
       const parsed = JSON.parse(raw);
-      return typeof parsed === 'object' && parsed !== null ? parsed : undefined;
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        return parsed as Record<string, any>;
+      }
+      throw new Error('metadata must be object');
     } catch (err) {
       throw new BadRequestException('metadata must be valid JSON when provided');
     }
