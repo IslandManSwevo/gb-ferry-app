@@ -35,6 +35,19 @@ export interface PassengerFilters {
   pageSize?: number;
 }
 
+export class SailingListItem {
+  id!: string;
+  vesselId!: string;
+  vesselName?: string | null;
+  departurePort!: string;
+  arrivalPort!: string;
+  departureTime!: Date;
+  arrivalTime!: Date | null;
+  status!: string;
+  capacity!: number | null;
+  checkedIn!: number;
+}
+
 @Injectable()
 export class PassengersService {
   constructor(
@@ -43,44 +56,80 @@ export class PassengersService {
   ) {}
 
   private readonly logger = new Logger(PassengersService.name);
+  private readonly SAILING_LOOKBACK_HOURS = 6;
+  private readonly MAX_SAILINGS_RETURNED = 25;
 
   /**
    * List upcoming sailings with capacity and current check-in counts.
    * Drives operational views (capacity bars, sailing selection, readiness).
    */
-  async listSailings(): Promise<any[]> {
-    const now = new Date();
+  async listSailings(): Promise<SailingListItem[]> {
+    try {
+      const now = new Date();
 
-    const sailings = await this.prisma.sailing.findMany({
-      where: { departureTime: { gte: new Date(now.getTime() - 6 * 60 * 60 * 1000) } },
-      include: { vessel: true },
-      orderBy: { departureTime: 'asc' },
-      take: 25,
-    });
+      const sailings = await this.prisma.sailing.findMany({
+        where: {
+          departureTime: {
+            gte: new Date(now.getTime() - this.SAILING_LOOKBACK_HOURS * 60 * 60 * 1000),
+          },
+        },
+        include: { vessel: true },
+        orderBy: { departureTime: 'asc' },
+        take: this.MAX_SAILINGS_RETURNED,
+      });
 
-    const passengerCounts = await this.prisma.passenger.groupBy({
-      by: ['sailingId'],
-      where: { status: 'CHECKED_IN', deletedAt: null },
-      _count: { sailingId: true },
-    });
+      const sailingIds = sailings.map((s) => s.id);
 
-    const countsMap = new Map<string, number>();
-    passengerCounts.forEach((entry: any) => {
-      countsMap.set(entry.sailingId, entry._count?.sailingId ?? entry._count ?? 0);
-    });
+      const passengerCounts = await this.prisma.passenger.groupBy({
+        by: ['sailingId'],
+        where: {
+          status: 'CHECKED_IN',
+          deletedAt: null,
+          sailingId: { in: sailingIds },
+        },
+        _count: { sailingId: true },
+      });
 
-    return sailings.map((sailing: any) => ({
-      id: sailing.id,
-      vesselId: sailing.vesselId,
-      vesselName: sailing.vessel?.name,
-      departurePort: sailing.departurePort,
-      arrivalPort: sailing.arrivalPort,
-      departureTime: sailing.departureTime,
-      arrivalTime: sailing.arrivalTime,
-      status: sailing.status,
-      capacity: sailing.vessel?.passengerCapacity ?? null,
-      checkedIn: countsMap.get(sailing.id) ?? 0,
-    }));
+      const countsMap = new Map<string, number>();
+      passengerCounts.forEach((entry) => {
+        countsMap.set(entry.sailingId, entry._count.sailingId ?? 0);
+      });
+
+      const result: SailingListItem[] = sailings.map((sailing) => ({
+        id: sailing.id,
+        vesselId: sailing.vesselId,
+        vesselName: sailing.vessel?.name,
+        departurePort: sailing.departurePort,
+        arrivalPort: sailing.arrivalPort,
+        departureTime: sailing.departureTime,
+        arrivalTime: sailing.arrivalTime,
+        status: sailing.status,
+        capacity: sailing.vessel?.passengerCapacity ?? null,
+        checkedIn: countsMap.get(sailing.id) ?? 0,
+      }));
+
+      await this.auditService.log({
+        action: 'SAILING_LIST_READ',
+        entityType: 'Sailing',
+        details: {
+          lookbackHours: this.SAILING_LOOKBACK_HOURS,
+          limit: this.MAX_SAILINGS_RETURNED,
+          resultCount: result.length,
+        },
+        compliance: 'Operational sailing list read',
+      });
+
+      return result;
+    } catch (error: any) {
+      this.logger.error(`Failed to list sailings: ${error?.message || error}`);
+      await this.auditService.log({
+        action: 'SAILING_LIST_READ_FAILED',
+        entityType: 'Sailing',
+        details: { error: error?.message || String(error) },
+        compliance: 'Operational sailing list read failure',
+      });
+      throw error;
+    }
   }
 
   private encryptIdentityDocNumber(identityDocNumber: string): string {

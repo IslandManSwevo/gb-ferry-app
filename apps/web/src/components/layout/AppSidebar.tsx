@@ -19,6 +19,21 @@ const { Text } = Typography;
 
 type MenuItem = Required<MenuProps>['items'][number];
 
+type MenuItemWithChildren = Extract<MenuItem, { key: React.Key; children: MenuItem[] }>;
+
+const isMenuItemWithChildren = (item: MenuItem): item is MenuItemWithChildren =>
+  !!item &&
+  typeof item === 'object' &&
+  'children' in item &&
+  Array.isArray((item as { children?: unknown }).children) &&
+  'key' in item;
+
+const isDividerItem = (item: MenuItem): item is Extract<MenuItem, { type: 'divider' }> =>
+  !!item &&
+  typeof item === 'object' &&
+  'type' in item &&
+  (item as { type?: string }).type === 'divider';
+
 const menuItems: MenuItem[] = [
   {
     key: '/',
@@ -71,10 +86,11 @@ const menuItems: MenuItem[] = [
 ];
 
 const parentKeys = new Set(
-  menuItems
-    .filter((item) => typeof item === 'object' && 'children' in (item as any))
-    .map((item) => String((item as any).key))
+  menuItems.filter(isMenuItemWithChildren).map((item) => String(item.key))
 );
+
+const matchesPath = (pathname: string, matcher: string) =>
+  pathname === matcher || pathname.startsWith(`${matcher}/`);
 
 function filterMenuItemsByRole(items: MenuItem[], roles: string[]): MenuItem[] {
   // Temporarily show all items regardless of role for debugging navigation
@@ -82,13 +98,11 @@ function filterMenuItemsByRole(items: MenuItem[], roles: string[]): MenuItem[] {
   const recurse = (item: MenuItem): MenuItem | null => {
     if (!item) return null;
     if (typeof item !== 'object') return item;
-    if ('type' in item && (item as any).type === 'divider') return item;
+    if (isDividerItem(item)) return item;
 
-    if ('children' in item) {
-      const children = ((item as any).children as MenuItem[])
-        .map(recurse)
-        .filter(Boolean) as MenuItem[];
-      return { ...(item as any), children } as MenuItem;
+    if (isMenuItemWithChildren(item)) {
+      const children = item.children.map(recurse).filter(Boolean) as MenuItem[];
+      return { ...item, children } as MenuItem;
     }
 
     return item;
@@ -109,13 +123,38 @@ function findOpenKeys(pathname: string): string[] {
   ];
 
   for (const entry of mapping) {
-    if (entry.matchers.some((m) => pathname.startsWith(m))) {
+    if (entry.matchers.some((m) => matchesPath(pathname, m))) {
       return [entry.key];
     }
   }
 
   return [];
 }
+
+function extractRouteKeys(items: MenuItem[]): string[] {
+  const keys: string[] = [];
+
+  const visit = (item: MenuItem) => {
+    if (!item || typeof item !== 'object') return;
+    if (isDividerItem(item)) return;
+
+    if ('key' in item) {
+      const key = String((item as { key?: React.Key }).key ?? '');
+      if (key.startsWith('/')) {
+        keys.push(key);
+      }
+    }
+
+    if (isMenuItemWithChildren(item)) {
+      item.children.forEach(visit);
+    }
+  };
+
+  items.forEach(visit);
+  return keys;
+}
+
+const routeKeys = extractRouteKeys(menuItems);
 
 export const AppSidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -142,26 +181,10 @@ export const AppSidebar: React.FC = () => {
   };
 
   const normalizeSelectedKey = (path: string) => {
-    const keys = [
-      '/',
-      '/passengers/checkin',
-      '/passengers/manifests',
-      '/crew',
-      '/vessels',
-      '/crew/safe-manning',
-      '/crew/certifications',
-      '/vessels/documents',
-      '/compliance/reports',
-      '/compliance/inspections',
-      '/audit',
-      '/settings',
-    ];
-
-    return keys.find((k) => path === k || path.startsWith(`${k}/`)) || path;
+    return routeKeys.find((k) => matchesPath(path, k)) || path;
   };
 
   const selectedKeys = [normalizeSelectedKey(pathname)];
-  const defaultOpenKeys = findOpenKeys(pathname);
 
   return (
     <Sider

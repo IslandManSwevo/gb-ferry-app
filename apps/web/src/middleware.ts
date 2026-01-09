@@ -1,6 +1,33 @@
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 
+// Feature flag: enable role enforcement by default; allow explicit opt-out in non-prod
+const ENFORCE_ROLE_PROTECTION = process.env.NEXT_PUBLIC_ENFORCE_ROLE_PROTECTION !== 'false';
+
+type RoleRule = { prefix: string; roles: string[] };
+
+const ROLE_RULES: RoleRule[] = [
+  { prefix: '/audit', roles: ['audit.view', 'audit.admin'] },
+  { prefix: '/compliance', roles: ['compliance.view', 'compliance.admin'] },
+  { prefix: '/crew', roles: ['crew.view', 'crew.admin'] },
+  { prefix: '/passengers', roles: ['passengers.view', 'passengers.admin'] },
+  { prefix: '/vessels', roles: ['vessels.view', 'vessels.admin'] },
+  { prefix: '/settings', roles: ['settings.manage', 'admin'] },
+];
+
+const findRequiredRoles = (pathname: string): string[] | null => {
+  const match = ROLE_RULES.find(
+    (rule) => pathname === rule.prefix || pathname.startsWith(`${rule.prefix}/`)
+  );
+  return match ? match.roles : null;
+};
+
+const hasRequiredRole = (tokenRoles: unknown, required: string[] | null): boolean => {
+  if (!required || required.length === 0) return true;
+  const roles = Array.isArray(tokenRoles) ? (tokenRoles as string[]) : [];
+  return required.some((role) => roles.includes(role));
+};
+
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
@@ -21,13 +48,18 @@ export default withAuth(
       return NextResponse.next();
     }
 
-    // If authenticated, allow all routes for now (role filtering temporarily disabled)
-    // TODO: Re-enable role-based route protection once roles are properly configured
+    // If authenticated, enforce roles when enabled; otherwise allow
     if (token) {
+      const requiredRoles = findRequiredRoles(pathname);
+
+      if (ENFORCE_ROLE_PROTECTION && !hasRequiredRole(token?.roles, requiredRoles)) {
+        const url = req.nextUrl.clone();
+        url.pathname = '/unauthorized';
+        return NextResponse.redirect(url);
+      }
+
       return NextResponse.next();
     }
-
-    return NextResponse.next();
   },
   {
     callbacks: {

@@ -26,10 +26,22 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchSettingsOptions, SettingsOptions } from './options';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
+
+const integerRangeRule = (min: number, max: number, label: string) => ({
+  validator: (_: unknown, value: any) => {
+    if (value === undefined || value === null || value === '') return Promise.resolve();
+    const num = Number(value);
+    if (!Number.isInteger(num)) return Promise.reject(new Error(`${label} must be an integer`));
+    if (num < min || num > max)
+      return Promise.reject(new Error(`${label} must be between ${min} and ${max}`));
+    return Promise.resolve();
+  },
+});
 
 const settingsMenu = [
   { key: 'org', icon: <ToolOutlined />, label: 'Organization' },
@@ -41,13 +53,32 @@ const settingsMenu = [
   { key: 'profile', icon: <UserOutlined />, label: 'My Profile' },
 ];
 
-const timezones = ['UTC', 'America/Nassau', 'America/New_York', 'Europe/London'];
-const locales = ['en-US', 'en-GB', 'es-ES'];
-const ports = ['Nassau', 'Freeport', 'Miami', 'Fort Lauderdale'];
-const jurisdictions = ['Bahamas', 'Jamaica (Phase 2)', 'Barbados (Phase 2)'];
-
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('org');
+  const [options, setOptions] = useState<SettingsOptions | null>(null);
+  const [loadingOptions, setLoadingOptions] = useState(true);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSettingsOptions()
+      .then((opts) => {
+        if (!cancelled) {
+          setOptions(opts);
+          setLoadingOptions(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setOptionsError('Failed to load settings options');
+          setLoadingOptions(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const sectionTitle = useMemo(() => {
     const match = settingsMenu.find((item) => item.key === activeSection);
@@ -67,6 +98,12 @@ export default function SettingsPage() {
           <Text type="secondary">
             Company-wide controls for security, operations, compliance, and your personal profile.
           </Text>
+
+          {optionsError && (
+            <Text type="danger" style={{ display: 'block', marginTop: 8 }}>
+              {optionsError}
+            </Text>
+          )}
 
           <Row gutter={24} style={{ marginTop: 16 }}>
             <Col span={6}>
@@ -93,44 +130,81 @@ export default function SettingsPage() {
                       </Col>
                       <Col span={12}>
                         <Form.Item label="Support Email">
-                          <Input placeholder="support@gbferry.com" />
+                          <Input placeholder="support@example.com" />
                         </Form.Item>
                       </Col>
                     </Row>
                     <Row gutter={16}>
                       <Col span={12}>
                         <Form.Item label="Default Timezone">
-                          <Select options={timezones.map((t) => ({ label: t, value: t }))} defaultValue="America/Nassau" />
+                          <Select
+                            loading={loadingOptions}
+                            disabled={!options}
+                            options={(options?.timezones ?? []).map((t) => ({
+                              label: t,
+                              value: t,
+                            }))}
+                            defaultValue="America/Nassau"
+                          />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
                         <Form.Item label="Default Locale / Formats">
-                          <Select options={locales.map((l) => ({ label: l, value: l }))} defaultValue="en-US" />
+                          <Select
+                            loading={loadingOptions}
+                            disabled={!options}
+                            options={(options?.locales ?? []).map((l) => ({ label: l, value: l }))}
+                            defaultValue="en-US"
+                          />
                         </Form.Item>
                       </Col>
                     </Row>
                     <Row gutter={16}>
                       <Col span={12}>
                         <Form.Item label="Default Departure Port">
-                          <Select options={ports.map((p) => ({ label: p, value: p }))} defaultValue="Nassau" />
+                          <Select
+                            loading={loadingOptions}
+                            disabled={!options}
+                            options={(options?.ports ?? []).map((p) => ({ label: p, value: p }))}
+                            defaultValue="Nassau"
+                          />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
                         <Form.Item label="Default Arrival Port">
-                          <Select options={ports.map((p) => ({ label: p, value: p }))} defaultValue="Freeport" />
+                          <Select
+                            loading={loadingOptions}
+                            disabled={!options}
+                            options={(options?.ports ?? []).map((p) => ({ label: p, value: p }))}
+                            defaultValue="Freeport"
+                          />
                         </Form.Item>
                       </Col>
                     </Row>
                     <Divider />
                     <Row gutter={16}>
                       <Col span={12}>
-                        <Form.Item label="Manifest Cutoff (minutes before departure)">
-                          <Input placeholder="60" suffix="min" />
+                        <Form.Item
+                          name="manifestCutoffMinutes"
+                          label="Manifest Cutoff (minutes before departure)"
+                          rules={[
+                            { required: true, message: 'Enter manifest cutoff minutes' },
+                            integerRangeRule(0, 720, 'Manifest cutoff'),
+                          ]}
+                        >
+                          <Input type="number" min={0} max={720} placeholder="60" suffix="min" />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
-                        <Form.Item label="Check-in Opens (hours before departure)">
-                          <Input placeholder="24" suffix="hrs" />
+                        <Form.Item
+                          name="checkinOpensHours"
+                          label="Check-in Opens (hours before departure)"
+                          rules={[
+                            { required: true, message: 'Enter check-in opening hours' },
+                            integerRangeRule(1, 168, 'Check-in opening'),
+                          ]}
+                        >
+                          <Input type="number" min={1} max={168} placeholder="24" suffix="hrs" />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -202,7 +276,7 @@ export default function SettingsPage() {
                       <Text type="secondary">Suppress non-critical alerts overnight</Text>
                     </Form.Item>
                     <Form.Item label="Escalation Target (critical)">
-                      <Input placeholder="ops-lead@gbferry.com" />
+                      <Input placeholder="ops-lead@example.com" />
                     </Form.Item>
                   </Form>
                 </Card>
@@ -213,19 +287,42 @@ export default function SettingsPage() {
                   <Form layout="vertical">
                     <Row gutter={16}>
                       <Col span={12}>
-                        <Form.Item label="Document Expiry Warning">
-                          <Input placeholder="30" suffix="days" />
+                        <Form.Item
+                          name="documentExpiryWarning"
+                          label="Document Expiry Warning"
+                          rules={[
+                            { required: true, message: 'Enter expiry warning window' },
+                            integerRangeRule(1, 365, 'Expiry warning'),
+                          ]}
+                        >
+                          <Input type="number" min={1} max={365} placeholder="30" suffix="days" />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
-                        <Form.Item label="Critical Expiry Threshold">
-                          <Input placeholder="7" suffix="days" />
+                        <Form.Item
+                          name="criticalExpiryThreshold"
+                          label="Critical Expiry Threshold"
+                          rules={[
+                            { required: true, message: 'Enter critical expiry threshold' },
+                            integerRangeRule(1, 365, 'Critical expiry threshold'),
+                          ]}
+                        >
+                          <Input type="number" min={1} max={365} placeholder="7" suffix="days" />
                         </Form.Item>
                       </Col>
                     </Row>
-                    <Form.Item label="Safe Manning Threshold">
-                      <Input placeholder="100" suffix="%" />
-                      <Text type="secondary">Percent of required positions that must be filled</Text>
+                    <Form.Item
+                      name="safeManningThreshold"
+                      label="Safe Manning Threshold"
+                      rules={[
+                        { required: true, message: 'Enter safe manning threshold' },
+                        integerRangeRule(0, 100, 'Safe manning threshold'),
+                      ]}
+                    >
+                      <Input type="number" min={0} max={100} placeholder="100" suffix="%" />
+                      <Text type="secondary">
+                        Percent of required positions that must be filled
+                      </Text>
                     </Form.Item>
                     <Form.Item label="Manifest Approval Required">
                       <Switch defaultChecked />
@@ -244,7 +341,12 @@ export default function SettingsPage() {
                       <Select
                         mode="multiple"
                         defaultValue={['Bahamas']}
-                        options={jurisdictions.map((j) => ({ label: j, value: j }))}
+                        loading={loadingOptions}
+                        disabled={!options}
+                        options={(options?.jurisdictions ?? []).map((j) => ({
+                          label: j,
+                          value: j,
+                        }))}
                       />
                     </Form.Item>
                     <Form.Item label="Default Export Format">
@@ -284,8 +386,23 @@ export default function SettingsPage() {
               {activeSection === 'integrations' && (
                 <Card title={sectionTitle}>
                   <Form layout="vertical">
-                    <Form.Item label="Webhook Endpoint">
-                      <Input placeholder="https://ops.gbferry.com/webhooks/compliance" />
+                    <Form.Item
+                      name="webhookEndpoint"
+                      label="Webhook Endpoint"
+                      rules={[
+                        { required: true, message: 'Enter webhook endpoint' },
+                        { type: 'url', message: 'Enter a valid URL' },
+                        {
+                          validator: (_, value) => {
+                            if (!value) return Promise.resolve();
+                            return value.startsWith('https://')
+                              ? Promise.resolve()
+                              : Promise.reject(new Error('Webhook endpoint must use HTTPS'));
+                          },
+                        },
+                      ]}
+                    >
+                      <Input placeholder="https://example.com/webhooks/compliance" />
                     </Form.Item>
                     <Form.Item label="Signing Secret">
                       <Input.Password placeholder="••••••••" />
@@ -347,10 +464,10 @@ export default function SettingsPage() {
                 <Card title={sectionTitle}>
                   <Form layout="vertical" style={{ maxWidth: 520 }}>
                     <Form.Item label="Full Name">
-                      <Input placeholder="John Smith" />
+                      <Input placeholder="First Last" />
                     </Form.Item>
                     <Form.Item label="Email">
-                      <Input placeholder="john@gbferry.com" disabled />
+                      <Input placeholder="user@example.com" disabled />
                     </Form.Item>
                     <Form.Item label="Department">
                       <Input placeholder="Operations" />

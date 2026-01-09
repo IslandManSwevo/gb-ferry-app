@@ -1,6 +1,16 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { PassengersService } from './passengers.service';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { PassengersService, SailingListItem } from './passengers.service';
 
 @ApiTags('passengers')
 @ApiBearerAuth()
@@ -18,8 +28,12 @@ export class PassengersController {
 
   @Get('sailings')
   @ApiOperation({ summary: 'List upcoming sailings with readiness indicators' })
-  @ApiResponse({ status: 200, description: 'List of sailings' })
-  async listSailings(): Promise<any> {
+  @ApiResponse({ status: 200, description: 'List of sailings', type: [SailingListItem] })
+  @ApiBadRequestResponse({ description: 'Invalid query parameters' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiForbiddenResponse({ description: 'Forbidden' })
+  @ApiInternalServerErrorResponse({ description: 'Server error' })
+  async listSailings(): Promise<SailingListItem[]> {
     return this.passengersService.listSailings();
   }
 

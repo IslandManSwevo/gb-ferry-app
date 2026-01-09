@@ -47,15 +47,20 @@ const maritimeTheme = {
     stormGray: '#64748b',
 
     // Caribbean accent colors
-    coralPink: '#ff7c7c',
-    tropicalGreen: '#4ade80',
+    coralPink: '#ff7c7c', // coral reef highlight
+    tropicalGreen: '#34d399', // palm canopy green
+    sandBeige: '#f2d0a9', // beach neutral for cards
   },
 
   // Maritime-specific visual elements
   backgroundPatterns: {
-    wave: 'subtle wave texture for cards',
-    nautical: 'compass rose watermarks',
-    weather: 'cloud/sun status overlays',
+    // Apply to cards: background-image: url(data-uri); background-size: 140% 140%; opacity: 0.35; background-blend-mode: soft-light;
+    wave: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160' viewBox='0 0 240 160'%3E%3Cpath d='M0 80c20 0 40-20 60-20s40 20 60 20 40-20 60-20 40 20 60 20v80H0Z' fill='%2300c9a7' fill-opacity='0.08'/%3E%3Cpath d='M0 40c20 0 40-16 60-16s40 16 60 16 40-16 60-16 40 16 60 16V0H0Z' fill='%230077be' fill-opacity='0.06'/%3E%3C/svg%3E",
+    // Apply to page headers or section banners: background-image: url(/assets/patterns/compass-rose.svg); background-repeat: no-repeat; background-position: 90% 20%; background-size: 220px; opacity: 0.12;
+    nautical: '/assets/patterns/compass-rose.svg',
+    // Apply as overlay on hero/alerts: background-image: linear-gradient(135deg, rgba(255,205,86,0.18), rgba(0,119,190,0.12)), url(data-uri); background-blend-mode: overlay; opacity: 0.4;
+    weather:
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='140' viewBox='0 0 220 140'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='3' stroke-opacity='0.3'%3E%3Ccircle cx='60' cy='60' r='22'/%3E%3Cpath d='M40 100h80'/%3E%3Cpath d='M70 86h80'/%3E%3Cpath d='M110 112h60'/%3E%3C/g%3E%3C/svg%3E",
   },
 };
 ```

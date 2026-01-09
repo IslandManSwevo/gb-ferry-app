@@ -16,7 +16,25 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (status === 'authenticated' && session) {
-      router.replace(callbackUrl);
+      const safeUrl = (() => {
+        // allow plain relative paths without protocol or host
+        if (callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
+          return callbackUrl;
+        }
+
+        try {
+          const target = new URL(callbackUrl, window.location.origin);
+          if (target.origin === window.location.origin) {
+            return target.pathname + target.search + target.hash;
+          }
+        } catch (_) {
+          // ignore parse errors and fall through to default
+        }
+
+        return '/';
+      })();
+
+      router.replace(safeUrl);
     }
   }, [status, session, router, callbackUrl]);
 

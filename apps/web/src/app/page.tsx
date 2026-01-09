@@ -30,6 +30,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { GlassCard } from '../components/ui/GlassCard';
+import type { StatusKind } from '../components/ui/StatusBadge';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { WeatherWidget } from '../components/ui/WeatherWidget';
 
@@ -55,6 +56,8 @@ interface DashboardData {
     message: string;
   }>;
 }
+
+type AlertStatus = Extract<StatusKind, 'ok' | 'warning' | 'critical'>;
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -116,11 +119,24 @@ export default function DashboardPage() {
   const passengersToday = dashboard?.summary?.todaysPassengers ?? 0;
   const pendingManifests = dashboard?.summary?.pendingManifests ?? 0;
   const crewReadyPct = dashboard?.metrics?.safeManningCompliance ?? 0;
-  const alertsSeverity = criticalAlerts.length
+  const alertsSeverity: AlertStatus = criticalAlerts.length
     ? 'critical'
     : pendingManifests > 0
       ? 'warning'
       : 'ok';
+  const totalVessels = dashboard?.summary?.totalVessels ?? 0;
+  const compliantVessels = dashboard?.summary?.compliantVessels ?? 0;
+  const hasFleetData = totalVessels > 0;
+  const fleetStatus: StatusKind = hasFleetData
+    ? compliantVessels >= totalVessels
+      ? 'ok'
+      : 'warning'
+    : 'warning';
+  const fleetLabel = hasFleetData
+    ? compliantVessels >= totalVessels
+      ? 'All clear'
+      : 'Review vessels'
+    : 'No data';
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -208,7 +224,7 @@ export default function DashboardPage() {
                   </Text>
                   <Space align="center" size={12}>
                     <StatusBadge
-                      status={alertsSeverity as any}
+                      status={alertsSeverity}
                       label={alertsSeverity === 'critical' ? 'Action needed' : 'Running'}
                     />
                     <Text style={{ color: '#e6f7ff' }}>
@@ -398,21 +414,7 @@ export default function DashboardPage() {
                               {dashboard?.summary?.compliantVessels ?? 0} /{' '}
                               {dashboard?.summary?.totalVessels ?? 0}
                             </Text>
-                            <StatusBadge
-                              status={
-                                (dashboard?.summary?.compliantVessels ?? 0) >=
-                                (dashboard?.summary?.totalVessels ?? 0)
-                                  ? 'ok'
-                                  : 'warning'
-                              }
-                              label={
-                                (dashboard?.summary?.compliantVessels ?? 0) >=
-                                (dashboard?.summary?.totalVessels ?? 0)
-                                  ? 'All clear'
-                                  : 'Review vessels'
-                              }
-                              compact
-                            />
+                            <StatusBadge status={fleetStatus} label={fleetLabel} compact />
                           </Space>
                         </Space>
                       </Col>

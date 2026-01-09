@@ -10,10 +10,13 @@ import React from 'react';
 
 export type StatusKind = 'ok' | 'warning' | 'critical' | 'info' | 'muted';
 
-interface StatusBadgeProps {
+export interface StatusBadgeProps {
   status: StatusKind;
   label: string;
   compact?: boolean;
+  className?: string;
+  'data-testid'?: string;
+  dataTestId?: string;
 }
 
 const statusStyles: Record<StatusKind, { color: string; bg: string; icon: React.ReactNode }> = {
@@ -24,12 +27,22 @@ const statusStyles: Record<StatusKind, { color: string; bg: string; icon: React.
   muted: { color: '#6b7280', bg: 'rgba(107,114,128,0.14)', icon: <MinusCircleFilled /> },
 };
 
-export function StatusBadge({ status, label, compact }: StatusBadgeProps) {
+export function StatusBadge({
+  status,
+  label,
+  compact,
+  className,
+  dataTestId,
+  'data-testid': dataTestIdAttr,
+}: StatusBadgeProps) {
   const style = statusStyles[status] || statusStyles.muted;
+  const resolvedTestId = dataTestId ?? dataTestIdAttr;
 
   return (
     <Tag
       icon={style.icon}
+      className={className}
+      data-testid={resolvedTestId}
       style={{
         color: style.color,
         background: style.bg,

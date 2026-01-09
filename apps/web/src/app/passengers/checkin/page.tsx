@@ -57,13 +57,25 @@ interface WeatherSnapshot {
   advisory?: string;
 }
 
+interface ApiSailing {
+  id: string;
+  departurePort: string;
+  arrivalPort: string;
+  vesselName?: string | null;
+  departureTime: string;
+  arrivalTime?: string | null;
+  capacity?: number | null;
+  checkedIn?: number | null;
+  status?: string | null;
+}
+
 const portCoordinates: Record<string, { lat: number; lon: number; label: string }> = {
   nassau: { lat: 25.06, lon: -77.34, label: 'Nassau Harbor' },
   freeport: { lat: 26.53, lon: -78.7, label: 'Freeport Harbor' },
   abaco: { lat: 26.4, lon: -77.0, label: 'Marsh Harbour' },
 };
 
-function mapSailingStatus(status?: string): SailingStatus {
+function mapSailingStatus(status?: string | null): SailingStatus {
   if (!status) return 'on-time';
   if (status === 'in_progress') return 'boarding';
   if (status === 'delayed') return 'delayed';
@@ -109,7 +121,9 @@ export default function CheckInPage() {
       return;
     }
 
-    const normalized = data.map((s: any) => ({
+    const sailingsData = (data ?? []) as ApiSailing[];
+
+    const normalized = sailingsData.map((s) => ({
       id: s.id,
       departurePort: s.departurePort,
       arrivalPort: s.arrivalPort,
@@ -134,36 +148,51 @@ export default function CheckInPage() {
     setSailingsLoading(false);
   }, [form]);
 
-  const loadWeather = useCallback(async (port?: string) => {
+  const loadWeather = useCallback((port?: string) => {
     const portKey = resolvePortKey(port);
     const coords = portKey ? portCoordinates[portKey] : portCoordinates.nassau;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     setWeatherLoading(true);
-    try {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true&hourly=wave_height`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const current = data.current_weather;
+    (async () => {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true&hourly=wave_height`;
+        const res = await fetch(url, { signal: controller.signal });
+        const data = await res.json();
+        const current = data.current_weather;
 
-      const condition =
-        typeof current?.weathercode === 'number' ? `Code ${current.weathercode}` : 'Conditions';
+        const condition =
+          typeof current?.weathercode === 'number' ? `Code ${current.weathercode}` : 'Conditions';
 
-      setWeather({
-        location: coords.label,
-        condition,
-        temperatureC: current?.temperature ?? undefined,
-        windKts: current?.windspeed ? Math.round(current.windspeed * 0.539957) : undefined,
-        waveHeightM: data?.hourly?.wave_height?.[0] ?? undefined,
-        visibilityNm: undefined,
-        updatedAt: current?.time,
-        advisory: current?.windspeed > 25 ? 'High winds reported' : undefined,
-      });
-    } catch (err) {
-      console.error('Weather fetch failed', err);
-      message.warning('Live weather unavailable; showing defaults');
-      setWeather(null);
-    } finally {
-      setWeatherLoading(false);
-    }
+        if (!controller.signal.aborted) {
+          setWeather({
+            location: coords.label,
+            condition,
+            temperatureC: current?.temperature ?? undefined,
+            windKts: current?.windspeed ? Math.round(current.windspeed * 0.539957) : undefined,
+            waveHeightM: data?.hourly?.wave_height?.[0] ?? undefined,
+            visibilityNm: undefined,
+            updatedAt: current?.time,
+            advisory: current?.windspeed > 25 ? 'High winds reported' : undefined,
+          });
+        }
+      } catch (err: any) {
+        if (controller.signal.aborted) {
+          // Silently ignore aborted requests
+        } else {
+          console.error('Weather fetch failed', err);
+          message.warning('Live weather unavailable; showing defaults');
+          setWeather(null);
+        }
+      } finally {
+        clearTimeout(timeoutId);
+        if (!controller.signal.aborted) {
+          setWeatherLoading(false);
+        }
+      }
+    })();
+
+    return controller;
   }, []);
 
   useEffect(() => {
@@ -178,7 +207,8 @@ export default function CheckInPage() {
         portOfEmbarkation: sailing.departurePort,
         portOfDisembarkation: sailing.arrivalPort,
       });
-      void loadWeather(sailing.departurePort);
+      const controller = loadWeather(sailing.departurePort);
+      return () => controller?.abort();
     }
   }, [form, loadWeather, sailings, selectedSailing]);
 
@@ -227,6 +257,7 @@ export default function CheckInPage() {
       portOfEmbarkation: values.portOfEmbarkation,
       portOfDisembarkation: values.portOfDisembarkation,
       cabinOrSeat: values.cabinOrSeat,
+      baggage: values.baggage,
       specialInstructions: values.specialInstructions,
       consentGiven: !!values.consentGiven,
       consentProvidedAt: new Date().toISOString(),

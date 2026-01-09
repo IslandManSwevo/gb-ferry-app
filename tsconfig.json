@@ -21,7 +21,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./apps/web/src/*"],
       "@gbferry/dto": ["./packages/dto/src"],
       "@gbferry/dto/*": ["./packages/dto/src/*"],
       "@gbferry/database": ["./packages/database/src"],

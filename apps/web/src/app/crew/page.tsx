@@ -16,11 +16,23 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
   Typography,
 } from 'antd';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
+
+interface CrewMember {
+  key: string;
+  name: string;
+  role: string;
+  vessel: string;
+  certCount: number;
+  expiringCerts: number;
+  status: string;
+  duty: string;
+}
 
 const columns = [
   {
@@ -43,24 +55,26 @@ const columns = [
     title: 'Certifications',
     dataIndex: 'certCount',
     key: 'certCount',
-    render: (count: number, record: any) => (
+    render: (count: number, record: CrewMember) => (
       <Space direction="vertical" size={4}>
         <Space>
           <span>{count} active</span>
           {record.expiringCerts > 0 && <Tag color="orange">{record.expiringCerts} expiring</Tag>}
         </Space>
-        <Progress
-          percent={Math.max(0, 100 - record.expiringCerts * 10)}
-          size="small"
-          strokeColor={
-            record.expiringCerts > 1
-              ? '#ff4d4f'
-              : record.expiringCerts === 1
-                ? '#faad14'
-                : '#52c41a'
-          }
-          showInfo={false}
-        />
+        <Tooltip title="Higher = healthier (fewer expiring certs)">
+          <Progress
+            percent={Math.max(0, 100 - record.expiringCerts * 10)}
+            size="small"
+            strokeColor={
+              record.expiringCerts > 1
+                ? '#ff4d4f'
+                : record.expiringCerts === 1
+                  ? '#faad14'
+                  : '#52c41a'
+            }
+            showInfo={false}
+          />
+        </Tooltip>
       </Space>
     ),
   },
@@ -72,8 +86,7 @@ const columns = [
       const colors: Record<string, string> = {
         Active: 'green',
         'On Leave': 'orange',
-        Inactive: 'default',
-      };
+              };
       return <Tag color={colors[status] || 'default'}>{status}</Tag>;
     },
   },
@@ -106,7 +119,7 @@ const columns = [
 ];
 
 // Placeholder data
-const data = [
+const data: CrewMember[] = [
   {
     key: '1',
     name: 'Capt. James Wilson',
@@ -140,6 +153,9 @@ const data = [
 ];
 
 export default function CrewPage() {
+  const totalExpiringCerts = data.reduce((sum, crew) => sum + (crew.expiringCerts || 0), 0);
+  const onWatchCount = data.filter((crew) => crew.duty === 'On Watch').length;
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <AppSidebar />
@@ -160,7 +176,7 @@ export default function CrewPage() {
                   <Space align="center">
                     <StatusBadge status="ok" label="Bridge staffed" />
                     <Text style={{ color: '#e6f7ff', opacity: 0.8 }}>
-                      3/3 critical roles filled
+                      {onWatchCount}/{data.length} on watch
                     </Text>
                   </Space>
                 </Space>
@@ -172,7 +188,9 @@ export default function CrewPage() {
                   <Text style={{ color: '#e6f7ff', fontWeight: 600 }}>Certifications</Text>
                   <Space align="center">
                     <StatusBadge status="warning" label="Expiring soon" />
-                    <Text style={{ color: '#e6f7ff', opacity: 0.8 }}>3 expiring in 30d</Text>
+                    <Text style={{ color: '#e6f7ff', opacity: 0.8 }}>
+                      {totalExpiringCerts} expiring within review window
+                    </Text>
                   </Space>
                 </Space>
               </GlassCard>
@@ -183,7 +201,9 @@ export default function CrewPage() {
                   <Text style={{ color: '#e6f7ff', fontWeight: 600 }}>Coverage</Text>
                   <Space align="center">
                     <StatusBadge status="ok" label="All vessels staffed" />
-                    <Text style={{ color: '#e6f7ff', opacity: 0.8 }}>Next watch: 14:00</Text>
+                    <Text style={{ color: '#e6f7ff', opacity: 0.8 }}>
+                      {onWatchCount} currently on watch
+                    </Text>
                   </Space>
                 </Space>
               </GlassCard>

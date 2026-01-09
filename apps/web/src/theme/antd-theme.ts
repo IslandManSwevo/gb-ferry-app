@@ -49,11 +49,12 @@ export const gbferryTheme: ThemeConfig = {
       darkSubMenuItemBg: '#000c17',
       darkItemSelectedBg: '#003f5c',
     },
+    // TODO: Keep shadows conservative until design review / A-B test approves stronger depth
     Button: {
-      primaryShadow: '0 10px 30px rgba(0, 119, 190, 0.3)',
+      primaryShadow: '0 2px 8px rgba(0, 119, 190, 0.2)',
     },
     Card: {
-      boxShadow: '0 12px 40px rgba(0, 63, 92, 0.14)',
+      boxShadow: '0 2px 8px rgba(0, 63, 92, 0.12)',
     },
     Table: {
       headerBg: '#f5fbff',
