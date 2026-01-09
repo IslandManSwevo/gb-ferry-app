@@ -41,6 +41,8 @@ const ACCESS_RULES: AccessRule[] = [
   // Passengers
   { path: /^passengers$/, methods: ['GET'], feature: 'passengers.view' },
   { path: /^passengers$/, methods: ['POST'], feature: 'passengers.checkin' },
+  { path: /^passengers\/checkin$/, methods: ['POST'], feature: 'passengers.checkin' },
+  { path: /^passengers\/sailings$/, methods: ['GET'], feature: 'passengers.view' },
   { path: /^passengers\/[^/]+$/, methods: ['GET'], feature: 'passengers.view' },
   { path: /^passengers\/[^/]+$/, methods: ['PATCH'], feature: 'passengers.checkin' },
   { path: /^passengers\/[^/]+\/check-in$/, methods: ['POST'], feature: 'passengers.checkin' },

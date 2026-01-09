@@ -3,11 +3,22 @@
 import { LoginOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { Button, Card, Result, Space, Spin, Typography } from 'antd';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 const { Title, Text } = Typography;
 
 export default function SignInPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
+
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      router.replace(callbackUrl);
+    }
+  }, [status, session, router, callbackUrl]);
 
   if (status === 'loading') {
     return (
@@ -55,6 +66,9 @@ export default function SignInPage() {
                 Sign Out
               </Button>
             </Space>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Redirecting to your destination...
+            </Text>
           </Space>
         </Card>
       </div>

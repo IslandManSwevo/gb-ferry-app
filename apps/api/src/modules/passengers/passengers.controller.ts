@@ -1,20 +1,5 @@
-import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Param,
-    Post,
-    Put,
-    Query,
-} from '@nestjs/common';
-import {
-    ApiBearerAuth,
-    ApiOperation,
-    ApiQuery,
-    ApiResponse,
-    ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PassengersService } from './passengers.service';
 
 @ApiTags('passengers')
@@ -31,6 +16,13 @@ export class PassengersController {
     return this.passengersService.checkIn(checkInDto);
   }
 
+  @Get('sailings')
+  @ApiOperation({ summary: 'List upcoming sailings with readiness indicators' })
+  @ApiResponse({ status: 200, description: 'List of sailings' })
+  async listSailings(): Promise<any> {
+    return this.passengersService.listSailings();
+  }
+
   @Get()
   @ApiOperation({ summary: 'List passengers with optional filters' })
   @ApiQuery({ name: 'sailingId', required: false })
@@ -38,7 +30,7 @@ export class PassengersController {
   @ApiResponse({ status: 200, description: 'List of passengers' })
   async findAll(
     @Query('sailingId') sailingId?: string,
-    @Query('date') date?: string,
+    @Query('date') date?: string
   ): Promise<any> {
     return this.passengersService.findAll({ sailingId, date });
   }

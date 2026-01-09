@@ -44,6 +44,45 @@ export class PassengersService {
 
   private readonly logger = new Logger(PassengersService.name);
 
+  /**
+   * List upcoming sailings with capacity and current check-in counts.
+   * Drives operational views (capacity bars, sailing selection, readiness).
+   */
+  async listSailings(): Promise<any[]> {
+    const now = new Date();
+
+    const sailings = await this.prisma.sailing.findMany({
+      where: { departureTime: { gte: new Date(now.getTime() - 6 * 60 * 60 * 1000) } },
+      include: { vessel: true },
+      orderBy: { departureTime: 'asc' },
+      take: 25,
+    });
+
+    const passengerCounts = await this.prisma.passenger.groupBy({
+      by: ['sailingId'],
+      where: { status: 'CHECKED_IN', deletedAt: null },
+      _count: { sailingId: true },
+    });
+
+    const countsMap = new Map<string, number>();
+    passengerCounts.forEach((entry: any) => {
+      countsMap.set(entry.sailingId, entry._count?.sailingId ?? entry._count ?? 0);
+    });
+
+    return sailings.map((sailing: any) => ({
+      id: sailing.id,
+      vesselId: sailing.vesselId,
+      vesselName: sailing.vessel?.name,
+      departurePort: sailing.departurePort,
+      arrivalPort: sailing.arrivalPort,
+      departureTime: sailing.departureTime,
+      arrivalTime: sailing.arrivalTime,
+      status: sailing.status,
+      capacity: sailing.vessel?.passengerCapacity ?? null,
+      checkedIn: countsMap.get(sailing.id) ?? 0,
+    }));
+  }
+
   private encryptIdentityDocNumber(identityDocNumber: string): string {
     // Identity document number is required wherever this helper is called
     if (!identityDocNumber) {

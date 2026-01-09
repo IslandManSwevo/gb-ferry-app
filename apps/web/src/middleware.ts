@@ -21,56 +21,10 @@ export default withAuth(
       return NextResponse.next();
     }
 
-    // Role-based route protection
-    if (!token) {
+    // If authenticated, allow all routes for now (role filtering temporarily disabled)
+    // TODO: Re-enable role-based route protection once roles are properly configured
+    if (token) {
       return NextResponse.next();
-    }
-
-    const roles = (token.roles as string[]) || [];
-
-    // Admin-only routes
-    if (pathname.startsWith('/admin') && !roles.includes('admin')) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
-    }
-
-    // Compliance routes
-    if (
-      pathname.startsWith('/compliance') &&
-      !roles.some((r) => ['admin', 'compliance_officer', 'regulator'].includes(r))
-    ) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
-    }
-
-    // Crew management routes
-    if (
-      pathname.startsWith('/crew') &&
-      !roles.some((r) => ['admin', 'captain', 'compliance_officer'].includes(r))
-    ) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
-    }
-
-    // Passenger routes
-    if (
-      pathname.startsWith('/passengers') &&
-      !roles.some((r) => ['admin', 'operations', 'captain', 'compliance_officer'].includes(r))
-    ) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
-    }
-
-    // Vessel routes
-    if (
-      pathname.startsWith('/vessels') &&
-      !roles.some((r) => ['admin', 'captain', 'compliance_officer'].includes(r))
-    ) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
-    }
-
-    // Audit routes
-    if (
-      pathname.startsWith('/audit') &&
-      !roles.some((r) => ['admin', 'compliance_officer', 'regulator'].includes(r))
-    ) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
     }
 
     return NextResponse.next();

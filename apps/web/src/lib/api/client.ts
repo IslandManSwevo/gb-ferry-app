@@ -129,7 +129,9 @@ export const api = {
       fetchWithAuth<any>('/passengers', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) =>
       fetchWithAuth<any>(`/passengers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    checkIn: (id: string) => fetchWithAuth<any>(`/passengers/${id}/check-in`, { method: 'POST' }),
+    checkIn: (data: any) =>
+      fetchWithAuth<any>('/passengers/checkin', { method: 'POST', body: JSON.stringify(data) }),
+    sailings: () => fetchWithAuth<any[]>('/passengers/sailings'),
   },
 
   // Manifests

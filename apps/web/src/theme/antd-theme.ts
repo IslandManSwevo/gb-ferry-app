@@ -2,42 +2,37 @@ import type { ThemeConfig } from 'antd';
 
 /**
  * Grand Bahama Ferry Ant Design Theme
- * Maritime-inspired color palette with enterprise credibility
+ * Maritime-inspired palette with operational status semantics
  */
 export const gbferryTheme: ThemeConfig = {
   token: {
-    // Primary colors - Maritime Blue
-    colorPrimary: '#0a4d8c',
-    colorPrimaryHover: '#1677ff',
-    colorPrimaryActive: '#003a70',
+    // Primary maritime palette
+    colorPrimary: '#0077be', // ocean blue
+    colorPrimaryHover: '#1890ff',
+    colorPrimaryActive: '#003f5c', // deep sea
 
-    // Success - Compliance Green
-    colorSuccess: '#52c41a',
+    // Semantic statuses
+    colorSuccess: '#52c41a', // safety green
+    colorWarning: '#ff6b35', // weather warning
+    colorError: '#ff4d4f', // critical
+    colorInfo: '#00c9a7', // turquoise info
 
-    // Warning - Attention Amber
-    colorWarning: '#faad14',
-
-    // Error - Alert Red
-    colorError: '#ff4d4f',
-
-    // Info - Ocean Blue
-    colorInfo: '#1890ff',
-
-    // Background colors
-    colorBgContainer: '#ffffff',
-    colorBgLayout: '#f0f2f5',
+    // Backgrounds / glass surfaces
+    colorBgContainer: 'rgba(255,255,255,0.82)',
+    colorBgLayout: '#e6f2ff',
+    colorFillAlter: 'rgba(255,255,255,0.45)',
 
     // Text colors
-    colorText: '#262626',
-    colorTextSecondary: '#8c8c8c',
+    colorText: '#0f172a',
+    colorTextSecondary: '#475569',
 
     // Border
-    colorBorder: '#d9d9d9',
-    borderRadius: 8,
+    colorBorder: '#d0d7e2',
+    borderRadius: 10,
 
     // Typography
     fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+      "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     fontSize: 14,
 
     // Sizing
@@ -46,22 +41,22 @@ export const gbferryTheme: ThemeConfig = {
   components: {
     Layout: {
       siderBg: '#001529',
-      headerBg: '#ffffff',
-      bodyBg: '#f0f2f5',
+      headerBg: 'rgba(255,255,255,0.9)',
+      bodyBg: '#e6f2ff',
     },
     Menu: {
       darkItemBg: '#001529',
       darkSubMenuItemBg: '#000c17',
-      darkItemSelectedBg: '#0a4d8c',
+      darkItemSelectedBg: '#003f5c',
     },
     Button: {
-      primaryShadow: '0 2px 8px rgba(10, 77, 140, 0.35)',
+      primaryShadow: '0 10px 30px rgba(0, 119, 190, 0.3)',
     },
     Card: {
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+      boxShadow: '0 12px 40px rgba(0, 63, 92, 0.14)',
     },
     Table: {
-      headerBg: '#fafafa',
+      headerBg: '#f5fbff',
       rowHoverBg: '#f0f7ff',
     },
   },
