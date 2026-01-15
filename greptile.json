@@ -1,0 +1,70 @@
+{
+  "labels": [],
+  "comment": "",
+  "fixWithAI": true,
+  "hideFooter": false,
+  "strictness": 2,
+  "statusCheck": true,
+  "commentTypes": [
+    "syntax",
+    "logic",
+    "style"
+  ],
+  "instructions": "",
+  "disabledLabels": [],
+  "excludeAuthors": [],
+  "ignoreKeywords": "",
+  "ignorePatterns": "greptile.json\n",
+  "includeAuthors": [],
+  "summarySection": {
+    "included": true,
+    "collapsible": false,
+    "defaultOpen": false
+  },
+  "excludeBranches": [],
+  "fileChangeLimit": 100,
+  "includeBranches": [
+    "main"
+  ],
+  "includeKeywords": "",
+  "triggerOnUpdates": true,
+  "updateSummaryOnly": false,
+  "issuesTableSection": {
+    "included": true,
+    "collapsible": false,
+    "defaultOpen": false
+  },
+  "statusCommentsEnabled": true,
+  "confidenceScoreSection": {
+    "included": true,
+    "collapsible": false,
+    "defaultOpen": false
+  },
+  "sequenceDiagramSection": {
+    "included": true,
+    "collapsible": false,
+    "defaultOpen": false
+  },
+  "shouldUpdateDescription": true,
+  "customContext": {
+    "other": [
+      {
+        "scope": [],
+        "content": ""
+      }
+    ],
+    "rules": [
+      {
+        "scope": [],
+        "rule": ""
+      }
+    ],
+    "files": [
+      {
+        "scope": [],
+        "path": "",
+        "description": ""
+      }
+    ]
+  }
+}
