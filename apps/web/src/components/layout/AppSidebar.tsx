@@ -1,11 +1,14 @@
 'use client';
 
+import { canAccess } from '@/lib/auth/access';
 import { useUserRoles } from '@/lib/auth/roles';
 import {
   CheckCircleOutlined,
   DashboardOutlined,
+  DeploymentUnitOutlined,
   FileProtectOutlined,
   GlobalOutlined,
+  IdcardOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
@@ -18,7 +21,6 @@ const { Sider } = Layout;
 const { Text } = Typography;
 
 type MenuItem = Required<MenuProps>['items'][number];
-
 type MenuItemWithChildren = Extract<MenuItem, { key: React.Key; children: MenuItem[] }>;
 
 const isMenuItemWithChildren = (item: MenuItem): item is MenuItemWithChildren =>
@@ -34,35 +36,61 @@ const isDividerItem = (item: MenuItem): item is Extract<MenuItem, { type: 'divid
   'type' in item &&
   (item as { type?: string }).type === 'divider';
 
+// Feature Flag Mapping
+const FEATURE_MAP: Record<string, string> = {
+  '/passengers/checkin': 'passengers.checkin',
+  '/passengers/manifests': 'manifests.generate',
+  '/passengers': 'passengers.view',
+  '/crew': 'crew.view',
+  '/crew/safe-manning': 'crew.manage',
+  '/crew/certifications': 'certifications.view',
+  '/vessels/documents': 'documents.upload',
+  '/vessels': 'vessels.view',
+  '/compliance/exports': 'compliance.export',
+  '/compliance/reports': 'compliance.reports',
+  '/compliance/inspections': 'inspections.manage',
+  '/audit': 'audit.view',
+  '/settings': 'settings.view',
+};
+
 const menuItems: MenuItem[] = [
   {
     key: '/',
     icon: <DashboardOutlined />,
-    label: "Today's Operations",
+    label: 'Command Center',
   },
   {
     key: '/passengers/checkin',
     icon: <CheckCircleOutlined />,
-    label: 'Check-In Now',
+    label: 'Passenger Check-In',
   },
   {
-    key: 'operations',
-    icon: <GlobalOutlined />,
-    label: 'Operations & Boarding',
+    key: 'active-operations',
+    icon: <DeploymentUnitOutlined />,
+    label: 'Active Operations',
     children: [
       { key: '/passengers/manifests', label: 'Manifests' },
+      { key: '/passengers', label: 'Passenger List' },
       { key: '/crew', label: 'Crew On Duty' },
-      { key: '/vessels', label: 'Fleet Status' },
     ],
   },
   {
     key: 'voyage-prep',
-    icon: <CheckCircleOutlined />,
+    icon: <IdcardOutlined />,
     label: 'Voyage Preparation',
     children: [
       { key: '/crew/safe-manning', label: 'Safe Manning' },
       { key: '/crew/certifications', label: 'Certifications' },
       { key: '/vessels/documents', label: 'Vessel Documents' },
+    ],
+  },
+  {
+    key: 'fleet-management',
+    icon: <GlobalOutlined />,
+    label: 'Fleet Management',
+    children: [
+      { key: '/vessels', label: 'Vessel Status' },
+      { key: '/compliance/exports', label: 'Export Records' },
     ],
   },
   {
@@ -79,9 +107,13 @@ const menuItems: MenuItem[] = [
     type: 'divider',
   },
   {
-    key: '/settings',
+    key: 'system-management',
     icon: <SettingOutlined />,
-    label: 'Settings',
+    label: 'System Management',
+    children: [
+      { key: '/settings', label: 'Platform Settings' },
+      { key: '/audit-management', keyPath: '/audit', label: 'High-Level Audit' } as any, // Dual access to audit
+    ],
   },
 ];
 
@@ -93,15 +125,23 @@ const matchesPath = (pathname: string, matcher: string) =>
   pathname === matcher || pathname.startsWith(`${matcher}/`);
 
 function filterMenuItemsByRole(items: MenuItem[], roles: string[]): MenuItem[] {
-  // Temporarily show all items regardless of role for debugging navigation
-  // TODO: Restore role filtering once navigation is confirmed working
   const recurse = (item: MenuItem): MenuItem | null => {
     if (!item) return null;
-    if (typeof item !== 'object') return item;
     if (isDividerItem(item)) return item;
+
+    const key = (item as any).key;
+    const realPath = (item as any).keyPath || key;
+
+    // Check feature flag if defined
+    if (FEATURE_MAP[realPath]) {
+      if (!canAccess(roles, FEATURE_MAP[realPath])) {
+        return null;
+      }
+    }
 
     if (isMenuItemWithChildren(item)) {
       const children = item.children.map(recurse).filter(Boolean) as MenuItem[];
+      if (children.length === 0) return null; // Hide parent if no visible children
       return { ...item, children } as MenuItem;
     }
 
@@ -111,15 +151,16 @@ function filterMenuItemsByRole(items: MenuItem[], roles: string[]): MenuItem[] {
   return items.map(recurse).filter(Boolean) as MenuItem[];
 }
 
-// Helper to find parent key for a given path
 function findOpenKeys(pathname: string): string[] {
-  const mapping: { key: string; matchers: string[] }[] = [
-    { key: 'operations', matchers: ['/passengers', '/crew', '/vessels'] },
+  const mapping = [
+    { key: 'active-operations', matchers: ['/passengers/manifests', '/passengers', '/crew'] },
     {
       key: 'voyage-prep',
       matchers: ['/crew/safe-manning', '/crew/certifications', '/vessels/documents'],
     },
-    { key: 'regulatory', matchers: ['/compliance', '/audit'] },
+    { key: 'fleet-management', matchers: ['/vessels', '/compliance/exports'] },
+    { key: 'regulatory', matchers: ['/compliance/reports', '/compliance/inspections', '/audit'] },
+    { key: 'system-management', matchers: ['/settings'] },
   ];
 
   for (const entry of mapping) {
@@ -127,34 +168,8 @@ function findOpenKeys(pathname: string): string[] {
       return [entry.key];
     }
   }
-
   return [];
 }
-
-function extractRouteKeys(items: MenuItem[]): string[] {
-  const keys: string[] = [];
-
-  const visit = (item: MenuItem) => {
-    if (!item || typeof item !== 'object') return;
-    if (isDividerItem(item)) return;
-
-    if ('key' in item) {
-      const key = String((item as { key?: React.Key }).key ?? '');
-      if (key.startsWith('/')) {
-        keys.push(key);
-      }
-    }
-
-    if (isMenuItemWithChildren(item)) {
-      item.children.forEach(visit);
-    }
-  };
-
-  items.forEach(visit);
-  return keys;
-}
-
-const routeKeys = extractRouteKeys(menuItems);
 
 export const AppSidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -163,28 +178,17 @@ export const AppSidebar: React.FC = () => {
   const [openKeys, setOpenKeys] = useState<string[]>(findOpenKeys(pathname));
   const roles = useUserRoles();
 
+  const filteredItems = React.useMemo(() => filterMenuItemsByRole(menuItems, roles), [roles]);
+
   useEffect(() => {
     setOpenKeys(findOpenKeys(pathname));
   }, [pathname]);
 
-  const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    const targetKey = String(key);
-
-    if (parentKeys.has(targetKey)) {
-      setOpenKeys((prev) =>
-        prev.includes(targetKey) ? prev.filter((k) => k !== targetKey) : [...prev, targetKey]
-      );
-      return;
-    }
-
+  const handleMenuClick: MenuProps['onClick'] = ({ key, item }) => {
+    const targetKey = (item as any).props.keyPath || String(key);
+    if (parentKeys.has(targetKey)) return;
     router.push(targetKey);
   };
-
-  const normalizeSelectedKey = (path: string) => {
-    return routeKeys.find((k) => matchesPath(path, k)) || path;
-  };
-
-  const selectedKeys = [normalizeSelectedKey(pathname)];
 
   return (
     <Sider
@@ -192,48 +196,45 @@ export const AppSidebar: React.FC = () => {
       collapsed={collapsed}
       onCollapse={setCollapsed}
       width={260}
+      theme="dark"
       style={{
         overflow: 'auto',
         height: '100vh',
         position: 'sticky',
         top: 0,
         left: 0,
+        zIndex: 1000,
+        borderRight: '1px solid rgba(255,255,255,0.05)',
       }}
     >
-      {/* Logo */}
       <div
         style={{
           height: 64,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          padding: collapsed ? 0 : '0 24px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          padding: '0 24px',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
         }}
       >
         <div
           style={{
             width: 32,
             height: 32,
-            background: 'linear-gradient(135deg, #1890ff 0%, #52c41a 100%)',
+            background: 'linear-gradient(135deg, #1890ff 0%, #001529 100%)',
             borderRadius: 8,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
           }}
-          onClick={() => router.push('/')}
         >
           <FileProtectOutlined style={{ color: '#fff', fontSize: 18 }} />
         </div>
         {!collapsed && (
-          <div style={{ marginLeft: 12, cursor: 'pointer' }} onClick={() => router.push('/')}>
-            <Text strong style={{ color: '#fff', fontSize: 16, display: 'block', lineHeight: 1.2 }}>
+          <div style={{ marginLeft: 12 }}>
+            <Text strong style={{ color: '#fff', fontSize: 15, display: 'block', lineHeight: 1.2 }}>
               GB Ferry
             </Text>
-            <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11 }}>
-              Compliance Platform
-            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>OPS COMMAND</Text>
           </div>
         )}
       </div>
@@ -241,10 +242,10 @@ export const AppSidebar: React.FC = () => {
       <Menu
         theme="dark"
         mode="inline"
-        selectedKeys={selectedKeys}
+        selectedKeys={[pathname]}
         openKeys={openKeys}
         onOpenChange={(keys) => setOpenKeys(keys as string[])}
-        items={filterMenuItemsByRole(menuItems, roles)}
+        items={filteredItems}
         onClick={handleMenuClick}
         style={{ borderRight: 0, marginTop: 8 }}
       />

@@ -92,6 +92,16 @@ gbferry-platform/
 
 _Note: Passwords are temporary and will require change on first login._
 
+## 📈 Board & Stakeholder Briefing
+
+Critical documentation prepared for the executive committee and board of directors:
+
+- **[Executive Board Presentation](./docs/BOARD_PRESENTATION.md)**: High-level overview of the 'Maritime Ops Command Center' vision and key selling points.
+- **[Security & Access Governance](./docs/SECURITY_AND_GOVERNANCE.md)**: Whitepaper on RBAC, operational safety (Hard-Lock), and ISO 27001 alignment.
+- **[Latest Milestone Status](./IMPLEMENTATION_STATUS.md)**: Itemized list of completed tasks, including the Recent UI/UX and RBAC overhaul.
+
+---
+
 ## 🎯 Core Features
 
 ### MVP Features

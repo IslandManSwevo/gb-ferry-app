@@ -153,6 +153,7 @@ export class CBPService {
 
   async validateAPISCompliance(manifestId: string): Promise<any> {
     // Mock validation logic
+    this.logger.log(`Validating APIS compliance for manifest ${manifestId}...`);
     return { status: 'VALID', jurisdiction: 'US_CBP' };
   }
 
@@ -160,7 +161,7 @@ export class CBPService {
     data: CBPManifestDto
   ): Promise<{ submissionId: string; status: string }> {
     // Mock HTTP request to CBP ACE
-    this.logger.log('Sending EDI 309 data to CBP...');
+    this.logger.log(`Sending EDI 309 data to CBP for manifest ${data.manifestId}...`);
     return {
       submissionId: `ACE-${Date.now()}`,
       status: 'ACCEPTED', // or SUBMITTED

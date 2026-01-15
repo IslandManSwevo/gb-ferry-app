@@ -158,14 +158,20 @@ export const api = {
   // Manifests
   manifests: {
     list: (params?: { page?: number; pageSize?: number; status?: string; sailingId?: string }) =>
-      fetchWithAuth<PaginatedResponse<any>>('/passengers/manifests', { params }),
-    get: (id: string) => fetchWithAuth<any>(`/passengers/manifests/${id}`),
-    generate: (sailingId: string) =>
-      fetchWithAuth<any>(`/passengers/manifests/generate/${sailingId}`, { method: 'POST' }),
-    approve: (id: string) =>
-      fetchWithAuth<any>(`/passengers/manifests/${id}/approve`, { method: 'POST' }),
-    submit: (id: string) =>
-      fetchWithAuth<any>(`/passengers/manifests/${id}/submit`, { method: 'POST' }),
+      fetchWithAuth<PaginatedResponse<any>>('/manifests', { params }),
+    get: (id: string) => fetchWithAuth<any>(`/manifests/${id}`),
+    generate: (data: { sailingId: string; sailingDate: string }) =>
+      fetchWithAuth<any>('/manifests', { method: 'POST', body: JSON.stringify(data) }),
+    approve: (id: string, data?: any) =>
+      fetchWithAuth<any>(`/manifests/${id}/approve`, {
+        method: 'PUT',
+        body: JSON.stringify(data || {}),
+      }),
+    submit: (id: string, submittedBy: string) =>
+      fetchWithAuth<any>(`/manifests/${id}/submit`, {
+        method: 'PUT',
+        body: JSON.stringify({ submittedBy }),
+      }),
   },
 
   // Crew

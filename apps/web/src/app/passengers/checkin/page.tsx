@@ -6,9 +6,17 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
 import { api } from '@/lib/api';
-import { UserAddOutlined } from '@ant-design/icons';
+import { useCanAccess } from '@/lib/auth/roles';
 import {
-  Alert,
+  CheckCircleOutlined,
+  CompassOutlined,
+  DeleteOutlined,
+  IdcardOutlined,
+  PlusOutlined,
+  SafetyOutlined,
+  UserAddOutlined,
+} from '@ant-design/icons';
+import {
   Button,
   Checkbox,
   Col,
@@ -22,7 +30,7 @@ import {
   Row,
   Select,
   Space,
-  Steps,
+  Switch,
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
@@ -46,71 +54,14 @@ interface SailingOption {
   status: SailingStatus;
 }
 
-interface WeatherSnapshot {
-  location: string;
-  condition: string;
-  temperatureC?: number;
-  windKts?: number;
-  waveHeightM?: number;
-  visibilityNm?: number;
-  updatedAt?: string;
-  advisory?: string;
-}
-
-interface ApiSailing {
-  id: string;
-  departurePort: string;
-  arrivalPort: string;
-  vesselName?: string | null;
-  departureTime: string;
-  arrivalTime?: string | null;
-  capacity?: number | null;
-  checkedIn?: number | null;
-  status?: string | null;
-}
-
-const portCoordinates: Record<string, { lat: number; lon: number; label: string }> = {
-  nassau: { lat: 25.06, lon: -77.34, label: 'Nassau Harbor' },
-  freeport: { lat: 26.53, lon: -78.7, label: 'Freeport Harbor' },
-  abaco: { lat: 26.4, lon: -77.0, label: 'Marsh Harbour' },
-};
-
-function mapSailingStatus(status?: string | null): SailingStatus {
-  if (!status) return 'on-time';
-  if (status === 'in_progress') return 'boarding';
-  if (status === 'delayed') return 'delayed';
-  return 'on-time';
-}
-
-function formatSailingLabel(sailing?: SailingOption) {
-  if (!sailing) return 'Select a sailing';
-  return `${sailing.departurePort} → ${sailing.arrivalPort}`;
-}
-
-function formatDeparture(sailing?: SailingOption) {
-  if (!sailing) return '--';
-  const dt = dayjs(sailing.departureTime);
-  return dt.isValid() ? dt.format('MMM D • HH:mm') : '--';
-}
-
-function resolvePortKey(port?: string) {
-  if (!port) return undefined;
-  const lower = port.toLowerCase();
-  if (lower.includes('nas')) return 'nassau';
-  if (lower.includes('free')) return 'freeport';
-  if (lower.includes('aba') || lower.includes('marsh')) return 'abaco';
-  return undefined;
-}
-
 export default function CheckInPage() {
+  const canAccessPage = useCanAccess('passengers.checkin');
   const [form] = Form.useForm();
   const [sailings, setSailings] = useState<SailingOption[]>([]);
   const [sailingsLoading, setSailingsLoading] = useState(true);
   const [selectedSailing, setSelectedSailing] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
-  const [weatherLoading, setWeatherLoading] = useState(false);
-  const expiryDate = Form.useWatch('identityDocExpiry', form);
+  const [bulkMode, setBulkMode] = useState(false);
 
   const loadSailings = useCallback(async () => {
     setSailingsLoading(true);
@@ -121,18 +72,9 @@ export default function CheckInPage() {
       return;
     }
 
-    const sailingsData = (data ?? []) as ApiSailing[];
-
-    const normalized = sailingsData.map((s) => ({
-      id: s.id,
-      departurePort: s.departurePort,
-      arrivalPort: s.arrivalPort,
-      vesselName: s.vesselName,
-      departureTime: s.departureTime,
-      arrivalTime: s.arrivalTime,
-      capacity: s.capacity,
-      checkedIn: s.checkedIn ?? 0,
-      status: mapSailingStatus(s.status),
+    const normalized = data.map((s: any) => ({
+      ...s,
+      status: s.status === 'in_progress' ? 'boarding' : s.status || 'on-time',
     })) as SailingOption[];
 
     setSailings(normalized);
@@ -143,74 +85,15 @@ export default function CheckInPage() {
         sailingId: defaultId,
         portOfEmbarkation: normalized[0]?.departurePort,
         portOfDisembarkation: normalized[0]?.arrivalPort,
+        passengers: [{}], // Initial passenger for bulk mode
       });
     }
     setSailingsLoading(false);
   }, [form]);
 
-  const loadWeather = useCallback((port?: string) => {
-    const portKey = resolvePortKey(port);
-    const coords = portKey ? portCoordinates[portKey] : portCoordinates.nassau;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    setWeatherLoading(true);
-    (async () => {
-      try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true&hourly=wave_height`;
-        const res = await fetch(url, { signal: controller.signal });
-        const data = await res.json();
-        const current = data.current_weather;
-
-        const condition =
-          typeof current?.weathercode === 'number' ? `Code ${current.weathercode}` : 'Conditions';
-
-        if (!controller.signal.aborted) {
-          setWeather({
-            location: coords.label,
-            condition,
-            temperatureC: current?.temperature ?? undefined,
-            windKts: current?.windspeed ? Math.round(current.windspeed * 0.539957) : undefined,
-            waveHeightM: data?.hourly?.wave_height?.[0] ?? undefined,
-            visibilityNm: undefined,
-            updatedAt: current?.time,
-            advisory: current?.windspeed > 25 ? 'High winds reported' : undefined,
-          });
-        }
-      } catch (err: any) {
-        if (controller.signal.aborted) {
-          // Silently ignore aborted requests
-        } else {
-          console.error('Weather fetch failed', err);
-          message.warning('Live weather unavailable; showing defaults');
-          setWeather(null);
-        }
-      } finally {
-        clearTimeout(timeoutId);
-        if (!controller.signal.aborted) {
-          setWeatherLoading(false);
-        }
-      }
-    })();
-
-    return controller;
-  }, []);
-
   useEffect(() => {
-    void loadSailings();
+    loadSailings();
   }, [loadSailings]);
-
-  useEffect(() => {
-    const sailing = sailings.find((s) => s.id === selectedSailing);
-    if (sailing) {
-      form.setFieldsValue({
-        sailingId: sailing.id,
-        portOfEmbarkation: sailing.departurePort,
-        portOfDisembarkation: sailing.arrivalPort,
-      });
-      const controller = loadWeather(sailing.departurePort);
-      return () => controller?.abort();
-    }
-  }, [form, loadWeather, sailings, selectedSailing]);
 
   const selected = useMemo(
     () => sailings.find((s) => s.id === selectedSailing) ?? sailings[0],
@@ -222,19 +105,6 @@ export default function CheckInPage() {
     return Math.min(100, Math.round(((selected.checkedIn ?? 0) / selected.capacity) * 100));
   }, [selected]);
 
-  const capacityStatus = capacityUsage >= 95 ? 'critical' : capacityUsage >= 85 ? 'warning' : 'ok';
-
-  const expiryWarning = useMemo(() => {
-    if (!expiryDate || !selected?.departureTime) return null;
-    const sailingDate = dayjs(selected.departureTime);
-    const expiry = dayjs(expiryDate);
-    if (!sailingDate.isValid() || !expiry.isValid()) return null;
-    const daysDiff = expiry.diff(sailingDate, 'day');
-    if (daysDiff < 0) return 'Document expires before sailing date';
-    if (daysDiff < 30) return `Document expires in ${daysDiff} days (under 30-day buffer)`;
-    return null;
-  }, [expiryDate, selected?.departureTime]);
-
   const handleSubmit = async (values: any) => {
     if (!selected) {
       message.error('Select a sailing');
@@ -242,44 +112,98 @@ export default function CheckInPage() {
     }
 
     setSubmitting(true);
-    const payload = {
-      sailingId: values.sailingId,
-      sailingDate: selected.departureTime,
-      familyName: values.familyName,
-      givenNames: values.givenNames,
-      dateOfBirth: values.dateOfBirth?.format('YYYY-MM-DD'),
-      nationality: values.nationality,
-      gender: values.gender,
-      identityDocType: values.identityDocType,
-      identityDocNumber: values.identityDocNumber,
-      identityDocExpiry: values.identityDocExpiry?.format('YYYY-MM-DD'),
-      identityDocCountry: values.identityDocCountry || values.nationality,
-      portOfEmbarkation: values.portOfEmbarkation,
-      portOfDisembarkation: values.portOfDisembarkation,
-      cabinOrSeat: values.cabinOrSeat,
-      baggage: values.baggage,
-      specialInstructions: values.specialInstructions,
-      consentGiven: !!values.consentGiven,
-      consentProvidedAt: new Date().toISOString(),
-    };
+    const passengers = bulkMode ? values.passengers : [values];
 
-    const { error } = await api.passengers.checkIn(payload);
-    setSubmitting(false);
+    let successCount = 0;
+    for (const p of passengers) {
+      const payload = {
+        sailingId: values.sailingId || selected.id,
+        sailingDate: selected.departureTime,
+        familyName: p.familyName,
+        givenNames: p.givenNames,
+        dateOfBirth: p.dateOfBirth?.format('YYYY-MM-DD'),
+        nationality: p.nationality,
+        gender: p.gender,
+        identityDocType: p.identityDocType,
+        identityDocNumber: p.identityDocNumber,
+        identityDocExpiry: p.identityDocExpiry?.format('YYYY-MM-DD'),
+        identityDocCountry: p.identityDocCountry || p.nationality,
+        portOfEmbarkation: values.portOfEmbarkation || selected.departurePort,
+        portOfDisembarkation: values.portOfDisembarkation || selected.arrivalPort,
+        cabinOrSeat: p.cabinOrSeat,
+        baggage: p.baggage,
+        consentGiven: !!values.bulkConsent || !!p.consentGiven,
+        consentProvidedAt: new Date().toISOString(),
+      };
 
-    if (error) {
-      message.error(error);
-      return;
+      const { error } = await api.passengers.checkIn(payload);
+      if (!error) successCount++;
     }
 
-    message.success('Passenger checked in');
-    form.resetFields();
-    form.setFieldsValue({
-      sailingId: selected.id,
-      portOfEmbarkation: selected.departurePort,
-      portOfDisembarkation: selected.arrivalPort,
-    });
-    await loadSailings();
+    setSubmitting(false);
+    if (successCount === passengers.length) {
+      message.success(`Successfully checked in ${successCount} passenger(s)`);
+      form.resetFields();
+      loadSailings();
+    } else {
+      message.warning(
+        `Checked in ${successCount} of ${passengers.length} passengers. Some errors occurred.`
+      );
+    }
   };
+
+  if (!canAccessPage) {
+    return (
+      <Layout style={{ minHeight: '100vh' }}>
+        <AppSidebar />
+        <Layout>
+          <AppHeader />
+          <Content
+            style={{
+              margin: '24px',
+              padding: '24px',
+              background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
+              minHeight: 'calc(100vh - 64px - 48px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <GlassCard style={{ maxWidth: 600, padding: 40, textAlign: 'center' }}>
+              <Space direction="vertical" size="large">
+                <div
+                  style={{
+                    width: 80,
+                    height: 80,
+                    background: 'rgba(255, 77, 79, 0.1)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto',
+                  }}
+                >
+                  <SafetyOutlined style={{ fontSize: 40, color: '#ff4d4f' }} />
+                </div>
+                <div>
+                  <Title level={3} style={{ color: '#fff', marginBottom: 8 }}>
+                    Access Restricted
+                  </Title>
+                  <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    Your current role does not have authorization to perform passenger check-ins.
+                    Please contact your system administrator if you believe this is an error.
+                  </Text>
+                </div>
+                <Button type="primary" size="large" onClick={() => window.history.back()}>
+                  Return to Dashboard
+                </Button>
+              </Space>
+            </GlassCard>
+          </Content>
+        </Layout>
+      </Layout>
+    );
+  }
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -294,423 +218,471 @@ export default function CheckInPage() {
             minHeight: 'calc(100vh - 64px - 48px)',
           }}
         >
-          <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+          <Row justify="space-between" align="middle" style={{ marginBottom: 32 }}>
             <Col>
               <Title level={2} style={{ color: '#fff', margin: 0 }}>
+                <IdcardOutlined style={{ marginRight: 12, color: '#1890ff' }} />
                 Passenger Check-In
               </Title>
-              <Text style={{ color: 'rgba(255,255,255,0.75)' }}>
-                Capture documents and board faster with readiness signals
+              <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: '16px' }}>
+                Secure documentation and manifest verification for{' '}
+                {selected?.departurePort || 'current'} departures
               </Text>
             </Col>
             <Col>
-              <StatusBadge status={capacityStatus} label={`Capacity ${capacityUsage}%`} />
+              <Space size="large">
+                <Space>
+                  <Text style={{ color: '#fff' }}>Group Mode</Text>
+                  <Switch checked={bulkMode} onChange={setBulkMode} />
+                </Space>
+                <StatusBadge
+                  status={capacityUsage > 90 ? 'critical' : 'ok'}
+                  label={`Sailing Load: ${capacityUsage}%`}
+                />
+              </Space>
             </Col>
           </Row>
 
           <Row gutter={[24, 24]}>
             <Col xs={24} xl={16}>
-              <GlassCard intensity="medium">
-                <Space direction="vertical" style={{ width: '100%' }} size="large">
-                  <div>
-                    <Title level={4} style={{ color: '#e6f7ff', marginBottom: 4 }}>
-                      <UserAddOutlined style={{ marginRight: 8 }} />
-                      Staged Check-In
+              <Form form={form} layout="vertical" onFinish={handleSubmit}>
+                <GlassCard style={{ marginBottom: 24 }}>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="sailingId"
+                        label={<Text style={{ color: '#e6f7ff' }}>Active Sailing</Text>}
+                        rules={[{ required: true }]}
+                      >
+                        <Select
+                          loading={sailingsLoading}
+                          onChange={setSelectedSailing}
+                          options={sailings.map((s) => ({
+                            value: s.id,
+                            label: `${s.departurePort} → ${s.arrivalPort} (${dayjs(s.departureTime).format('HH:mm')})`,
+                          }))}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item
+                        name="portOfEmbarkation"
+                        label={<Text style={{ color: '#e6f7ff' }}>Departure</Text>}
+                      >
+                        <Input disabled />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item
+                        name="portOfDisembarkation"
+                        label={<Text style={{ color: '#e6f7ff' }}>Arrival</Text>}
+                      >
+                        <Input disabled />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </GlassCard>
+
+                {bulkMode ? (
+                  <Form.List name="passengers">
+                    {(fields, { add, remove }) => (
+                      <>
+                        {fields.map(({ key, name, ...restField }, index) => (
+                          <GlassCard key={key} style={{ marginBottom: 16, position: 'relative' }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                marginBottom: 16,
+                              }}
+                            >
+                              <Title level={5} style={{ color: '#e6f7ff', margin: 0 }}>
+                                <UserAddOutlined style={{ marginRight: 8 }} />
+                                Passenger #{index + 1}
+                              </Title>
+                              {fields.length > 1 && (
+                                <Button
+                                  danger
+                                  ghost
+                                  icon={<DeleteOutlined />}
+                                  size="small"
+                                  onClick={() => remove(name)}
+                                >
+                                  Remove
+                                </Button>
+                              )}
+                            </div>
+                            <Row gutter={16}>
+                              <Col span={12}>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'givenNames']}
+                                  label={
+                                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                      Given Names
+                                    </Text>
+                                  }
+                                  rules={[{ required: true }]}
+                                >
+                                  <Input />
+                                </Form.Item>
+                              </Col>
+                              <Col span={12}>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'familyName']}
+                                  label={
+                                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                      Family Name
+                                    </Text>
+                                  }
+                                  rules={[{ required: true }]}
+                                >
+                                  <Input />
+                                </Form.Item>
+                              </Col>
+                            </Row>
+                            <Row gutter={16}>
+                              <Col span={8}>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'dateOfBirth']}
+                                  label={
+                                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                      Date of Birth
+                                    </Text>
+                                  }
+                                  rules={[{ required: true }]}
+                                >
+                                  <DatePicker style={{ width: '100%' }} />
+                                </Form.Item>
+                              </Col>
+                              <Col span={8}>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'nationality']}
+                                  label={
+                                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                      Nationality
+                                    </Text>
+                                  }
+                                  rules={[{ required: true }]}
+                                >
+                                  <Input />
+                                </Form.Item>
+                              </Col>
+                              <Col span={8}>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'gender']}
+                                  label={
+                                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Gender</Text>
+                                  }
+                                  rules={[{ required: true }]}
+                                >
+                                  <Select
+                                    options={[
+                                      { label: 'Male', value: 'M' },
+                                      { label: 'Female', value: 'F' },
+                                    ]}
+                                  />
+                                </Form.Item>
+                              </Col>
+                            </Row>
+                            <Divider
+                              style={{ margin: '8px 0', borderColor: 'rgba(255,255,255,0.05)' }}
+                            />
+                            <Row gutter={16}>
+                              <Col span={8}>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'identityDocType']}
+                                  label={
+                                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Doc Type</Text>
+                                  }
+                                  rules={[{ required: true }]}
+                                >
+                                  <Select
+                                    options={[
+                                      { label: 'Passport', value: 'PASSPORT' },
+                                      { label: 'National ID', value: 'NATIONAL_ID' },
+                                    ]}
+                                  />
+                                </Form.Item>
+                              </Col>
+                              <Col span={8}>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'identityDocNumber']}
+                                  label={
+                                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                      Doc Number
+                                    </Text>
+                                  }
+                                  rules={[{ required: true }]}
+                                >
+                                  <Input />
+                                </Form.Item>
+                              </Col>
+                              <Col span={8}>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'identityDocExpiry']}
+                                  label={
+                                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Expiry</Text>
+                                  }
+                                  rules={[{ required: true }]}
+                                >
+                                  <DatePicker style={{ width: '100%' }} />
+                                </Form.Item>
+                              </Col>
+                            </Row>
+                          </GlassCard>
+                        ))}
+                        <Button
+                          type="dashed"
+                          onClick={() => add()}
+                          block
+                          icon={<PlusOutlined />}
+                          style={{
+                            color: '#e6f7ff',
+                            borderColor: 'rgba(255,255,255,0.2)',
+                            marginBottom: 24,
+                            height: '50px',
+                          }}
+                        >
+                          Add Another Participant
+                        </Button>
+                      </>
+                    )}
+                  </Form.List>
+                ) : (
+                  <GlassCard style={{ marginBottom: 24 }}>
+                    {/* Single Passenger Form (Simplified) */}
+                    <Title level={4} style={{ color: '#e6f7ff', marginBottom: 20 }}>
+                      Passenger Information
                     </Title>
-                    <Text style={{ color: 'rgba(230,247,255,0.75)' }}>
-                      3-step flow: select sailing, capture passenger details, confirm boarding
-                    </Text>
-                  </div>
-
-                  <Steps
-                    current={1}
-                    items={[
-                      { title: 'Select Sailing' },
-                      { title: 'Passenger Details' },
-                      { title: 'Boarding Summary' },
-                    ]}
-                  />
-
-                  <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={handleSubmit}
-                    initialValues={{ sailingId: selected?.id }}
-                  >
-                    <Row gutter={[16, 16]}>
-                      <Col xs={24} md={12}>
+                    <Row gutter={16}>
+                      <Col span={12}>
                         <Form.Item
-                          name="sailingId"
-                          label="Sailing"
-                          rules={[{ required: true, message: 'Choose a sailing' }]}
+                          name="givenNames"
+                          label={
+                            <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Given Names</Text>
+                          }
+                          rules={[{ required: true }]}
+                        >
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="familyName"
+                          label={
+                            <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Family Name</Text>
+                          }
+                          rules={[{ required: true }]}
+                        >
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="identityDocNumber"
+                          label={
+                            <Text style={{ color: 'rgba(255,255,255,0.6)' }}>
+                              Passport / ID Number
+                            </Text>
+                          }
+                          rules={[{ required: true }]}
+                        >
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="nationality"
+                          label={
+                            <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Issuing Country</Text>
+                          }
+                          rules={[{ required: true }]}
+                        >
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Form.Item
+                          name="dateOfBirth"
+                          label={
+                            <Text style={{ color: 'rgba(255,255,255,0.6)' }}>Date of Birth</Text>
+                          }
+                          rules={[{ required: true }]}
+                        >
+                          <DatePicker style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item
+                          name="gender"
+                          label={<Text style={{ color: 'rgba(255,255,255,0.6)' }}>Gender</Text>}
+                          rules={[{ required: true }]}
                         >
                           <Select
-                            placeholder="Select sailing"
-                            loading={sailingsLoading}
-                            onChange={(value) => setSelectedSailing(value)}
-                            optionRender={(option) => {
-                              const sailing = (option.data as any)?.sailing as
-                                | SailingOption
-                                | undefined;
-                              if (!sailing) return option.label;
-                              const percent = sailing.capacity
-                                ? Math.min(
-                                    100,
-                                    Math.round((sailing.checkedIn / sailing.capacity) * 100)
-                                  )
-                                : 0;
-                              const status = sailing.status === 'delayed' ? 'warning' : 'ok';
-                              return (
-                                <Space direction="vertical" size={2} style={{ width: '100%' }}>
-                                  <Space size={8} align="center">
-                                    <StatusBadge
-                                      status={status}
-                                      label={formatSailingLabel(sailing)}
-                                      compact
-                                    />
-                                    <Text type="secondary">{formatDeparture(sailing)}</Text>
-                                  </Space>
-                                  {sailing.capacity ? (
-                                    <Progress
-                                      percent={percent}
-                                      size="small"
-                                      strokeColor={
-                                        percent >= 95
-                                          ? '#ff4d4f'
-                                          : percent >= 85
-                                            ? '#faad14'
-                                            : '#52c41a'
-                                      }
-                                      showInfo={false}
-                                    />
-                                  ) : (
-                                    <Text type="secondary">Capacity pending</Text>
-                                  )}
-                                </Space>
-                              );
-                            }}
-                            options={sailings.map((s) => ({
-                              value: s.id,
-                              label: `${formatSailingLabel(s)} (${formatDeparture(s)})`,
-                              sailing: s,
-                            }))}
+                            options={[
+                              { label: 'Male', value: 'M' },
+                              { label: 'Female', value: 'F' },
+                            ]}
                           />
                         </Form.Item>
                       </Col>
-                      <Col xs={24} md={6}>
-                        <Form.Item name="cabinOrSeat" label="Cabin/Seat">
-                          <Input placeholder="A101" />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={6}>
-                        <Form.Item name="baggage" label="Baggage Tags">
-                          <Input placeholder="2" />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
-                    <Divider style={{ borderColor: 'rgba(255,255,255,0.08)' }} />
-
-                    <Row gutter={[16, 16]}>
-                      <Col xs={24} md={12}>
-                        <Form.Item
-                          name="familyName"
-                          label="Family Name"
-                          rules={[{ required: true, message: 'Please enter family name' }]}
-                        >
-                          <Input placeholder="Smith" />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={12}>
-                        <Form.Item
-                          name="givenNames"
-                          label="Given Names"
-                          rules={[{ required: true, message: 'Please enter given names' }]}
-                        >
-                          <Input placeholder="John William" />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
-                    <Row gutter={[16, 16]}>
-                      <Col xs={24} md={8}>
-                        <Form.Item
-                          name="dateOfBirth"
-                          label="Date of Birth"
-                          rules={[{ required: true, message: 'Please select date of birth' }]}
-                        >
-                          <DatePicker style={{ width: '100%' }} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item
-                          name="nationality"
-                          label="Nationality"
-                          rules={[{ required: true, message: 'Please select nationality' }]}
-                        >
-                          <Select placeholder="Select nationality">
-                            <Select.Option value="USA">United States</Select.Option>
-                            <Select.Option value="BHS">Bahamas</Select.Option>
-                            <Select.Option value="GBR">United Kingdom</Select.Option>
-                            <Select.Option value="CAN">Canada</Select.Option>
-                          </Select>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item
-                          name="gender"
-                          label="Gender"
-                          rules={[{ required: true, message: 'Please select gender' }]}
-                        >
-                          <Select placeholder="Select gender">
-                            <Select.Option value="M">Male</Select.Option>
-                            <Select.Option value="F">Female</Select.Option>
-                          </Select>
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
-                    <Row gutter={[16, 16]}>
-                      <Col xs={24} md={8}>
-                        <Form.Item
-                          name="identityDocType"
-                          label="Document Type"
-                          rules={[{ required: true }]}
-                        >
-                          <Select placeholder="Select document type">
-                            <Select.Option value="PASSPORT">Passport</Select.Option>
-                            <Select.Option value="NATIONAL_ID">National ID</Select.Option>
-                            <Select.Option value="SEAMAN_BOOK">Seaman Book</Select.Option>
-                            <Select.Option value="TRAVEL_DOCUMENT">Travel Document</Select.Option>
-                          </Select>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item
-                          name="identityDocNumber"
-                          label="Document Number"
-                          rules={[{ required: true, message: 'Please enter document number' }]}
-                        >
-                          <Input placeholder="123456789" />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
+                      <Col span={8}>
                         <Form.Item
                           name="identityDocExpiry"
-                          label="Document Expiry"
-                          rules={[
-                            { required: true, message: 'Please add expiry date' },
-                            {
-                              validator: (_, value) => {
-                                if (!value || !selected?.departureTime) return Promise.resolve();
-                                const sailingDate = dayjs(selected.departureTime);
-                                if (!sailingDate.isValid()) return Promise.resolve();
-                                if (value.isBefore(sailingDate, 'day')) {
-                                  return Promise.reject(
-                                    new Error('Document expires before sailing date')
-                                  );
-                                }
-                                return Promise.resolve();
-                              },
-                            },
-                          ]}
-                          extra={
-                            expiryWarning ? <Text type="danger">{expiryWarning}</Text> : undefined
-                          }
+                          label={<Text style={{ color: 'rgba(255,255,255,0.6)' }}>Doc Expiry</Text>}
+                          rules={[{ required: true }]}
                         >
                           <DatePicker style={{ width: '100%' }} />
                         </Form.Item>
                       </Col>
                     </Row>
-
-                    <Row gutter={[16, 16]}>
-                      <Col xs={24} md={8}>
-                        <Form.Item
-                          name="identityDocCountry"
-                          label="Document Issuing Country"
-                          rules={[{ required: true, message: 'Select issuing country' }]}
-                        >
-                          <Select placeholder="Select country">
-                            <Select.Option value="USA">United States</Select.Option>
-                            <Select.Option value="BHS">Bahamas</Select.Option>
-                            <Select.Option value="GBR">United Kingdom</Select.Option>
-                            <Select.Option value="CAN">Canada</Select.Option>
-                          </Select>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item
-                          name="portOfEmbarkation"
-                          label="Port of Embarkation"
-                          rules={[{ required: true, message: 'Select embarkation port' }]}
-                        >
-                          <Select placeholder="Departure port">
-                            <Select.Option value="Nassau">Nassau</Select.Option>
-                            <Select.Option value="Freeport">Freeport</Select.Option>
-                            <Select.Option value="Abaco">Abaco</Select.Option>
-                          </Select>
-                        </Form.Item>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item
-                          name="portOfDisembarkation"
-                          label="Port of Disembarkation"
-                          rules={[{ required: true, message: 'Select arrival port' }]}
-                        >
-                          <Select placeholder="Arrival port">
-                            <Select.Option value="Nassau">Nassau</Select.Option>
-                            <Select.Option value="Freeport">Freeport</Select.Option>
-                            <Select.Option value="Abaco">Abaco</Select.Option>
-                          </Select>
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
-                    <Row gutter={[16, 16]}>
-                      <Col span={24}>
-                        <Form.Item name="specialInstructions" label="Special Instructions">
-                          <Input.TextArea rows={3} placeholder="Accessibility, medical, etc." />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
+                    <Divider style={{ borderColor: 'rgba(255,255,255,0.1)' }} />
                     <Form.Item
                       name="consentGiven"
                       valuePropName="checked"
-                      rules={[
-                        {
-                          validator: (_, value) =>
-                            value
-                              ? Promise.resolve()
-                              : Promise.reject(new Error('Consent is required to board')),
-                        },
-                      ]}
+                      rules={[{ required: true, message: 'Required' }]}
                     >
-                      <Checkbox>I confirm passenger consent to travel</Checkbox>
+                      <Checkbox style={{ color: '#fff' }}>
+                        I confirm safety briefing and document validity
+                      </Checkbox>
                     </Form.Item>
+                  </GlassCard>
+                )}
 
-                    <Alert
-                      message="Remind passenger to keep ID handy at boarding gate."
-                      type="info"
-                      showIcon
-                      style={{ marginTop: 8, marginBottom: 16 }}
-                    />
+                {bulkMode && (
+                  <GlassCard style={{ marginBottom: 24, background: 'rgba(24, 144, 255, 0.05)' }}>
+                    <Form.Item
+                      name="bulkConsent"
+                      valuePropName="checked"
+                      rules={[{ required: true, message: 'Group consent required' }]}
+                    >
+                      <Checkbox style={{ color: '#fff' }}>
+                        <Text strong style={{ color: '#fff' }}>
+                          GROUP ATTESTATION:
+                        </Text>
+                        <br />I verify that all passengers in this group have providing valid
+                        documentation and have received the maritime safety brief.
+                      </Checkbox>
+                    </Form.Item>
+                  </GlassCard>
+                )}
 
-                    <Row justify="end">
-                      <Space>
-                        <Button onClick={() => form.resetFields()}>Clear</Button>
-                        <Button type="primary" htmlType="submit" loading={submitting}>
-                          Complete Check-In
-                        </Button>
-                      </Space>
-                    </Row>
-                  </Form>
-                </Space>
-              </GlassCard>
+                <Row justify="end">
+                  <Col>
+                    <Button
+                      type="primary"
+                      size="large"
+                      htmlType="submit"
+                      loading={submitting}
+                      style={{
+                        height: '56px',
+                        padding: '0 48px',
+                        fontSize: '18px',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      Complete {bulkMode ? 'Group' : ''} Check-In
+                    </Button>
+                  </Col>
+                </Row>
+              </Form>
             </Col>
-            <Col xs={24} xl={8}>
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                <GlassCard intensity="medium">
-                  <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
-                    <Col>
-                      <Title level={4} style={{ margin: 0, color: '#e6f7ff' }}>
-                        Sailing Readiness
-                      </Title>
-                      <Text style={{ color: 'rgba(230,247,255,0.75)' }}>
-                        {formatSailingLabel(selected)}
-                      </Text>
-                    </Col>
-                    <Col>
-                      <StatusBadge
-                        status={selected?.status === 'delayed' ? 'warning' : 'ok'}
-                        label={
-                          selected?.status === 'boarding'
-                            ? 'Boarding'
-                            : selected?.status === 'delayed'
-                              ? 'Delayed'
-                              : 'On time'
-                        }
-                        compact
-                      />
-                    </Col>
-                  </Row>
-                  <Text style={{ color: '#e6f7ff', fontWeight: 600 }}>
-                    {formatDeparture(selected)}
-                  </Text>
-                  <Text style={{ color: 'rgba(230,247,255,0.75)' }}>
-                    Vessel {selected?.vesselName || 'TBD'}
-                  </Text>
-                  <Divider style={{ borderColor: 'rgba(255,255,255,0.08)' }} />
-                  <Row gutter={[12, 12]}>
-                    <Col span={12}>
-                      <Text style={{ color: 'rgba(255,255,255,0.75)' }}>Capacity</Text>
-                      <Progress
-                        percent={capacityUsage}
-                        strokeColor={
-                          capacityStatus === 'critical'
-                            ? '#ff4d4f'
-                            : capacityStatus === 'warning'
-                              ? '#faad14'
-                              : '#52c41a'
-                        }
-                        showInfo
-                      />
-                    </Col>
-                    <Col span={12}>
-                      <Text style={{ color: 'rgba(255,255,255,0.75)' }}>Checked-In</Text>
-                      <div style={{ color: '#e6f7ff', fontWeight: 600, fontSize: 18 }}>
-                        {selected?.checkedIn ?? 0} / {selected?.capacity ?? 'n/a'}
-                      </div>
-                      <Text type="secondary">
-                        {selected?.capacity != null
-                          ? Math.max((selected.capacity ?? 0) - (selected?.checkedIn ?? 0), 0)
-                          : 'Capacity pending'}{' '}
-                        {selected?.capacity != null ? 'seats remaining' : ''}
-                      </Text>
-                    </Col>
-                  </Row>
-                  {selected?.weatherAdvisory && (
-                    <Alert
-                      message={selected.weatherAdvisory}
-                      type="warning"
-                      showIcon
-                      style={{ marginTop: 12 }}
-                    />
-                  )}
-                </GlassCard>
 
-                <GlassCard intensity="medium">
-                  <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
-                    <Col>
-                      <Title level={4} style={{ margin: 0 }}>
-                        Boarding Summary
-                      </Title>
-                      <Text type="secondary">Documents and security checks</Text>
-                    </Col>
-                  </Row>
+            <Col xs={24} xl={8}>
+              <Space direction="vertical" style={{ width: '100%' }} size="large">
+                <GlassCard>
+                  <Title level={4} style={{ color: '#e6f7ff', marginBottom: 16 }}>
+                    <CompassOutlined style={{ marginRight: 8 }} />
+                    Sailing Readiness
+                  </Title>
                   <Space direction="vertical" style={{ width: '100%' }} size="small">
-                    <Space align="center" size={12}>
-                      <StatusBadge status="ok" label="Passport verified" compact />
-                      <StatusBadge status="ok" label="Photo match" compact />
-                      <StatusBadge status="warning" label="Bag tags pending" compact />
-                    </Space>
-                    <Text type="secondary">
-                      Mark bag tags complete after labels printed at kiosk.
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.45)' }}>Vessel</Text>
+                      <Text strong style={{ color: '#fff' }}>
+                        {selected?.vesselName || 'TBD'}
+                      </Text>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.45)' }}>Departure</Text>
+                      <Text strong style={{ color: '#fff' }}>
+                        {dayjs(selected?.departureTime).format('HH:mm')}
+                      </Text>
+                    </div>
+                    <Divider style={{ margin: '8px 0', borderColor: 'rgba(255,255,255,0.1)' }} />
+                    <Text
+                      style={{ color: 'rgba(255,255,255,0.45)', display: 'block', marginBottom: 8 }}
+                    >
+                      CAPACITY UTILIZATION
+                    </Text>
+                    <Progress
+                      percent={capacityUsage}
+                      strokeColor={capacityUsage > 90 ? '#ff4d4f' : '#52c41a'}
+                      status={capacityUsage > 90 ? 'exception' : 'active'}
+                    />
+                    <Text
+                      style={{
+                        color: '#fff',
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        display: 'block',
+                        textAlign: 'center',
+                        marginTop: 8,
+                      }}
+                    >
+                      {selected?.checkedIn ?? 0} / {selected?.capacity ?? 0} PAX
                     </Text>
                   </Space>
                 </GlassCard>
 
+                <GlassCard
+                  style={{ background: 'rgba(24, 144, 255, 0.05)', border: '1px dashed #1890ff' }}
+                >
+                  <Title level={4} style={{ color: '#1890ff', marginBottom: 16 }}>
+                    <SafetyOutlined style={{ marginRight: 8 }} />
+                    Compliance Quick-List
+                  </Title>
+                  <Space direction="vertical" size="middle">
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <CheckCircleOutlined style={{ color: '#52c41a', marginTop: 4 }} />
+                      <Text style={{ color: '#e6f7ff' }}>
+                        Document image must be clear and readable
+                      </Text>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <CheckCircleOutlined style={{ color: '#52c41a', marginTop: 4 }} />
+                      <Text style={{ color: '#e6f7ff' }}>
+                        Expiry must be at least 30 days post-sailing
+                      </Text>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <CheckCircleOutlined style={{ color: '#52c41a', marginTop: 4 }} />
+                      <Text style={{ color: '#e6f7ff' }}>
+                        Manifest data synchronized with CBP APIS
+                      </Text>
+                    </div>
+                  </Space>
+                </GlassCard>
+
                 <WeatherWidget
-                  loading={weatherLoading}
-                  location={weather?.location || 'Harbor'}
-                  condition={weather?.condition || 'Weather data pending'}
-                  temperatureC={weather?.temperatureC}
-                  windKts={weather?.windKts}
-                  waveHeightM={weather?.waveHeightM}
-                  visibilityNm={weather?.visibilityNm}
-                  updatedAt={weather?.updatedAt}
-                  advisory={weather?.advisory}
-                  onRefresh={() => loadWeather(selected?.departurePort)}
+                  loading={false}
+                  location={selected?.departurePort || 'Port'}
+                  condition="Partly Cloudy"
+                  temperatureC={28}
+                  windKts={12}
+                  waveHeightM={0.8}
+                  updatedAt={new Date().toISOString()}
                 />
               </Space>
             </Col>

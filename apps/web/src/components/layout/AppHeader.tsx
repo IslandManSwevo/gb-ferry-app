@@ -1,11 +1,12 @@
 'use client';
 
 import {
-    BellOutlined,
-    LogoutOutlined,
-    QuestionCircleOutlined,
-    SettingOutlined,
-    UserOutlined,
+  AlertOutlined,
+  BellOutlined,
+  LogoutOutlined,
+  QuestionCircleOutlined,
+  SettingOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { Avatar, Badge, Button, Dropdown, Layout, Skeleton, Space, Typography } from 'antd';
@@ -85,12 +86,28 @@ export const AppHeader: React.FC = () => {
       {/* Left section */}
       <div>
         <Text type="secondary">
-          Today: {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          Today:{' '}
+          {new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}
         </Text>
       </div>
 
       {/* Right section */}
       <Space size="middle">
+        <Button
+          danger
+          type="primary"
+          icon={<AlertOutlined />}
+          onClick={() => router.push('/emergency')}
+          style={{ fontWeight: 600 }}
+        >
+          Emergency
+        </Button>
+
         <Button type="text" icon={<QuestionCircleOutlined />} aria-label="Help" />
 
         <Badge count={3} size="small">
@@ -103,16 +120,13 @@ export const AppHeader: React.FC = () => {
             <Skeleton.Input active size="small" style={{ width: 100 }} />
           </Space>
         ) : (
-          <Dropdown 
-            menu={{ items: userMenuItems, onClick: handleMenuClick }} 
-            placement="bottomRight" 
+          <Dropdown
+            menu={{ items: userMenuItems, onClick: handleMenuClick }}
+            placement="bottomRight"
             trigger={['click']}
           >
             <Space style={{ cursor: 'pointer' }}>
-              <Avatar
-                style={{ backgroundColor: '#0a4d8c' }}
-                icon={<UserOutlined />}
-              />
+              <Avatar style={{ backgroundColor: '#0a4d8c' }} icon={<UserOutlined />} />
               <div style={{ lineHeight: 1.2 }}>
                 <Text strong style={{ display: 'block', fontSize: 13 }}>
                   {userName}

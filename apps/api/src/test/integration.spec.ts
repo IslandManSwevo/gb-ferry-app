@@ -185,7 +185,7 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
 
     if (crewMembers.length > 0) {
       await prisma.certification.deleteMany({
-        where: { crewId: { in: crewMembers.map((crew) => crew.id) } },
+        where: { crewId: { in: crewMembers.map((crew: { id: string }) => crew.id) } },
       });
     }
 

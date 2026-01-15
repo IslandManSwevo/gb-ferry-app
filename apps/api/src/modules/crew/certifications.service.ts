@@ -206,7 +206,7 @@ export class CertificationsService {
       orderBy: { expiryDate: 'asc' },
     });
 
-    const result = expiring.map((cert) => {
+    const result = expiring.map((cert: Certification) => {
       const daysUntilExpiry = Math.floor(
         (cert.expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
       );
@@ -229,7 +229,8 @@ export class CertificationsService {
       details: {
         withinDays,
         resultCount: result.length,
-        criticalCount: result.filter((r) => r.severity === 'critical').length,
+        criticalCount: result.filter((r: ExpiringCertification) => r.severity === 'critical')
+          .length,
       },
       compliance: 'BMA R106 - Crew certification readiness check',
     });

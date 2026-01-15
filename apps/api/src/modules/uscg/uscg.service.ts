@@ -20,6 +20,10 @@ export class USCGService {
       include: { sailing: true },
     });
 
+    if (manifest) {
+      this.logger.log(`Found manifest for sailing: ${manifest.sailingId}`);
+    }
+
     // Mock validation
     return {
       status: 'VALID',

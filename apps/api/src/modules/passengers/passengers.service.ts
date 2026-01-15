@@ -78,7 +78,7 @@ export class PassengersService {
         take: this.MAX_SAILINGS_RETURNED,
       });
 
-      const sailingIds = sailings.map((s) => s.id);
+      const sailingIds = sailings.map((s: { id: string }) => s.id);
 
       const passengerCounts = await this.prisma.passenger.groupBy({
         by: ['sailingId'],
@@ -91,11 +91,11 @@ export class PassengersService {
       });
 
       const countsMap = new Map<string, number>();
-      passengerCounts.forEach((entry) => {
+      passengerCounts.forEach((entry: any) => {
         countsMap.set(entry.sailingId, entry._count.sailingId ?? 0);
       });
 
-      const result: SailingListItem[] = sailings.map((sailing) => ({
+      const result: SailingListItem[] = sailings.map((sailing: any) => ({
         id: sailing.id,
         vesselId: sailing.vesselId,
         vesselName: sailing.vessel?.name,
@@ -381,7 +381,7 @@ export class PassengersService {
     // Check if passenger is in approved/submitted manifest - if so, immutable
     if (
       passenger.manifestEntries?.some(
-        (m) => m.manifest.status === 'APPROVED' || m.manifest.status === 'SUBMITTED'
+        (m: any) => m.manifest.status === 'APPROVED' || m.manifest.status === 'SUBMITTED'
       )
     ) {
       throw new BadRequestException(

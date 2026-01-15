@@ -1,4 +1,4 @@
-import { DocumentStatus, Prisma, PrismaService, VesselDocument } from '@gbferry/database';
+import { DocumentStatus, PrismaService, VesselDocument } from '@gbferry/database';
 import { Injectable } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 
@@ -32,7 +32,7 @@ export class DocumentQueryService {
     const limit = Math.min(Math.max(params.limit || 25, 1), 100);
     const skip = (page - 1) * limit;
 
-    const where: Prisma.VesselDocumentWhereInput = {
+    const where: any = {
       ...(params.vesselId && { vesselId: params.vesselId }),
       ...(params.type && { type: params.type }),
       ...(params.status && { status: params.status as any }),
