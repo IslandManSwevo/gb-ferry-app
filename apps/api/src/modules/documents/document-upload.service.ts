@@ -151,7 +151,7 @@ export class DocumentUploadService {
 
   private extractExpiryDate(text: string): Date | null {
     const datePatterns = [
-      /(?:valid until|expires?|expiry|valid to):?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+      /(?:valid until|expires?|expiry|valid to):?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i,
       /(?:valid until|expires?|expiry|valid to):?\s*(\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{2,4})/i,
     ];
 
@@ -169,7 +169,7 @@ export class DocumentUploadService {
   }
 
   private extractCertificateNumber(text: string): string | null {
-    const pattern = /(certificate\s*(no\.|number)[:\s]*)([A-Z0-9\-]+)/i;
+    const pattern = /(certificate\s*(no\.|number)[:\s]*)([A-Z0-9-]+)/i;
     const match = text.match(pattern);
     return match ? match[3] : null;
   }

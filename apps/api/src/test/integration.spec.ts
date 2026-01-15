@@ -37,7 +37,6 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
   let certificationsService: CertificationsService;
   let complianceService: ComplianceService;
   let auditService: AuditService;
-  let documentUploadService: DocumentUploadService;
   let documentQueryService: DocumentQueryService;
 
   // Test IDs
@@ -238,7 +237,6 @@ describe('Grand Bahama Ferry - Integration Tests', () => {
     certificationsService = moduleRef.get<CertificationsService>(CertificationsService);
     complianceService = moduleRef.get<ComplianceService>(ComplianceService);
     auditService = moduleRef.get<AuditService>(AuditService);
-    documentUploadService = moduleRef.get<DocumentUploadService>(DocumentUploadService);
     documentQueryService = moduleRef.get<DocumentQueryService>(DocumentQueryService);
 
     // Clean up and seed fresh test data

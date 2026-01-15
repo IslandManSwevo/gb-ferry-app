@@ -140,6 +140,10 @@ enum AuditAction {
   FAILED_LOGIN
   PERMISSION_CHANGE
   
+  // US Compliance
+  CBP_APIS_SUBMITTED
+  USCG_NOTIFICATION_SENT
+  
   // Passenger operations
   PASSENGER_CHECKIN
   PASSENGER_LIST_READ
@@ -179,6 +183,19 @@ enum AuditAction {
   COMPLIANCE_REPORT_GENERATED
   COMPLIANCE_ALERT_CREATED
   INSPECTION_RECORD
+}
+
+enum CbpStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+enum CbpSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  REJECTED
 }
 
 // ============================================
@@ -265,6 +282,13 @@ model Passenger {
   cabinOrSeat           String?
   specialInstructions   String?
   
+  // US Compliance
+  i94Number             String?
+  cbpStatus             CbpStatus?
+  visaType              String?
+  admissionDate         DateTime?
+  authorizedStayUntil   DateTime?
+  
   // Consent (GDPR/Bahamas DPA)
   consentGiven          Boolean
   consentTimestamp      DateTime
@@ -311,6 +335,12 @@ model Manifest {
   // Status
   status            ManifestStatus  @default(DRAFT)
   validationStatus  String?         // VALID, INVALID
+  
+  // US Compliance
+  cbpSubmissionId     String?
+  cbpSubmissionStatus CbpSubmissionStatus?
+  apisSubmissionTime  DateTime?
+  uscgNotificationSent Boolean       @default(false)
   
   // Approval Chain
   generatedAt       DateTime        @default(now())

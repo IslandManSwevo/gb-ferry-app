@@ -22,9 +22,13 @@ const findRequiredRoles = (pathname: string): string[] | null => {
   return match ? match.roles : null;
 };
 
+const SUPER_ROLES = ['admin', 'system_admin', 'superadmin'];
+
 const hasRequiredRole = (tokenRoles: unknown, required: string[] | null): boolean => {
   if (!required || required.length === 0) return true;
   const roles = Array.isArray(tokenRoles) ? (tokenRoles as string[]) : [];
+  // Super roles bypass all route-level RBAC checks
+  if (SUPER_ROLES.some((sr) => roles.includes(sr))) return true;
   return required.some((role) => roles.includes(role));
 };
 

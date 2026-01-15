@@ -215,7 +215,7 @@ export class DocumentsController {
         return parsed as Record<string, any>;
       }
       throw new Error('metadata must be object');
-    } catch (err) {
+    } catch {
       throw new BadRequestException('metadata must be valid JSON when provided');
     }
   }

@@ -98,12 +98,26 @@ const authOptions: NextAuthOptions = {
     async jwt({ token, account, user }) {
       // Initial sign in
       if (account && user) {
+        // Extract roles from the Keycloak access token
+        let roles: string[] = [];
+        if (account.access_token) {
+          try {
+            const payload = JSON.parse(
+              Buffer.from(account.access_token.split('.')[1], 'base64').toString()
+            );
+            // Keycloak places realm roles in 'roles' claim (via our mapper) or in realm_access.roles
+            roles = payload.roles || payload.realm_access?.roles || [];
+          } catch {
+            console.warn('[NextAuth] Failed to parse roles from access token');
+          }
+        }
+
         return {
           ...token,
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
           accessTokenExpires: account.expires_at ? account.expires_at * 1000 : 0,
-          roles: (account as any).roles || [],
+          roles,
           userId: user.id,
         };
       }
