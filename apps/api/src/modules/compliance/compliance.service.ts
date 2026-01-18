@@ -1,5 +1,5 @@
 import { validateCrewCompliance } from '@/lib/crew-validators';
-import { PrismaService } from '@gbferry/database';
+import { Inspection, PrismaService } from '@gbferry/database';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 
@@ -87,7 +87,7 @@ export class ComplianceService {
     let compliantVessels = 0;
     for (const vessel of vessels) {
       const crewMembers = await this.prisma.crewMember.findMany({
-        where: { vesselId: vessel.id, deletedAt: null } as any,
+        where: { vesselId: vessel.id },
         include: { certifications: { where: { status: 'VALID' } } },
       });
 
@@ -124,7 +124,7 @@ export class ComplianceService {
 
     // Calculate total crew
     const totalCrew = await this.prisma.crewMember.count({
-      where: { status: 'ACTIVE', deletedAt: null },
+      where: { status: 'ACTIVE' },
     });
 
     // Calculate today's passengers
@@ -269,7 +269,22 @@ export class ComplianceService {
     };
   }
 
-  async recordInspection(inspectionDto: any, userId?: string): Promise<any> {
+  async findAllInspections(filters: { vesselId?: string; status?: string }): Promise<Inspection[]> {
+    return this.prisma.inspection.findMany({
+      where: {
+        ...(filters.vesselId && { vesselId: filters.vesselId }),
+        ...(filters.status && { status: filters.status as any }),
+      },
+      include: {
+        vessel: {
+          select: { name: true, imoNumber: true },
+        },
+      },
+      orderBy: { scheduledDate: 'desc' },
+    });
+  }
+
+  async recordInspection(inspectionDto: any, userId?: string): Promise<Inspection> {
     /**
      * PORT STATE CONTROL INSPECTION RECORDING
      *
@@ -363,7 +378,7 @@ export class ComplianceService {
     // Check safe manning compliance for each vessel
     for (const vessel of vessels) {
       const crewMembers = await this.prisma.crewMember.findMany({
-        where: { vesselId: vessel.id, deletedAt: null } as any,
+        where: { vesselId: vessel.id },
         include: { certifications: { where: { status: 'VALID' } } },
       });
 

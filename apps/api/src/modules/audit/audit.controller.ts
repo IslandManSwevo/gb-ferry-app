@@ -2,7 +2,7 @@ import { AuditAction } from '@gbferry/database';
 import { BadRequestException, Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { CurrentUser, type KeycloakUser } from '../auth';
+import { CurrentUser, type KeycloakUser } from '../auth/current-user.decorator';
 import { AuditService } from './audit.service';
 
 @ApiTags('audit')

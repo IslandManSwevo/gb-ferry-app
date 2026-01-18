@@ -5,10 +5,10 @@ import {
   KeycloakConnectModule,
   PolicyEnforcementMode,
   ResourceGuard,
-  RoleGuard,
   TokenValidation,
 } from 'nest-keycloak-connect';
 import { AuditModule } from '../audit/audit.module';
+import { CustomRoleGuard } from './custom-role.guard';
 import { LoggingAuthGuard } from './logging-auth.guard';
 
 @Global()
@@ -21,9 +21,9 @@ import { LoggingAuthGuard } from './logging-auth.guard';
       useFactory: (configService: ConfigService) => ({
         authServerUrl: configService.get<string>('KEYCLOAK_URL', 'http://localhost:8080'),
         realm: configService.get<string>('KEYCLOAK_REALM', 'gbferry'),
-        clientId: configService.get<string>('KEYCLOAK_CLIENT_ID', 'gbferry-api'),
+        clientId: configService.get<string>('KEYCLOAK_API_CLIENT_ID', 'gbferry-api'),
         secret: configService.get<string>(
-          'KEYCLOAK_CLIENT_SECRET',
+          'KEYCLOAK_API_CLIENT_SECRET',
           'dev-api-secret-change-in-production'
         ),
 
@@ -34,7 +34,7 @@ import { LoggingAuthGuard } from './logging-auth.guard';
         tokenValidation: TokenValidation.ONLINE,
 
         // Log level
-        logLevels: ['warn', 'error'],
+        logLevels: ['verbose', 'warn', 'error'],
       }),
     }),
   ],
@@ -47,7 +47,7 @@ import { LoggingAuthGuard } from './logging-auth.guard';
     // Role-based guard
     {
       provide: APP_GUARD,
-      useClass: RoleGuard,
+      useClass: CustomRoleGuard,
     },
     // Resource-based guard
     {

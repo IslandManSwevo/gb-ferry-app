@@ -7,12 +7,12 @@ const ENFORCE_ROLE_PROTECTION = process.env.NEXT_PUBLIC_ENFORCE_ROLE_PROTECTION 
 type RoleRule = { prefix: string; roles: string[] };
 
 const ROLE_RULES: RoleRule[] = [
-  { prefix: '/audit', roles: ['audit.view', 'audit.admin'] },
-  { prefix: '/compliance', roles: ['compliance.view', 'compliance.admin'] },
-  { prefix: '/crew', roles: ['crew.view', 'crew.admin'] },
-  { prefix: '/passengers', roles: ['passengers.view', 'passengers.admin'] },
-  { prefix: '/vessels', roles: ['vessels.view', 'vessels.admin'] },
-  { prefix: '/settings', roles: ['settings.manage', 'admin'] },
+  { prefix: '/audit', roles: ['admin'] },
+  { prefix: '/compliance', roles: ['compliance_officer', 'admin', 'regulator'] },
+  { prefix: '/crew', roles: ['captain', 'admin', 'operations'] },
+  { prefix: '/passengers', roles: ['operations', 'admin', 'captain'] },
+  { prefix: '/vessels', roles: ['captain', 'admin', 'operations', 'compliance_officer'] },
+  { prefix: '/settings', roles: ['admin'] },
 ];
 
 const findRequiredRoles = (pathname: string): string[] | null => {

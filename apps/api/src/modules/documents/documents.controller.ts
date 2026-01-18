@@ -25,7 +25,7 @@ import {
 import { memoryStorage } from 'multer';
 import { extname } from 'path';
 import { AuditService } from '../audit/audit.service';
-import { CurrentUser, KeycloakUser } from '../auth';
+import { CurrentUser, type KeycloakUser } from '../auth/current-user.decorator';
 import { DocumentQueryService } from './document-query.service';
 import { DocumentUploadService } from './document-upload.service';
 

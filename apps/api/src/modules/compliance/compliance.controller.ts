@@ -1,6 +1,8 @@
+import { Inspection } from '@gbferry/database';
 import { Body, Controller, Get, Param, Post, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { Roles } from 'nest-keycloak-connect';
 import { AuditService } from '../audit/audit.service';
 import { ComplianceAdapterService } from './compliance-adapter.service';
 import { ComplianceService } from './compliance.service';
@@ -15,7 +17,21 @@ export class ComplianceController {
     private readonly auditService: AuditService
   ) {}
 
+  @Get('inspections')
+  @Roles({ roles: ['realm:compliance_officer', 'realm:admin', 'realm:regulator'] })
+  @ApiOperation({ summary: 'List all vessel inspections' })
+  @ApiQuery({ name: 'vesselId', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiResponse({ status: 200, description: 'List of inspections' })
+  async findAllInspections(
+    @Query('vesselId') vesselId?: string,
+    @Query('status') status?: string
+  ): Promise<any> {
+    return this.complianceService.findAllInspections({ vesselId, status });
+  }
+
   @Get('dashboard')
+  @Roles({ roles: ['realm:compliance_officer', 'realm:admin'] })
   @ApiOperation({ summary: 'Get compliance dashboard overview' })
   @ApiResponse({ status: 200, description: 'Compliance dashboard data' })
   async getDashboard() {
@@ -23,6 +39,7 @@ export class ComplianceController {
   }
 
   @Get('reports')
+  @Roles({ roles: ['realm:compliance_officer', 'realm:admin', 'realm:regulator'] })
   @ApiOperation({ summary: 'List available compliance reports' })
   @ApiQuery({ name: 'type', required: false })
   @ApiQuery({ name: 'dateFrom', required: false })
@@ -37,6 +54,7 @@ export class ComplianceController {
   }
 
   @Get('export/manifest/:manifestId')
+  @Roles({ roles: ['realm:compliance_officer', 'realm:admin'] })
   @ApiOperation({ summary: 'Export manifest in regulatory format' })
   @ApiQuery({ name: 'format', enum: ['csv', 'xlsx', 'pdf', 'xml'] })
   @ApiQuery({ name: 'jurisdiction', enum: ['bahamas', 'jamaica', 'barbados'], required: false })
@@ -70,6 +88,7 @@ export class ComplianceController {
   }
 
   @Get('export/crew-compliance/:vesselId')
+  @Roles({ roles: ['realm:compliance_officer', 'realm:admin'] })
   @ApiOperation({ summary: 'Export crew compliance pack for a vessel' })
   @ApiQuery({ name: 'format', enum: ['pdf', 'xlsx'] })
   @ApiResponse({ status: 200, description: 'Crew compliance pack' })
@@ -101,9 +120,10 @@ export class ComplianceController {
   }
 
   @Post('inspections')
+  @Roles({ roles: ['realm:compliance_officer', 'realm:admin'] })
   @ApiOperation({ summary: 'Record an inspection event' })
   @ApiResponse({ status: 201, description: 'Inspection recorded' })
-  async recordInspection(@Body() inspectionDto: any): Promise<any> {
+  async recordInspection(@Body() inspectionDto: any): Promise<Inspection> {
     return this.complianceService.recordInspection(inspectionDto);
   }
 }

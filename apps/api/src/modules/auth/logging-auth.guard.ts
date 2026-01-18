@@ -1,14 +1,14 @@
 import { ExecutionContext, Inject, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
+  AuthGuard,
   KEYCLOAK_CONNECT_OPTIONS,
   KEYCLOAK_INSTANCE,
   KEYCLOAK_LOGGER,
   KEYCLOAK_MULTITENANT_SERVICE,
-} from 'nest-keycloak-connect/dist/constants';
-import { AuthGuard } from 'nest-keycloak-connect/dist/guards/auth.guard';
-import { KeycloakConnectConfig } from 'nest-keycloak-connect/dist/interface/keycloak-connect-options.interface';
-import { KeycloakMultiTenantService } from 'nest-keycloak-connect/dist/services/keycloak-multitenant.service';
+  KeycloakConnectConfig,
+  KeycloakMultiTenantService,
+} from 'nest-keycloak-connect';
 import { AuditService } from '../audit/audit.service';
 
 /**
