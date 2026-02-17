@@ -18,9 +18,9 @@ The platform utilizes a hierarchical RBAC model designed specifically for mariti
 
 ## 2. Operational Security Guardrails
 
-- **Manifest Hard-Lock**: Prevents port-side edits once a manifest is in "Pre-Departure" state (15 mins prior).
-- **Remote Bridge Override**: Allows shore-side Admin/Master to approve a manifest if the ship's satellite link is degraded.
-- **Emergency Suspension**: A global 'Stop' command that terminates all active sessions and freezes check-in systems.
+- **Manifest Hard-Lock (Design-Stage)**: Prevents port-side edits once a manifest is in "Pre-Departure" state (15 mins prior). Currently implemented as a UI toggle with backend enforcement scheduled for Phase 2.
+- **Remote Bridge Override (Architectural Design)**: Allows shore-side Admin/Master to approve a manifest if the ship's satellite link is degraded.
+- **Emergency Suspension (Design-Stage)**: A global 'Stop' command that terminates all active sessions and freezes check-in systems. UI exists in SuperAdmin hub; backend activation is roadmapped.
 
 ## 3. Data Integrity & PII Protection
 
@@ -32,6 +32,6 @@ The platform utilizes a hierarchical RBAC model designed specifically for mariti
 
 The system enforces "Safe Manning" and "Document Validity" at the software layer:
 
-1.  A vessel cannot be marked **READY** if the assigned crew count is below the BMA R106 requirement.
-2.  A manifest cannot be **APPROVED** if any passenger has an expired primary identity document.
-3.  A crew member cannot be **ASSIGNED** if their STCW certifications have less than 7 days of validity remaining.
+1. Vessel cannot be marked **READY** if the assigned crew count is below the BMA R106 requirement.
+2. A manifest cannot be **APPROVED** if any passenger has an expired primary identity document.
+3. A crew member cannot be **ASSIGNED** if their STCW certifications have less than 7 days of validity remaining.

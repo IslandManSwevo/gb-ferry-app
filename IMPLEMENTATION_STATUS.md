@@ -2,7 +2,7 @@
 
 ## Overview
 
-Comprehensive business logic implementation for "Grand Bahama Ferry: Maritime Passenger & Compliance Support Platform". All validation and workflow logic is complete and production-ready.
+Comprehensive business logic implementation for "Grand Bahama Ferry: Maritime Passenger & Compliance Support Platform". Core maritime workflows (BMA, encryption, RBAC) are complete. US Regulatory live integrations are scheduled for Phase 2.
 
 ## Completed Tasks
 
@@ -141,7 +141,7 @@ Comprehensive business logic implementation for "Grand Bahama Ferry: Maritime Pa
 
 ---
 
-## In Progress: Task 5 - Prisma Database Wiring
+## ✅ Task 5: Prisma Database Wiring (Core)
 
 ### Current Status
 
@@ -406,7 +406,7 @@ For questions about:
 
 ## Files Summary
 
-```
+```bash
 apps/api/src/
 ├── lib/
 │   ├── validators.ts (NEW - 280 lines)
@@ -555,6 +555,25 @@ apps/api/src/
 | Advanced RBAC / IAM | ✅ COMPLETE | Jan 2026 |
 | Integration Tests   | ✅ READY    | Jan 2026 |
 
-**Overall Status**: 100% COMPLETE - Enterprise Ready  
-**Last Updated**: Jan 2026  
-**Deployment Status**: STAGING DEPLOYMENT READY
+**Overall Status**: **CORE COMPLETE** — US Regulatory Live Integration Pending  
+**Last Updated**: February 16, 2026  
+**Deployment Status**: STAGING DEPLOYMENT READY (Core Workflows)
+
+---
+
+## 🚀 Phase 2: US Regulatory Live Integration (ROADMAP)
+
+### US CBP APIS Production Wiring
+
+- **Target**: Live connection to CBP ACE production endpoint.
+- **Status**: Pipeline Built, Transformation Tested, Pending Certification.
+
+### USCG NOA/NVMC Integration
+
+- **Target**: Automated Notice of Arrival submission.
+- **Status**: Service Scaffolded, Submission Logic Mocked.
+
+### Operational Guardrail Activation
+
+- **Target**: Backend enforcement of Manifest Hard-Lock and Emergency Lockdown.
+- **Status**: UI Controls Built, Backend Enforcement Pending.

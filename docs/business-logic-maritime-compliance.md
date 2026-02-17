@@ -1,4 +1,4 @@
-PART 1 — ISO 27001 / SOC 2 CONTROL ALIGNMENT
+# Maritime Business Logic: ISO 27001 / SOC 2 Alignment
 
 This section maps the existing maritime business logic to internationally recognized enterprise security controls.
 
@@ -145,7 +145,7 @@ Validation failures degrade gracefully
 
 Exports blocked, operations unaffected
 
-6️⃣ Regulatory Boundary Control
+6️⃣ Regulatory Pipeline Control
 Controls
 
 ISO 27001: A.5.31
@@ -178,103 +178,103 @@ Serverless APIs
 
 1️⃣ Core Validation Pipeline
 request
-  → authMiddleware
-  → roleAuthorizationMiddleware
-  → inputSchemaValidation
-  → businessRuleValidation
-  → complianceGate
-  → persistence / export
+→ authMiddleware
+→ roleAuthorizationMiddleware
+→ inputSchemaValidation
+→ businessRuleValidation
+→ complianceGate
+→ persistence / export
 
 2️⃣ Role Authorization Middleware
 function authorize(requiredRole: Role) {
-  return (req, res, next) => {
-    if (!req.user.roles.includes(requiredRole)) {
-      return res.status(403).error("Insufficient privileges");
-    }
-    next();
-  };
+return (req, res, next) => {
+if (!req.user.roles.includes(requiredRole)) {
+return res.status(403).error("Insufficient privileges");
+}
+next();
+};
 }
 
 3️⃣ Crew Assignment Validation
 function validateCrewAssignment(crew, voyage) {
-  if (crew.passport.expiry < voyage.endDate) {
-    throw new ComplianceError("Passport expired during voyage");
-  }
+if (crew.passport.expiry < voyage.endDate) {
+throw new ComplianceError("Passport expired during voyage");
+}
 
-  if (crew.medicalCert.expiry < voyage.endDate) {
-    throw new ComplianceError("Medical certificate expired");
-  }
+if (crew.medicalCert.expiry < voyage.endDate) {
+throw new ComplianceError("Medical certificate expired");
+}
 
-  crew.stcwCerts.forEach(cert => {
-    if (cert.expiry < voyage.endDate) {
-      throw new ComplianceError(
-        `Certificate ${cert.type} expired`
-      );
-    }
-  });
+crew.stcwCerts.forEach(cert => {
+if (cert.expiry < voyage.endDate) {
+throw new ComplianceError(
+`Certificate ${cert.type} expired`
+);
+}
+});
 }
 
 4️⃣ Minimum Safe Manning Validation
 function validateSafeManning(vessel, assignedCrew) {
-  vessel.manningRequirements.forEach(req => {
-    const qualifiedCrew = assignedCrew.filter(c =>
-      c.role === req.role &&
-      c.certifications.includes(req.requiredCert)
-    );
+vessel.manningRequirements.forEach(req => {
+const qualifiedCrew = assignedCrew.filter(c =>
+c.role === req.role &&
+c.certifications.includes(req.requiredCert)
+);
 
     if (qualifiedCrew.length < req.minimumCount) {
       throw new ComplianceError(
         `Minimum safe manning not met for role: ${req.role}`
       );
     }
-  });
+
+});
 }
 
 5️⃣ Passenger Manifest Validation
 function validatePassenger(passenger, voyage) {
-  const requiredFields = [
-    passenger.fullName,
-    passenger.passportNumber,
-    passenger.nationality,
-    passenger.dateOfBirth
-  ];
+const requiredFields = [
+passenger.fullName,
+passenger.passportNumber,
+passenger.nationality,
+passenger.dateOfBirth
+];
 
-  if (requiredFields.some(f => !f)) {
-    throw new ValidationError("Passenger record incomplete");
-  }
+if (requiredFields.some(f => !f)) {
+throw new ValidationError("Passenger record incomplete");
+}
 
-  if (passenger.passportExpiry < voyage.endDate) {
-    throw new ComplianceError("Passenger passport expired");
-  }
+if (passenger.passportExpiry < voyage.endDate) {
+throw new ComplianceError("Passenger passport expired");
+}
 }
 
 6️⃣ Export Compliance Gate (Critical)
 function complianceGate(entityStatus) {
-  if (entityStatus.hasBlockingIssues) {
-    throw new ExportBlockedError(
-      "Export blocked due to compliance violations"
-    );
-  }
+if (entityStatus.hasBlockingIssues) {
+throw new ExportBlockedError(
+"Export blocked due to compliance violations"
+);
+}
 }
 
 7️⃣ Audit Logging Middleware
 function auditLog(action, entityId, before, after, user) {
-  auditStore.append({
-    action,
-    entityId,
-    before,
-    after,
-    performedBy: user.id,
-    timestamp: new Date().toISOString()
-  });
+auditStore.append({
+action,
+entityId,
+before,
+after,
+performedBy: user.id,
+timestamp: new Date().toISOString()
+});
 }
 
 8️⃣ Severity Classification
 enum ComplianceSeverity {
-  WARNING = "warning",
-  BLOCKER = "blocker"
+WARNING = "warning",
+BLOCKER = "blocker"
 }
-
 
 WARNING
 
