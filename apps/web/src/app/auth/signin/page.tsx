@@ -4,11 +4,11 @@ import { LoginOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { Button, Card, Result, Space, Spin, Typography } from 'antd';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 
 const { Title, Text } = Typography;
 
-export default function SignInPage() {
+function SignInContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -142,12 +142,34 @@ export default function SignInPage() {
 
           <Text type="secondary" style={{ fontSize: 11, marginTop: 8 }}>
             If sign-in doesn&apos;t work, open in a real browser:{' '}
-            <a href="http://localhost:3000/auth/signin" target="_blank" rel="noopener noreferrer">
-              localhost:3000
+            <a href="/auth/signin" target="_blank" rel="noopener noreferrer">
+              Sign In Page
             </a>
           </Text>
         </Space>
       </Card>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            height: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(135deg, #001529 0%, #003a70 100%)',
+          }}
+        >
+          <Spin size="large" />
+        </div>
+      }
+    >
+      <SignInContent />
+    </Suspense>
   );
 }

@@ -43,27 +43,29 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   }
 }
 
-// Test OIDC discovery at startup
-const oidcUrl = `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/.well-known/openid-configuration`;
-fetch(oidcUrl)
-  .then((res) => res.json())
-  .then((config) => {
-    console.log('[NextAuth] OIDC Discovery successful:', {
-      issuer: config.issuer,
-      authorization_endpoint: config.authorization_endpoint,
-      token_endpoint: config.token_endpoint,
+// Test OIDC discovery at startup (only when env vars are available, skip during build)
+if (process.env.KEYCLOAK_URL && process.env.KEYCLOAK_REALM) {
+  const oidcUrl = `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/.well-known/openid-configuration`;
+  fetch(oidcUrl)
+    .then((res) => res.json())
+    .then((config) => {
+      console.log('[NextAuth] OIDC Discovery successful:', {
+        issuer: config.issuer,
+        authorization_endpoint: config.authorization_endpoint,
+        token_endpoint: config.token_endpoint,
+      });
+    })
+    .catch((err) => {
+      console.error('[NextAuth] OIDC Discovery FAILED:', err.message);
     });
-  })
-  .catch((err) => {
-    console.error('[NextAuth] OIDC Discovery FAILED:', err.message);
-  });
 
-// Log provider configuration at startup
-console.log('[NextAuth] Keycloak provider configuration:', {
-  issuer: `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}`,
-  clientId: process.env.KEYCLOAK_CLIENT_ID,
-  hasSecret: !!process.env.KEYCLOAK_CLIENT_SECRET,
-});
+  // Log provider configuration at startup
+  console.log('[NextAuth] Keycloak provider configuration:', {
+    issuer: `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}`,
+    clientId: process.env.KEYCLOAK_CLIENT_ID,
+    hasSecret: !!process.env.KEYCLOAK_CLIENT_SECRET,
+  });
+}
 
 const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === 'development',
