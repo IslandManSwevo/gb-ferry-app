@@ -4,38 +4,39 @@ import { StatusBadge } from './StatusBadge';
 
 const { Text } = Typography;
 
-interface CapacityIndicatorProps {
+interface CrewManningIndicatorProps {
   current: number;
-  max: number;
-  showRemaining?: boolean;
+  required: number;
+  label?: string;
   size?: 'small' | 'default' | 'large';
 }
 
-export const CapacityIndicator: React.FC<CapacityIndicatorProps> = ({
+/**
+ * Visual indicator for Safe Manning coverage.
+ * Used in Fleet Status and Vessel Detail views.
+ */
+export const CrewManningIndicator: React.FC<CrewManningIndicatorProps> = ({
   current,
-  max,
-  showRemaining = true,
+  required,
+  label = 'Manning Coverage',
   size = 'default',
 }) => {
-  const percentage = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0;
-  const remaining = Math.max(0, max - current);
+  const percentage = required > 0 ? Math.min(100, Math.round((current / required) * 100)) : 0;
+  const deficit = Math.max(0, required - current);
 
   const getStatus = (): StatusKind => {
-    if (percentage >= 95) return 'critical';
-    if (percentage >= 85) return 'warning';
+    if (percentage < 100) return 'critical';
     return 'ok';
   };
 
   const getStrokeColor = () => {
-    if (percentage >= 95) return '#ff4d4f';
-    if (percentage >= 85) return '#faad14';
+    if (percentage < 100) return '#ff4d4f';
     return '#52c41a';
   };
 
-  const getLabel = () => {
-    if (percentage >= 95) return 'Near capacity';
-    if (percentage >= 85) return 'Filling up';
-    return 'Available';
+  const getStatusLabel = () => {
+    if (percentage < 100) return 'INSUFFICIENT';
+    return 'COMPLIANT';
   };
 
   return (
@@ -49,25 +50,25 @@ export const CapacityIndicator: React.FC<CapacityIndicatorProps> = ({
         }}
       >
         <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: size === 'small' ? 12 : 14 }}>
-          Capacity: {current} / {max}
+          {label}: {current} / {required}
         </Text>
-        <StatusBadge status={getStatus()} label={getLabel()} compact />
+        <StatusBadge status={getStatus()} label={getStatusLabel()} compact />
       </div>
       <Progress
         percent={percentage}
         strokeColor={getStrokeColor()}
-        showInfo
+        showInfo={percentage < 100}
         size={size === 'small' ? 'small' : 'default'}
       />
-      {showRemaining && (
+      {deficit > 0 && (
         <Text
           type="secondary"
           style={{
             fontSize: size === 'small' ? 11 : 12,
-            color: percentage >= 95 ? '#ff7875' : 'rgba(255,255,255,0.65)',
+            color: '#ff7875',
           }}
         >
-          {remaining} seats remaining
+          Requires {deficit} more qualified crew to meet safe manning
         </Text>
       )}
     </Space>

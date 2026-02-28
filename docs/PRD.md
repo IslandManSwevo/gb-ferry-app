@@ -1,92 +1,65 @@
-# Grand Bahama Ferry: Maritime Passenger & Compliance Support Platform
+# Grand Bahama Ferry: Crew Compliance & Regulatory Platform
 
 Product Requirements Document (PRD) |
-Version 1.0 (MVP)
+Version 2.0 (Pivoted)
 
-1. Purpose
-   This platform supports passenger data preparation, crew and wet-lease compliance visibility, and inspection-ready reporting. It assists regulatory workflows without replacing or automating regulatory decision-making.
-   +1
+## 1. Purpose
 
-2. Problem Statement
-   Current ferry operations rely on manual manifests, fragmented compliance tracking, and non-enterprise tooling, which increases regulatory risk and operational delays.
+This platform manages maritime crew STCW certifications, BMA safe manning compliance, and US CBP regulatory reporting (I-418/eNOAD). It ensures vessel readiness by validating crew qualifications before departure.
 
-3. Goals
-   Primary Goals:
+## 2. Problem Statement
 
-Reduce manifest errors.
+Current maritime operations involve complex, manual tracking of seafarer certifications and high-stakes regulatory filings. Errors in these areas lead to vessel detentions, significant fines, and operational delays.
 
-Improve inspection readiness.
+## 3. Goals
 
-Increase regulator confidence.
+**Primary Goals:**
 
-Establish a scalable SaaS foundation.
+- Ensure 100% STCW and BMA Safe Manning compliance.
+- Automate regulatory reporting (CBP I-418/eNOAD).
+- Provide real-time visibility into fleet-wide crew readiness.
+- Maintain an immutable audit trail for Port State Control (PSC) inspections.
 
-Non-Goals:
+**Non-Goals:**
 
-No immigration or customs decision automation.
+- No passenger booking or manifest management (Removed in v2.0).
+- No immigration or customs decision automation.
+- No government system replacement.
 
-No government system replacement.
+## 4. Users
 
-No pricing or AI functionality.
+- **Operations Staff**: Manage crew rosters and document intake.
+- **Compliance Officers**: Verify certifications and transmit regulatory data.
+- **Vessel Masters**: Approve crew assignments and monitor on-board compliance.
+- **Administrators**: System configuration and RBAC management.
+- **Regulators**: Read-only oversight of audit logs.
 
-4. Users
-   Passengers.
+## 5. Core Features (MVP)
 
-Operations Staff.
+- **STCW Certification Tracking**: Automated expiry monitoring and qualification mapping.
+- **Safe Manning Engine**: Real-time validation against BMA R106 requirements.
+- **Regulatory Reporting**: Integrated generation of CBP Form I-418 and eNOAD.
+- **Document Management**: Secure storage and AI-ready extraction for crew credentials.
+- **Audit & Alerts**: Immutable logging and automated status escalations for non-compliance.
 
-Compliance Officers.
+## 6. Security & Compliance
 
-Administrators.
+- Role-based access control (RBAC) via Keycloak.
+- MFA for administrative users.
+- AES-256 encryption at rest; TLS 1.3 in transit.
+- PII protection for sensitive crew data (Passport/Seafarer IDs).
 
-Regulators (read-only, optional).
+## 7. Regulatory Safeguards
 
-5. Core Features (MVP)
-   Passenger data capture with consent.
+The platform provides decision support and reporting automation only. All regulatory authority remains with government agencies (BMA, CBP, etc.).
 
-Manifest generation with manual approval.
+## 8. Success Metrics
 
-Crew certification tracking.
+- 0% Safe Manning violations for departed vessels.
+- 100% submission rate for required CBP filings.
+- 50% reduction in manual document verification time.
 
-Wet-lease document management.
+## 9. Roadmap
 
-Audit logging and compliance reporting.
-
-6. Security & Compliance
-   Role-based access control.
-
-MFA for admins.
-
-AES-256 encryption at rest.
-
-TLS 1.3 in transit.
-
-GDPR-aligned handling.
-
-Bahamas Data Protection Act alignment.
-
-7. Regulatory Safeguards
-   The platform provides decision support only. All regulatory authority remains with government agencies.
-
-8. Success Metrics
-   50% reduction in manifest errors.
-
-30% faster inspection preparation.
-
-20% reduction in boarding delays.
-
-9. Out of Scope
-10. **Direct Government API Integrations**: Live connections to CBP ACE and USCG NVMC (planned for Phase 2).
-
-Dynamic pricing.
-
-AI/ML analytics.
-
-Mobile native apps.
-
-10. Post-MVP Roadmap
-
-Phase 2: Live US Regulatory Integration (CBP/USCG), jurisdiction adapters, and multi-route support.
-
-Phase 3: Caribbean expansion, automated manifest auditing, and ISO 27001 certification.
-
-Client: Grand Bahama Ferry Product Type: Enterprise SaaS
+- **Phase 2**: AI-driven document parsing and multi-region regulatory adapters.
+- **Phase 3**: Live external verification with global seafarer registries.

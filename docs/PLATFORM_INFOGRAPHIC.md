@@ -13,7 +13,7 @@ This platform utilizes a **Maritime Tech** aesthetic, leveraging deep blues and 
 
 ## System Modules
 
-The platform is composed of several interconnected modules centered around core Operations and Compliance.
+The platform is composed of several interconnected modules centered around Crew Compliance and Regulatory Reporting.
 
 ```mermaid
 graph TD
@@ -25,43 +25,43 @@ graph TD
     %% Nodes
     Core(GB Ferry Platform)
 
-    subgraph Operations
-        Pass[Passengers]
-        Crew[Crew]
-        Vessel[Vessels]
+    subgraph "Crew Management"
+        Crew[STCW Compliance]
+        Cert[Certifications]
+        Vessel[Vessel Roster]
     end
 
     subgraph Compliance
-        USCG[USCG Readiness]
-        CBP[CBP Readiness]
-        Audit[Audit Logs]
+        BMA[BMA Safe Manning]
+        CBP[CBP I-418/eNOAD]
+        Audit[Immutable Audit Logs]
     end
 
     subgraph Security
-        Auth[Authentication]
-        Docs[Documents]
+        Auth[Keycloak RBAC]
+        Docs[Secure Doc Storage]
     end
 
     %% Connections
-    Core --- Pass
     Core --- Crew
+    Core --- Cert
     Core --- Vessel
     Core --- Compliance
     Core --- Security
 
-    USCG -.-> Core
+    BMA -.-> Core
     CBP -.-> Core
 
     %% Apply Styles
     class Core hub;
-    class Pass,Crew,Vessel,USCG,CBP,Audit,Auth,Docs module;
+    class Crew,Cert,Vessel,BMA,CBP,Audit,Auth,Docs module;
 ```
 
 ## Module Descriptions
 
-| Module         | Description                              | Brand Color Usage                     |
-| :------------- | :--------------------------------------- | :------------------------------------ |
-| **Passengers** | Manifest management, check-in flows.     | White cards on Deep Ocean background. |
-| **Crew**       | Crew lists, certifications, scheduling.  | Mid Blue headers.                     |
-| **Compliance** | USCG/CBP readiness, NOAD/APIS pipelines. | Highlight Blue for status indicators. |
-| **Vessels**    | Ship management, maintenance logs.       | Glassmorphism panels.                 |
+| Module             | Description                                 | Brand Color Usage                     |
+| :----------------- | :------------------------------------------ | :------------------------------------ |
+| **Crew**           | STCW certificates, roles, and seafarer IDs. | Mid Blue headers.                     |
+| **Certifications** | Automated expiry tracking and validation.   | Highlight Blue for status indicators. |
+| **Compliance**     | BMA Safe Manning and US CBP reporting.      | Glassmorphism panels.                 |
+| **Vessels**        | Fleet management and required manning.      | White cards on Deep Ocean background. |

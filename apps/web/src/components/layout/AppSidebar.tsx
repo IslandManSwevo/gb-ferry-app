@@ -3,7 +3,6 @@
 import { canAccess } from '@/lib/auth/access';
 import { useUserRoles } from '@/lib/auth/roles';
 import {
-  CheckCircleOutlined,
   DashboardOutlined,
   DeploymentUnitOutlined,
   FileProtectOutlined,
@@ -38,12 +37,12 @@ const isDividerItem = (item: MenuItem): item is Extract<MenuItem, { type: 'divid
 
 // Feature Flag Mapping
 const FEATURE_MAP: Record<string, string> = {
-  '/passengers/checkin': 'passengers.checkin',
-  '/passengers/manifests': 'manifests.generate',
-  '/passengers': 'passengers.view',
   '/crew': 'crew.view',
   '/crew/safe-manning': 'crew.manage',
   '/crew/certifications': 'certifications.view',
+  '/compliance/cbp': 'compliance.export',
+  '/compliance/bma': 'compliance.export',
+  '/compliance/alerts': 'compliance.reports',
   '/vessels/documents': 'documents.upload',
   '/vessels': 'vessels.view',
   '/compliance/exports': 'compliance.export',
@@ -60,28 +59,23 @@ const menuItems: MenuItem[] = [
     label: 'Command Center',
   },
   {
-    key: '/passengers/checkin',
-    icon: <CheckCircleOutlined />,
-    label: 'Passenger Check-In',
-  },
-  {
-    key: 'active-operations',
+    key: 'crew-compliance',
     icon: <DeploymentUnitOutlined />,
-    label: 'Active Operations',
+    label: 'Crew Compliance',
     children: [
-      { key: '/passengers/manifests', label: 'Manifests' },
-      { key: '/passengers', label: 'Passenger List' },
-      { key: '/crew', label: 'Crew On Duty' },
+      { key: '/crew', label: 'Crew Directory' },
+      { key: '/crew/safe-manning', label: 'Safe Manning' },
+      { key: '/crew/certifications', label: 'Certifications' },
     ],
   },
   {
-    key: 'voyage-prep',
+    key: 'regulatory-forms',
     icon: <IdcardOutlined />,
-    label: 'Voyage Preparation',
+    label: 'Regulatory Forms',
     children: [
-      { key: '/crew/safe-manning', label: 'Safe Manning' },
-      { key: '/crew/certifications', label: 'Certifications' },
-      { key: '/vessels/documents', label: 'Vessel Documents' },
+      { key: '/compliance/cbp', label: 'CBP Forms' },
+      { key: '/compliance/bma', label: 'BMA Endorsements' },
+      { key: '/compliance/alerts', label: 'Compliance Alerts' },
     ],
   },
   {
@@ -90,13 +84,14 @@ const menuItems: MenuItem[] = [
     label: 'Fleet Management',
     children: [
       { key: '/vessels', label: 'Vessel Status' },
+      { key: '/vessels/documents', label: 'Vessel Documents' },
       { key: '/compliance/exports', label: 'Export Records' },
     ],
   },
   {
     key: 'regulatory',
     icon: <SafetyCertificateOutlined />,
-    label: 'Regulatory & Compliance',
+    label: 'Inspections & Audit',
     children: [
       { key: '/compliance/reports', label: 'Compliance Reports' },
       { key: '/compliance/inspections', label: 'Inspection Readiness' },
@@ -110,10 +105,7 @@ const menuItems: MenuItem[] = [
     key: 'system-management',
     icon: <SettingOutlined />,
     label: 'System Management',
-    children: [
-      { key: '/settings', label: 'Platform Settings' },
-      { key: '/audit-management', keyPath: '/audit', label: 'High-Level Audit' } as any, // Dual access to audit
-    ],
+    children: [{ key: '/settings', label: 'Platform Settings' }],
   },
 ];
 
@@ -153,12 +145,15 @@ function filterMenuItemsByRole(items: MenuItem[], roles: string[]): MenuItem[] {
 
 function findOpenKeys(pathname: string): string[] {
   const mapping = [
-    { key: 'active-operations', matchers: ['/passengers/manifests', '/passengers', '/crew'] },
+    { key: 'crew-compliance', matchers: ['/crew', '/crew/safe-manning', '/crew/certifications'] },
     {
-      key: 'voyage-prep',
-      matchers: ['/crew/safe-manning', '/crew/certifications', '/vessels/documents'],
+      key: 'regulatory-forms',
+      matchers: ['/compliance/cbp', '/compliance/bma', '/compliance/alerts'],
     },
-    { key: 'fleet-management', matchers: ['/vessels', '/compliance/exports'] },
+    {
+      key: 'fleet-management',
+      matchers: ['/vessels', '/vessels/documents', '/compliance/exports'],
+    },
     { key: 'regulatory', matchers: ['/compliance/reports', '/compliance/inspections', '/audit'] },
     { key: 'system-management', matchers: ['/settings'] },
   ];
@@ -234,7 +229,7 @@ export const AppSidebar: React.FC = () => {
             <Text strong style={{ color: '#fff', fontSize: 15, display: 'block', lineHeight: 1.2 }}>
               GB Ferry
             </Text>
-            <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>OPS COMMAND</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>CREW COMPLIANCE</Text>
           </div>
         )}
       </div>

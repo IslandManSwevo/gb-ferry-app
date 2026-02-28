@@ -20,27 +20,8 @@ enum Gender {
   X
 }
 
-enum IdentityDocType {
-  PASSPORT
-  SEAMAN_BOOK
-  NATIONAL_ID
-  TRAVEL_DOCUMENT
-}
 
-enum PassengerStatus {
-  CHECKED_IN
-  BOARDED
-  NO_SHOW
-  CANCELLED
-}
 
-enum ManifestStatus {
-  DRAFT
-  PENDING
-  APPROVED
-  SUBMITTED
-  REJECTED
-}
 
 enum CrewRole {
   MASTER
@@ -67,6 +48,13 @@ enum CrewStatus {
   ACTIVE
   INACTIVE
   ON_LEAVE
+}
+
+enum CertificationType {
+  STCW_COC
+  STCW_COP
+  BMA_ENDORSEMENT
+  OTHER
 }
 
 enum CertificationStatus {
@@ -144,21 +132,7 @@ enum AuditAction {
   CBP_APIS_SUBMITTED
   USCG_NOTIFICATION_SENT
   
-  // Passenger operations
-  PASSENGER_CHECKIN
-  PASSENGER_LIST_READ
-  PASSENGER_READ
-  PASSENGER_UPDATE
-  PASSENGER_DELETE
-  
-  // Manifest operations
-  MANIFEST_GENERATED
-  MANIFEST_LIST_READ
-  MANIFEST_READ
-  MANIFEST_APPROVED
-  MANIFEST_SUBMITTED
-  MANIFEST_EXPORTED
-  
+
   // Crew operations
   CREW_CREATE
   CREW_LIST_READ
@@ -185,11 +159,7 @@ enum AuditAction {
   INSPECTION_RECORD
 }
 
-enum CbpStatus {
-  PENDING
-  APPROVED
-  DENIED
-}
+
 
 enum CbpSubmissionStatus {
   DRAFT
@@ -216,10 +186,6 @@ model User {
   lastLoginAt   DateTime?
 
   // Relations
-  passengersCreated    Passenger[]    @relation("PassengerCreatedBy")
-  manifestsGenerated   Manifest[]     @relation("ManifestGeneratedBy")
-  manifestsApproved    Manifest[]     @relation("ManifestApprovedBy")
-  manifestsSubmitted   Manifest[]     @relation("ManifestSubmittedBy")
   crewCreated          CrewMember[]   @relation("CrewCreatedBy")
   certificationsCreated Certification[] @relation("CertificationCreatedBy")
   certificationsVerified Certification[] @relation("CertificationVerifiedBy")
@@ -231,167 +197,6 @@ model User {
   @@map("users")
 }
 
-// ============================================
-// PASSENGER & MANIFEST (IMO FAL Form 5)
-// ============================================
-
-model Sailing {
-  id                String   @id @default(uuid())
-  vesselId          String
-  vessel            Vessel   @relation(fields: [vesselId], references: [id])
-  
-  departurePort     String
-  arrivalPort       String
-  departureTime     DateTime
-  arrivalTime       DateTime?
-  
-  status            String   @default("scheduled") // scheduled, in_progress, completed, cancelled
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relations
-  passengers        Passenger[]
-  manifests         Manifest[]
-
-  @@map("sailings")
-}
-
-model Passenger {
-  id                    String          @id @default(uuid())
-  sailingId             String
-  sailing               Sailing         @relation(fields: [sailingId], references: [id])
-  
-  // Personal Details (IMO FAL)
-  familyName            String
-  givenNames            String
-  dateOfBirth           DateTime
-  placeOfBirth          String?
-  nationality           String          // ISO 3166-1 alpha-3
-  gender                Gender
-  
-  // Identity Document
-  identityDocType       IdentityDocType
-  identityDocNumber     String          // ENCRYPTED at application level
-  identityDocCountry    String          // Issuing country
-  identityDocExpiry     DateTime
-  
-  // Voyage
-  portOfEmbarkation     String
-  portOfDisembarkation  String
-  cabinOrSeat           String?
-  specialInstructions   String?
-  
-  // US Compliance
-  i94Number             String?
-  cbpStatus             CbpStatus?
-  visaType              String?
-  admissionDate         DateTime?
-  authorizedStayUntil   DateTime?
-  
-  // Consent (GDPR/Bahamas DPA)
-  consentGiven          Boolean
-  consentTimestamp      DateTime
-  
-  // Status
-  status                PassengerStatus @default(CHECKED_IN)
-  checkInTime           DateTime        @default(now())
-  boardingTime          DateTime?
-  
-  // Soft delete
-  deletedAt             DateTime?
-  
-  // Audit
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  createdById           String
-  createdBy             User            @relation("PassengerCreatedBy", fields: [createdById], references: [id])
-
-  // Relations
-  manifestEntries       ManifestPassenger[]
-
-  @@index([sailingId])
-  @@index([familyName, givenNames])
-  @@map("passengers")
-}
-
-model Manifest {
-  id                String          @id @default(uuid())
-  sailingId         String
-  sailing           Sailing         @relation(fields: [sailingId], references: [id])
-  vesselId          String
-  vessel            Vessel          @relation(fields: [vesselId], references: [id])
-  
-  // Voyage Details
-  departurePort     String
-  arrivalPort       String
-  departureTime     DateTime
-  arrivalTime       DateTime?
-  
-  // Counts
-  passengerCount    Int             @default(0)
-  crewCount         Int             @default(0)
-  
-  // Status
-  status            ManifestStatus  @default(DRAFT)
-  validationStatus  String?         // VALID, INVALID
-  
-  // US Compliance
-  cbpSubmissionId     String?
-  cbpSubmissionStatus CbpSubmissionStatus?
-  apisSubmissionTime  DateTime?
-  uscgNotificationSent Boolean       @default(false)
-  
-  // Approval Chain
-  generatedAt       DateTime        @default(now())
-  generatedById     String
-  generatedBy       User            @relation("ManifestGeneratedBy", fields: [generatedById], references: [id])
-  
-  approvedAt        DateTime?
-  approvedById      String?
-  approvedBy        User?           @relation("ManifestApprovedBy", fields: [approvedById], references: [id])
-  approvalNotes     String?
-  
-  submittedAt       DateTime?
-  submittedById     String?
-  submittedBy       User?           @relation("ManifestSubmittedBy", fields: [submittedById], references: [id])
-  
-  // Audit
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-
-  // Relations
-  passengers        ManifestPassenger[]
-  validationErrors  ManifestValidationError[]
-
-  @@index([sailingId])
-  @@index([status])
-  @@map("manifests")
-}
-
-model ManifestPassenger {
-  id            String    @id @default(uuid())
-  manifestId    String
-  manifest      Manifest  @relation(fields: [manifestId], references: [id], onDelete: Cascade)
-  passengerId   String
-  passenger     Passenger @relation(fields: [passengerId], references: [id])
-  sequenceNumber Int
-
-  @@unique([manifestId, passengerId])
-  @@map("manifest_passengers")
-}
-
-model ManifestValidationError {
-  id            String    @id @default(uuid())
-  manifestId    String
-  manifest      Manifest  @relation(fields: [manifestId], references: [id], onDelete: Cascade)
-  passengerId   String?
-  field         String
-  message       String
-  severity      String    // error, warning
-
-  @@map("manifest_validation_errors")
-}
 
 // ============================================
 // CREW & CERTIFICATIONS (BMA Seafarer Docs)
@@ -420,8 +225,14 @@ model CrewMember {
   seamanBookNumber      String?
   seamanBookAuthority   String?
   
-  // Identification Number (used for STCW reference)
-  identificationNumber  String?
+  // STCW Reference
+  seafarerIdentificationDocumentNumber  String?
+  identificationNumber                  String?
+
+  // US Customs and Border Protection (CBP)
+  alienRegistrationNumber String?
+  usVisaType            String?
+  usVisaExpiry          DateTime?
   
   // Assignment
   role                  CrewRole
@@ -447,6 +258,7 @@ model CrewMember {
   // Relations
   certifications        Certification[]
   medicalCertificate    MedicalCertificate?
+  bmaComplianceRecords  BmaComplianceRecord[]
 
   @@index([vesselId])
   @@index([familyName, givenNames])
@@ -475,8 +287,8 @@ model Certification {
   crewId              String
   crew                CrewMember          @relation(fields: [crewId], references: [id], onDelete: Cascade)
   
-  // Certificate Details (STCW)
-  type                String              // STCW cert type
+  // Certificate Details (STCW/BMA)
+  type                CertificationType
   certificateNumber   String
   issuingAuthority    String
   issuingCountry      String
@@ -495,6 +307,7 @@ model Certification {
   // Document
   documentUrl         String?
   documentVerified    Boolean             @default(false)
+  bmaEndorsementVerified Boolean          @default(false)
   
   // Notes
   notes               String?
@@ -571,11 +384,47 @@ model Vessel {
   documents           VesselDocument[]
   safeManningReqs     SafeManningRequirement[]
   crewMembers         CrewMember[]
-  sailings            Sailing[]
-  manifests           Manifest[]
   inspections         Inspection[]
+  cbpSubmissions      CbpSubmission[]
 
   @@map("vessels")
+}
+
+// ============================================
+// COMPLIANCE MODELS
+// ============================================
+
+model BmaComplianceRecord {
+  id                        String      @id @default(uuid())
+  crewId                    String
+  crew                      CrewMember  @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  
+  recordOfEmploymentNumber  String?
+  seamansRecordBookNumber   String?
+  mlcExemptions             String?
+  
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
+
+  @@index([crewId])
+  @@map("bma_compliance_records")
+}
+
+model CbpSubmission {
+  id                        String              @id @default(uuid())
+  vesselId                  String
+  vessel                    Vessel              @relation(fields: [vesselId], references: [id], onDelete: Cascade)
+  
+  transmissionId            String?
+  formType                  String              // I_418, 1304, eNOAD
+  status                    CbpSubmissionStatus @default(DRAFT)
+  
+  submittedAt               DateTime?
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
+
+  @@index([vesselId])
+  @@map("cbp_submissions")
 }
 
 model VesselOwner {

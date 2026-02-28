@@ -8,10 +8,7 @@ declare global {
 }
 
 const prismaClientOptions: ConstructorParameters<typeof PrismaClient>[0] = {
-  log:
-    process.env.NODE_ENV === 'development'
-      ? ['query', 'error', 'warn']
-      : ['error'],
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
 };
 
 export const prisma = global.prisma ?? new PrismaClient(prismaClientOptions);
@@ -22,7 +19,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 /**
  * PrismaService - Injectable Prisma Client for NestJS
- * 
+ *
  * Extends PrismaClient to integrate with NestJS lifecycle hooks.
  * Automatically connects on module init and disconnects on destroy.
  */
@@ -45,18 +42,37 @@ export type { Prisma } from '@prisma/client';
 export { PrismaClient };
 
 // Re-export generated types
-    export type {
-        AuditLog, Certification, CrewMember, ExportHistory, Inspection,
-        InspectionDeficiency, Manifest,
-        ManifestPassenger,
-        ManifestValidationError, MedicalCertificate, Passenger, SafeManningRequirement,
-        SafeManningRole, Sailing, User, Vessel, VesselDocument, VesselOwner
-    } from '@prisma/client';
+export type {
+  AuditLog,
+  BmaComplianceRecord,
+  CbpSubmission,
+  Certification,
+  CrewMember,
+  ExportHistory,
+  Inspection,
+  InspectionDeficiency,
+  MedicalCertificate,
+  SafeManningRequirement,
+  SafeManningRole,
+  User,
+  Vessel,
+  VesselDocument,
+  VesselOwner,
+} from '@prisma/client';
 
 // Re-export enums
 export {
-    AuditAction, CertificationStatus, CrewRole,
-    CrewStatus, DocumentStatus, Gender,
-    IdentityDocType, InspectionResult, InspectionStatus, InspectionType, ManifestStatus, PassengerStatus, VesselStatus, VesselType
+  AuditAction,
+  CbpSubmissionStatus,
+  CertificationStatus,
+  CertificationType,
+  CrewRole,
+  CrewStatus,
+  DocumentStatus,
+  Gender,
+  InspectionResult,
+  InspectionStatus,
+  InspectionType,
+  VesselStatus,
+  VesselType,
 } from '@prisma/client';
-

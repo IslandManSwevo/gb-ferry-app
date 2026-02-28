@@ -7,7 +7,6 @@ import { ComplianceModule } from './modules/compliance/compliance.module';
 import { CrewModule } from './modules/crew/crew.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { DocumentsModule } from './modules/documents/documents.module';
-import { PassengersModule } from './modules/passengers/passengers.module';
 import { VesselsModule } from './modules/vessels/vessels.module';
 
 @Module({
@@ -25,7 +24,6 @@ import { VesselsModule } from './modules/vessels/vessels.module';
     DatabaseModule,
 
     // Feature modules
-    PassengersModule,
     CrewModule,
     VesselsModule,
     ComplianceModule,

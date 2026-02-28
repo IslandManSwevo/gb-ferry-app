@@ -11,8 +11,8 @@ import {
   FileProtectOutlined,
   GlobalOutlined,
   ReloadOutlined,
+  SafetyCertificateOutlined,
   TeamOutlined,
-  UserOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
 import {
@@ -30,7 +30,7 @@ import {
 } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { CapacityIndicator } from '../components/ui/CapacityIndicator';
+import { CrewManningIndicator } from '../components/ui/CrewManningIndicator';
 import { DepartureCountdown } from '../components/ui/DepartureCountdown';
 import { GlassCard } from '../components/ui/GlassCard';
 import { StatusBadge } from '../components/ui/StatusBadge';
@@ -44,13 +44,14 @@ interface DashboardData {
     totalVessels: number;
     compliantVessels: number;
     expiringCertifications: number;
-    pendingManifests: number;
-    totalCrew?: number;
-    todaysPassengers?: number;
+    totalCrew: number;
+    upcomingInspections: number;
+    nonCompliantAlertsCount: number;
   };
   metrics: {
     safeManningCompliance: number;
-    manifestApprovalRate: number;
+    certificateValidityRate: number;
+    auditTrailCoverage: number;
   };
   alerts: Array<{
     id: string;
@@ -61,20 +62,20 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const canCheckIn = useCanAccess('passengers.checkin');
-  const canViewManifests = useCanAccess('passengers.view');
+  const canManageCrew = useCanAccess('crew.manage');
+  const canExportCompliance = useCanAccess('compliance.export');
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Mock next departure - In production, fetch from API
+  // Mock next departure for readiness overview
   const nextDeparture = {
-    sailingId: '1',
+    vesselId: '1',
     departureTime: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
     route: 'Nassau → Freeport',
     vesselName: 'Grand Bahama Express',
-    currentCapacity: 142,
-    maxCapacity: 180,
-    crewStatus: 'ready',
+    assignedCrew: 22,
+    requiredCrew: 22,
+    complianceStatus: 'ready',
     weatherStatus: 'clear',
   };
 
@@ -94,21 +95,26 @@ export default function DashboardPage() {
     const response = await api.compliance.dashboard();
 
     if (response.error) {
+      // Fallback/Mock data if API fails
       setDashboard({
         summary: {
           totalVessels: 4,
           compliantVessels: 3,
-          expiringCertifications: 2,
-          pendingManifests: 1,
-          totalCrew: 24,
-          todaysPassengers: 156,
+          expiringCertifications: 5,
+          totalCrew: 112,
+          upcomingInspections: 1,
+          nonCompliantAlertsCount: 2,
         },
-        metrics: { safeManningCompliance: 100, manifestApprovalRate: 98 },
+        metrics: {
+          safeManningCompliance: 96,
+          certificateValidityRate: 95,
+          auditTrailCoverage: 100,
+        },
         alerts: [
           {
             id: '1',
             severity: 'warning',
-            message: 'Vessel Spirit of Freeport requires document renewal',
+            message: '3 STCW certificates expiring in < 30 days on Spirit of Freeport',
           },
         ],
       });
@@ -123,8 +129,8 @@ export default function DashboardPage() {
   }, [fetchDashboard]);
 
   const criticalAlerts = dashboard?.alerts?.filter((a) => a.severity === 'critical') || [];
-  const passengersToday = dashboard?.summary?.todaysPassengers ?? 0;
-  const pendingManifests = dashboard?.summary?.pendingManifests ?? 0;
+  const expiringCerts = dashboard?.summary?.expiringCertifications ?? 0;
+  const currentCrewCount = dashboard?.summary?.totalCrew ?? 0;
   const crewReadyPct = dashboard?.metrics?.safeManningCompliance ?? 0;
 
   return (
@@ -147,7 +153,7 @@ export default function DashboardPage() {
               >
                 <Title level={2} style={{ color: '#fff', margin: 0 }}>
                   <DashboardOutlined style={{ marginRight: 12, color: '#1890ff' }} />
-                  Fleet Command Center
+                  Compliance Command Center
                 </Title>
                 <Tag
                   color="cyan"
@@ -159,13 +165,13 @@ export default function DashboardPage() {
                   }}
                 >
                   <Space>
-                    <span className="pulse">●</span> LIVE OPERATIONS
+                    <span className="pulse">●</span> REGULATORY OVERSIGHT
                   </Space>
                 </Tag>
               </div>
               <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: '16px' }}>
-                Real-time sailing status, compliance monitoring, and vessel readiness across the
-                Bahama archipelago.
+                Real-time regulatory tracking, STCW certificate expiry monitoring, and PSC
+                inspection readiness.
               </Text>
             </Col>
             <Col>
@@ -205,7 +211,7 @@ export default function DashboardPage() {
 
           <Row gutter={[24, 24]}>
             <Col xs={24} xl={16}>
-              {/* Next Departure Hero Section */}
+              {/* Next Departure Readiness Hero Section */}
               <GlassCard
                 style={{
                   background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
@@ -224,7 +230,7 @@ export default function DashboardPage() {
                           letterSpacing: '1px',
                         }}
                       >
-                        NEXT DEPARTURE IN
+                        NEXT DEPARTURE READINESS
                       </Text>
                       <DepartureCountdown
                         departureTime={nextDeparture.departureTime}
@@ -237,7 +243,7 @@ export default function DashboardPage() {
                           Vessel: {nextDeparture.vesselName}
                         </Text>
                         <Space size={12} style={{ marginTop: 8 }}>
-                          <StatusBadge status="ok" label="Crew Ready" compact />
+                          <StatusBadge status="ok" label="Crew Validated" compact />
                           <StatusBadge status="ok" label="Weather Clear" compact />
                         </Space>
                       </Space>
@@ -251,10 +257,10 @@ export default function DashboardPage() {
                         borderRadius: '12px',
                       }}
                     >
-                      <CapacityIndicator
-                        current={nextDeparture.currentCapacity}
-                        max={nextDeparture.maxCapacity}
-                        showRemaining
+                      <CrewManningIndicator
+                        current={nextDeparture.assignedCrew}
+                        required={nextDeparture.requiredCrew}
+                        label="SAFE MANNING"
                       />
                     </div>
                     <Space
@@ -265,7 +271,7 @@ export default function DashboardPage() {
                       <Button
                         type="primary"
                         size="large"
-                        icon={<UserOutlined />}
+                        icon={<SafetyCertificateOutlined />}
                         style={{
                           flex: 1,
                           background: '#fff',
@@ -273,20 +279,20 @@ export default function DashboardPage() {
                           border: 'none',
                           fontWeight: 600,
                         }}
-                        onClick={() => router.push('/passengers/checkin')}
-                        disabled={!canCheckIn}
+                        onClick={() => router.push('/crew/certifications')}
+                        disabled={!canManageCrew}
                       >
-                        Check In
+                        Verify Certs
                       </Button>
                       <Button
                         ghost
                         size="large"
                         icon={<FileProtectOutlined />}
                         style={{ flex: 1, fontWeight: 600 }}
-                        onClick={() => router.push('/passengers/manifests')}
-                        disabled={!canViewManifests}
+                        onClick={() => router.push('/compliance/cbp')}
+                        disabled={!canExportCompliance}
                       >
-                        Manifest
+                        CBP Form I-418
                       </Button>
                     </Space>
                   </Col>
@@ -300,16 +306,14 @@ export default function DashboardPage() {
                     style={{ background: 'linear-gradient(135deg, #003f5c 0%, #0077be 70%)' }}
                   >
                     <Statistic
-                      title={
-                        <Text style={{ color: 'rgba(255,255,255,0.7)' }}>TODAY&apos;S PAX</Text>
-                      }
-                      value={passengersToday}
-                      prefix={<UserOutlined style={{ color: '#00ffff' }} />}
+                      title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>ACTIVE CREW</Text>}
+                      value={currentCrewCount}
+                      prefix={<TeamOutlined style={{ color: '#00ffff' }} />}
                       valueStyle={{ color: '#fff', fontWeight: 700 }}
                     />
-                    <Progress percent={75} size="small" strokeColor="#00ffff" showInfo={false} />
+                    <Progress percent={100} size="small" strokeColor="#00ffff" showInfo={false} />
                     <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>
-                      Current booking vs capacity
+                      Registered STCW Active Mariners
                     </Text>
                   </GlassCard>
                 </Col>
@@ -318,14 +322,14 @@ export default function DashboardPage() {
                     style={{ background: 'linear-gradient(135deg, #312e81 0%, #4338ca 100%)' }}
                   >
                     <Statistic
-                      title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>MANIFESTS</Text>}
-                      value={pendingManifests}
-                      suffix="/ 4"
-                      prefix={<FileProtectOutlined style={{ color: '#ffa940' }} />}
+                      title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>EXPIRING CERTS</Text>}
+                      value={expiringCerts}
+                      suffix="/ 30 Days"
+                      prefix={<WarningOutlined style={{ color: '#ffa940' }} />}
                       valueStyle={{ color: '#fff', fontWeight: 700 }}
                     />
                     <Text style={{ color: '#ffa940', fontSize: '11px' }}>
-                      {pendingManifests} pending approval
+                      {expiringCerts} expiring or missing documents
                     </Text>
                   </GlassCard>
                 </Col>
@@ -334,13 +338,17 @@ export default function DashboardPage() {
                     style={{ background: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)' }}
                   >
                     <Statistic
-                      title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>CREW COVERAGE</Text>}
+                      title={
+                        <Text style={{ color: 'rgba(255,255,255,0.7)' }}>FLEET MANNING (R106)</Text>
+                      }
                       value={crewReadyPct}
                       suffix="%"
-                      prefix={<TeamOutlined style={{ color: '#6ee7b7' }} />}
+                      prefix={<SafetyCertificateOutlined style={{ color: '#6ee7b7' }} />}
                       valueStyle={{ color: '#fff', fontWeight: 700 }}
                     />
-                    <Text style={{ color: '#6ee7b7', fontSize: '11px' }}>All watches staffed</Text>
+                    <Text style={{ color: '#6ee7b7', fontSize: '11px' }}>
+                      Compliance rate across all vessels
+                    </Text>
                   </GlassCard>
                 </Col>
               </Row>
@@ -349,14 +357,14 @@ export default function DashboardPage() {
                 <GlassCard>
                   <Title level={4} style={{ color: '#e6f7ff', marginBottom: 20 }}>
                     <AlertOutlined style={{ marginRight: 8 }} />
-                    Operational Readiness Overview
+                    Port State Control Readiness
                   </Title>
                   <Row gutter={[24, 24]}>
                     <Col xs={24} md={12}>
                       <Space direction="vertical" style={{ width: '100%' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                            Safe Manning Compliance
+                            Fleet Safe Manning Coverage
                           </Text>
                           <Text style={{ color: '#e6f7ff' }}>{crewReadyPct}%</Text>
                         </div>
@@ -369,11 +377,16 @@ export default function DashboardPage() {
                           }}
                         >
                           <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                            Manifest Approval Rate
+                            STCW Certificate Validity
                           </Text>
-                          <Text style={{ color: '#e6f7ff' }}>98%</Text>
+                          <Text style={{ color: '#e6f7ff' }}>
+                            {dashboard?.metrics?.certificateValidityRate ?? 98}%
+                          </Text>
                         </div>
-                        <Progress percent={98} strokeColor="#1890ff" />
+                        <Progress
+                          percent={dashboard?.metrics?.certificateValidityRate ?? 98}
+                          strokeColor="#1890ff"
+                        />
                       </Space>
                     </Col>
                     <Col xs={24} md={12}>
@@ -391,22 +404,22 @@ export default function DashboardPage() {
                             marginBottom: '8px',
                           }}
                         >
-                          FLEET COMPLIANCE STATUS
+                          CBP EXPORT STATUS
                         </Text>
                         <Space size={16} align="center">
                           <div style={{ textAlign: 'center' }}>
                             <Title level={3} style={{ color: '#fff', margin: 0 }}>
-                              3 / 4
+                              ALL OK
                             </Title>
                             <Text style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)' }}>
-                              CERTIFIED
+                              ACE FILINGS
                             </Text>
                           </div>
                           <Divider
                             type="vertical"
                             style={{ height: '40px', borderColor: 'rgba(255,255,255,0.1)' }}
                           />
-                          <StatusBadge status="warning" label="Review Pending" />
+                          <StatusBadge status="ok" label="I-418 Transmitted" />
                         </Space>
                       </div>
                     </Col>
@@ -432,32 +445,32 @@ export default function DashboardPage() {
               <GlassCard style={{ marginTop: 24, minHeight: '380px' }}>
                 <Title level={4} style={{ color: '#e6f7ff', marginBottom: 20 }}>
                   <GlobalOutlined style={{ marginRight: 8, color: '#1890ff' }} />
-                  Fleet Activity Feed
+                  Compliance Event Stream
                 </Title>
                 <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                   {[
                     {
-                      type: 'DEPARTURE',
+                      type: 'PSC INSPECTION',
                       time: '10 min ago',
-                      msg: 'MV Spirit of Freeport departed Nassau',
+                      msg: 'USCG Cleared boarding on Spirit of Freeport, zero deficiencies.',
                       color: '#52c41a',
                     },
                     {
-                      type: 'COMPLIANCE',
+                      type: 'CERTIFICATION',
                       time: '45 min ago',
-                      msg: 'IMO certification updated for Island Princess',
+                      msg: 'Updated Medical Certificate for Captain A. Smith',
                       color: '#1890ff',
                     },
                     {
-                      type: 'SYSTEM',
+                      type: 'CBP SUBMISSION',
                       time: '1 hr ago',
-                      msg: 'New manifest generated for Sailing #GR-402',
+                      msg: 'I-418 Crew List successfully sent for Voyage #GR-402',
                       color: '#ffa940',
                     },
                     {
-                      type: 'WEATHER',
+                      type: 'ALERT',
                       time: '2 hrs ago',
-                      msg: 'Small craft advisory active for North Abaco',
+                      msg: 'Chief Engineer BMA Endorsement expiring in 5 days',
                       color: '#ff4d4f',
                     },
                   ].map((item, idx) => (
@@ -488,8 +501,9 @@ export default function DashboardPage() {
                     borderColor: 'rgba(255,255,255,0.1)',
                     color: 'rgba(255,255,255,0.45)',
                   }}
+                  onClick={() => router.push('/audit')}
                 >
-                  View Operation Logs
+                  View Full Audit Log
                 </Button>
               </GlassCard>
             </Col>

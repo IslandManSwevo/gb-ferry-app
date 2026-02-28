@@ -1,19 +1,6 @@
-import {
-    Body,
-    Controller,
-    Get,
-    Param,
-    Post,
-    Put,
-    Query,
-} from '@nestjs/common';
-import {
-    ApiBearerAuth,
-    ApiOperation,
-    ApiQuery,
-    ApiResponse,
-    ApiTags,
-} from '@nestjs/swagger';
+import { CertificationType } from '@gbferry/database';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CertificationsService } from './certifications.service';
 
 @ApiTags('crew')
@@ -37,8 +24,8 @@ export class CertificationsController {
   @ApiResponse({ status: 200, description: 'List of certifications' })
   async findAll(
     @Query('crewId') crewId?: string,
-    @Query('type') type?: string,
-    @Query('expiringWithinDays') expiringWithinDays?: number,
+    @Query('type') type?: CertificationType,
+    @Query('expiringWithinDays') expiringWithinDays?: number
   ): Promise<any> {
     return this.certificationsService.findAll({ crewId, type, expiringWithinDays });
   }

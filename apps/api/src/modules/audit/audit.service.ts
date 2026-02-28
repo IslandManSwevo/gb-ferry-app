@@ -140,8 +140,8 @@ export class AuditService {
      * IMPORTANT: This table should have no UPDATE or DELETE permissions
      * All records are immutable after creation
      *
-     * Note: If no real user exists, we create a system-level log without
-     * the user relation for bootstrapping/background processes.
+     * If no user is found, we resolve or create a SYSTEM user to ensure
+     * every audit entry is persisted to the database (ISO 27001 A.8.15).
      */
     try {
       const metadata = {
@@ -149,65 +149,92 @@ export class AuditService {
         ...(entry.compliance ? { compliance: entry.compliance } : {}),
       };
 
-      // Try to find user if userId is provided
-      let user = null;
+      // Resolve the user for this audit entry
+      let resolvedUserId: string;
+      let resolvedUserName: string;
+      let resolvedUserRole: string;
+
       if (entry.userId && entry.userId !== 'system') {
-        user = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
           where: { id: entry.userId },
         });
+
+        if (user) {
+          resolvedUserId = user.id;
+          resolvedUserName = entry.userName || user.email || 'Unknown';
+          resolvedUserRole = entry.userRole || user.role || 'user';
+        } else {
+          // User ID provided but not found — use SYSTEM user as fallback
+          const systemUser = await this.resolveSystemUser();
+          resolvedUserId = systemUser.id;
+          resolvedUserName = entry.userName || 'System';
+          resolvedUserRole = entry.userRole || 'system';
+        }
+      } else {
+        // No user context — use SYSTEM user
+        const systemUser = await this.resolveSystemUser();
+        resolvedUserId = systemUser.id;
+        resolvedUserName = entry.userName || 'System';
+        resolvedUserRole = entry.userRole || 'system';
       }
 
-      // If we have a valid user, create with full relation
-      if (user) {
-        const auditEntry = await this.prisma.auditLog.create({
-          data: {
-            entityType: entry.entityType,
-            entityId: entry.entityId || '',
-            entityName: entry.entityName,
-            action: entry.action as any,
-            actionDescription: entry.actionDescription,
-            userId: user.id,
-            userName: entry.userName || user.email || 'Unknown',
-            userRole: entry.userRole || 'user',
-            ipAddress: entry.ipAddress,
-            userAgent: entry.userAgent,
-            previousValue: entry.previousValue,
-            newValue: entry.newValue,
-            changedFields: entry.changedFields || [],
-            reason: entry.reason,
-            metadata,
-            timestamp: new Date(),
-          } as any,
-        });
-        return auditEntry;
-      }
-
-      // For system operations without a valid user, log to console only
-      // This prevents test failures while maintaining audit intent
-      console.log('Audit log (no user):', {
-        action: entry.action,
-        entityType: entry.entityType,
-        entityId: entry.entityId,
-        compliance: entry.compliance,
-        timestamp: new Date().toISOString(),
+      const auditEntry = await this.prisma.auditLog.create({
+        data: {
+          entityType: entry.entityType,
+          entityId: entry.entityId || '',
+          entityName: entry.entityName,
+          action: entry.action as any,
+          actionDescription: entry.actionDescription,
+          userId: resolvedUserId,
+          userName: resolvedUserName,
+          userRole: resolvedUserRole,
+          ipAddress: entry.ipAddress,
+          userAgent: entry.userAgent,
+          previousValue: entry.previousValue,
+          newValue: entry.newValue,
+          changedFields: entry.changedFields || [],
+          reason: entry.reason,
+          metadata,
+          timestamp: new Date(),
+        } as any,
       });
-
-      return {
-        id: `temp-${Date.now()}`,
-        entityType: entry.entityType,
-        entityId: entry.entityId || '',
-        action: entry.action,
-        userId: 'system',
-        userName: 'System',
-        userRole: 'system',
-        compliance: entry.compliance,
-        timestamp: new Date(),
-      };
+      return auditEntry;
     } catch (error) {
       // Log error but don't fail the main operation
       console.error('Audit log creation failed:', error);
       return null;
     }
+  }
+
+  /**
+   * Resolves or creates a deterministic SYSTEM user for audit entries
+   * that originate from background processes, system operations, or
+   * requests where the user context is unavailable.
+   *
+   * Uses a fixed keycloakId to ensure idempotency across restarts.
+   */
+  private async resolveSystemUser(): Promise<{ id: string; email: string; role: string }> {
+    const SYSTEM_KEYCLOAK_ID = 'SYSTEM_AUDIT_USER';
+    const SYSTEM_EMAIL = 'system@gbferry.internal';
+
+    const existing = await this.prisma.user.findUnique({
+      where: { keycloakId: SYSTEM_KEYCLOAK_ID },
+      select: { id: true, email: true, role: true },
+    });
+
+    if (existing) return existing;
+
+    return this.prisma.user.create({
+      data: {
+        keycloakId: SYSTEM_KEYCLOAK_ID,
+        email: SYSTEM_EMAIL,
+        firstName: 'System',
+        lastName: 'Audit',
+        role: 'system',
+        isActive: true,
+      },
+      select: { id: true, email: true, role: true },
+    });
   }
 
   async logAuthFailure(params: {

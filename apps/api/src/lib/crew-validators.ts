@@ -346,7 +346,8 @@ export function validateMedicalCertificate(
   crewId: string,
   crewName: string,
   hasMedical: boolean,
-  medicalExpiryDate?: string
+  medicalExpiryDate?: string,
+  warnings?: CertificationError[]
 ): CertificationError[] {
   const errors: CertificationError[] = [];
 
@@ -379,8 +380,8 @@ export function validateMedicalCertificate(
       crewName,
       'MEDICAL_ENG1'
     );
-    if (expiringWarning) {
-      // Note: This would be added to warnings, not errors
+    if (expiringWarning && warnings) {
+      warnings.push(expiringWarning);
     }
   }
 
@@ -417,7 +418,8 @@ export function validateCrewCompliance(
       crewMember.id,
       crewMember.name,
       crewMember.hasMedical,
-      crewMember.medicalExpiryDate
+      crewMember.medicalExpiryDate,
+      warnings
     );
     errors.push(...medicalErrors);
 

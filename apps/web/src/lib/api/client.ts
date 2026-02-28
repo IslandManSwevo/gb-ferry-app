@@ -21,27 +21,6 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-export interface PassengerCheckInData {
-  id?: string;
-  sailingId: string;
-  sailingDate?: string;
-  familyName: string;
-  givenNames: string;
-  dateOfBirth?: string;
-  nationality?: string;
-  gender?: string;
-  identityDocType?: string;
-  identityDocNumber?: string;
-  identityDocExpiry?: string;
-  identityDocCountry?: string;
-  portOfEmbarkation?: string;
-  portOfDisembarkation?: string;
-  cabinOrSeat?: string;
-  specialInstructions?: string;
-  consentGiven?: boolean;
-  consentProvidedAt?: string;
-}
-
 /**
  * Request options
  */
@@ -141,39 +120,6 @@ export const api = {
   // Health check
   health: () => fetchWithAuth<{ status: string; timestamp: string }>('/health'),
 
-  // Passengers
-  passengers: {
-    list: (params?: { page?: number; pageSize?: number; search?: string; status?: string }) =>
-      fetchWithAuth<PaginatedResponse<any>>('/passengers', { params }),
-    get: (id: string) => fetchWithAuth<any>(`/passengers/${id}`),
-    create: (data: any) =>
-      fetchWithAuth<any>('/passengers', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: any) =>
-      fetchWithAuth<any>(`/passengers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    checkIn: (data: PassengerCheckInData) =>
-      fetchWithAuth<any>('/passengers/checkin', { method: 'POST', body: JSON.stringify(data) }),
-    sailings: () => fetchWithAuth<any[]>('/passengers/sailings'),
-  },
-
-  // Manifests
-  manifests: {
-    list: (params?: { page?: number; pageSize?: number; status?: string; sailingId?: string }) =>
-      fetchWithAuth<PaginatedResponse<any>>('/manifests', { params }),
-    get: (id: string) => fetchWithAuth<any>(`/manifests/${id}`),
-    generate: (data: { sailingId: string; sailingDate: string }) =>
-      fetchWithAuth<any>('/manifests', { method: 'POST', body: JSON.stringify(data) }),
-    approve: (id: string, data?: any) =>
-      fetchWithAuth<any>(`/manifests/${id}/approve`, {
-        method: 'PUT',
-        body: JSON.stringify(data || {}),
-      }),
-    submit: (id: string, submittedBy: string) =>
-      fetchWithAuth<any>(`/manifests/${id}/submit`, {
-        method: 'PUT',
-        body: JSON.stringify({ submittedBy }),
-      }),
-  },
-
   // Crew
   crew: {
     list: (params?: { page?: number; pageSize?: number; search?: string; role?: string }) =>
@@ -231,8 +177,15 @@ export const api = {
   // Compliance
   compliance: {
     dashboard: () => fetchWithAuth<any>('/compliance/dashboard'),
+    reports: (params?: { type?: string; dateFrom?: string; dateTo?: string }) =>
+      fetchWithAuth<any>('/compliance/reports', { params }),
     export: (format: 'csv' | 'xml' | 'pdf', type: string, entityId: string) =>
       fetchWithAuth<Blob>(`/compliance/export/${format}/${type}/${entityId}`, {
+        responseType: 'blob',
+      }),
+    exportCrewCompliance: (vesselId: string, format: 'csv' | 'json' = 'json') =>
+      fetchWithAuth<Blob>(`/compliance/export/crew-compliance/${vesselId}`, {
+        params: { format },
         responseType: 'blob',
       }),
     jurisdictions: () => fetchWithAuth<any[]>('/compliance/jurisdictions'),

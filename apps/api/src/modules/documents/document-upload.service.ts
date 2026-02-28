@@ -1,7 +1,8 @@
-import { DocumentStatus, PrismaService, VesselDocument } from '@gbferry/database';
+import { DocumentStatus, PrismaService, VesselDocument, Certification, MedicalCertificate } from '@gbferry/database';
 import { DocumentMetadata, DocumentUploadDto } from '@gbferry/dto';
 import { BadRequestException, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
+import { AIExtractionService } from './ai-extraction.service';
 
 export interface StorageOptions {
   bucket: string;
@@ -21,6 +22,7 @@ export class DocumentUploadService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private aiExtractionService: AIExtractionService,
     @Optional() @Inject(STORAGE_SERVICE) private storageService?: StorageService
   ) {}
 
@@ -28,18 +30,16 @@ export class DocumentUploadService {
     file: Express.Multer.File,
     uploadDto: DocumentUploadDto,
     userId: string
-  ): Promise<VesselDocument> {
+  ): Promise<VesselDocument | Certification | MedicalCertificate> {
     if (!file) {
       throw new BadRequestException('File is required');
     }
 
-    if (uploadDto.entityType !== 'vessel') {
-      throw new BadRequestException('Only vessel documents are supported in this phase');
-    }
-
-    const vesselId = this.validateAndNormalizeEntityId(uploadDto.entityId);
-
-    const metadata = await this.extractDocumentMetadata(file);
+    const entityId = this.validateAndNormalizeEntityId(uploadDto.entityId);
+    
+    // AI-Powered Metadata Extraction
+    const metadata = await this.aiExtractionService.extractMetadata(file);
+    
     const bucket =
       process.env.NODE_ENV === 'production'
         ? process.env.AWS_S3_BUCKET || ''
@@ -49,10 +49,26 @@ export class DocumentUploadService {
       throw new BadRequestException('Storage bucket is not configured');
     }
 
-    const storageKey = await this.storeFile(file, vesselId, bucket);
-
+    const storageKey = await this.storeFile(file, entityId, uploadDto.entityType, bucket);
     const expiryDate = this.normalizeDate(metadata.extractedExpiryDate || uploadDto.expiryDate);
 
+    if (uploadDto.entityType === 'vessel') {
+      return this.handleVesselDocument(file, uploadDto, metadata, storageKey, expiryDate, userId);
+    } else if (uploadDto.entityType === 'crew') {
+      return this.handleCrewDocument(file, uploadDto, metadata, storageKey, expiryDate, userId);
+    } else {
+      throw new BadRequestException(`Entity type ${uploadDto.entityType} is not supported`);
+    }
+  }
+
+  private async handleVesselDocument(
+    file: Express.Multer.File,
+    uploadDto: DocumentUploadDto,
+    metadata: DocumentMetadata,
+    storageKey: string,
+    expiryDate: Date | null,
+    userId: string
+  ): Promise<VesselDocument> {
     const document = await this.prisma.vesselDocument.create({
       data: {
         vesselId: uploadDto.entityId,
@@ -62,7 +78,6 @@ export class DocumentUploadService {
           ...(uploadDto.metadata || {}),
           ...metadata,
           originalFileName: file.originalname,
-          fileSize: file.size,
         }),
         fileName: file.originalname,
         fileSize: file.size,
@@ -81,114 +96,121 @@ export class DocumentUploadService {
       userId,
       details: {
         documentType: document.type,
-        fileName: file.originalname,
         storageKey,
-        extractedMetadata: metadata,
         confidenceScore: metadata.confidence,
       },
+      compliance: 'AI-Enhanced Vessel Document Upload',
     });
 
     return document;
   }
 
+  private async handleCrewDocument(
+    file: Express.Multer.File,
+    uploadDto: DocumentUploadDto,
+    metadata: DocumentMetadata,
+    storageKey: string,
+    expiryDate: Date | null,
+    userId: string
+  ): Promise<Certification | MedicalCertificate> {
+    const detectedType = metadata.detectedType || uploadDto.documentType || 'OTHER';
+
+    if (detectedType === 'MEDICAL_CERTIFICATE') {
+      return this.handleMedicalCertificate(uploadDto, metadata, storageKey, expiryDate, userId);
+    }
+
+    // Default to STCW Certification for other types
+    return this.handleCertification(uploadDto, metadata, storageKey, expiryDate, userId);
+  }
+
+  private async handleMedicalCertificate(
+    uploadDto: DocumentUploadDto,
+    metadata: DocumentMetadata,
+    storageKey: string,
+    expiryDate: Date | null,
+    userId: string
+  ): Promise<MedicalCertificate> {
+    const medCert = await this.prisma.medicalCertificate.upsert({
+      where: { crewId: uploadDto.entityId },
+      create: {
+        crewId: uploadDto.entityId,
+        type: metadata.detectedType || 'MEDICAL',
+        issuingAuthority: metadata.issuingAuthority || 'Unknown',
+        issueDate: new Date(), // Extracted issue date would be better
+        expiryDate: expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        documentUrl: storageKey,
+      },
+      update: {
+        type: metadata.detectedType || 'MEDICAL',
+        issuingAuthority: metadata.issuingAuthority || 'Unknown',
+        expiryDate: expiryDate || undefined,
+        documentUrl: storageKey,
+      },
+    });
+
+    await this.auditService.log({
+      action: 'UPDATE',
+      entityId: medCert.id,
+      entityType: 'medical_certificate',
+      userId,
+      details: { confidence: metadata.confidence },
+      compliance: 'AI-Enhanced Medical Certificate Upload',
+    });
+
+    return medCert;
+  }
+
+  private async handleCertification(
+    uploadDto: DocumentUploadDto,
+    metadata: DocumentMetadata,
+    storageKey: string,
+    expiryDate: Date | null,
+    userId: string
+  ): Promise<Certification> {
+    const cert = await this.prisma.certification.create({
+      data: {
+        crewId: uploadDto.entityId,
+        type: (metadata.detectedType as any) || 'STCW_COP',
+        certificateNumber: metadata.certificateNumber || 'PENDING',
+        issuingAuthority: metadata.issuingAuthority || 'Unknown',
+        issuingCountry: 'BS',
+        issueDate: new Date(),
+        expiryDate: expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        documentUrl: storageKey,
+        status: 'VALID',
+        createdById: userId,
+        notes: `AI Extracted: ${JSON.stringify(metadata)}`,
+      },
+    });
+
+    await this.auditService.log({
+      action: 'CERTIFICATION_CREATE',
+      entityId: cert.id,
+      entityType: 'certification',
+      userId,
+      details: { confidence: metadata.confidence, certNumber: metadata.certificateNumber },
+      compliance: 'AI-Enhanced STCW Certification Upload',
+    });
+
+    return cert;
+  }
+
   private async storeFile(
     file: Express.Multer.File,
-    vesselId: string,
+    entityId: string,
+    entityType: string,
     bucket: string
   ): Promise<string> {
     const safeFileName = this.sanitizePathComponent(file.originalname || 'document');
-    const safeVesselId = this.sanitizePathComponent(vesselId);
-    const key = `documents/vessel/${safeVesselId}/${Date.now()}-${safeFileName}`;
+    const safeEntityId = this.sanitizePathComponent(entityId);
+    const key = `documents/${entityType}/${safeEntityId}/${Date.now()}-${safeFileName}`;
+    
     if (!this.storageService) {
-      // No storage adapter wired yet; return key for later upload.
       return key;
     }
 
     await this.storageService.uploadFile(file, { bucket, key });
     return key;
-  }
-
-  private async extractDocumentMetadata(file: Express.Multer.File): Promise<DocumentMetadata> {
-    try {
-      const pdfParseModule = await import('pdf-parse');
-      const parsePdf = pdfParseModule.default as unknown as (
-        data: Buffer
-      ) => Promise<{ text?: string }>;
-      const data = await parsePdf(file.buffer);
-      const text = data.text || '';
-      return {
-        detectedType: this.detectDocumentType(text),
-        extractedExpiryDate: this.extractExpiryDate(text) || undefined,
-        certificateNumber: this.extractCertificateNumber(text) || undefined,
-        issuingAuthority: this.extractIssuingAuthority(text) || undefined,
-        confidence: this.calculateConfidence(text),
-      };
-    } catch (err) {
-      this.logger.warn(
-        `extractDocumentMetadata failed for file=${file?.originalname || 'unknown'}: ${err}`,
-        err as any
-      );
-      return {
-        detectedType: 'OTHER',
-        confidence: 0,
-      };
-    }
-  }
-
-  private detectDocumentType(pdfText: string): string {
-    const text = pdfText.toLowerCase();
-    if (text.includes('safe manning') || text.includes('r106')) return 'SAFE_MANNING_CERTIFICATE';
-    if (text.includes('stcw') || text.includes('certificate of competency'))
-      return 'STCW_CERTIFICATE';
-    if (text.includes('medical certificate')) return 'MEDICAL_CERTIFICATE';
-    if (text.includes('registration') || text.includes('r102')) return 'REGISTRATION_CERTIFICATE';
-    if (text.includes('safety management certificate') || text.includes('smc'))
-      return 'SAFETY_MANAGEMENT_CERTIFICATE';
-    if (text.includes('radio license') || text.includes('radio station')) return 'RADIO_LICENSE';
-    if (text.includes('load line')) return 'LOAD_LINE_CERTIFICATE';
-    return 'OTHER';
-  }
-
-  private extractExpiryDate(text: string): Date | null {
-    const datePatterns = [
-      /(?:valid until|expires?|expiry|valid to):?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i,
-      /(?:valid until|expires?|expiry|valid to):?\s*(\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{2,4})/i,
-    ];
-
-    for (const pattern of datePatterns) {
-      const match = text.match(pattern);
-      if (match) {
-        const parsedDate = new Date(match[1]);
-        if (!Number.isNaN(parsedDate.getTime())) {
-          return parsedDate;
-        }
-      }
-    }
-
-    return null;
-  }
-
-  private extractCertificateNumber(text: string): string | null {
-    const pattern = /(certificate\s*(no\.|number)[:\s]*)([A-Z0-9-]+)/i;
-    const match = text.match(pattern);
-    return match ? match[3] : null;
-  }
-
-  private extractIssuingAuthority(text: string): string | null {
-    const pattern = /(issuing authority|authority|administration)[:\s]*([A-Za-z\s]+)/i;
-    const match = text.match(pattern);
-    return match ? match[2].trim() : null;
-  }
-
-  private calculateConfidence(text: string): number {
-    const lower = text.toLowerCase();
-    let score = 0.2; // base confidence
-    if (lower.includes('certificate')) score += 0.2;
-    if (lower.includes('expiry') || lower.includes('valid until')) score += 0.2;
-    if (lower.includes('authority')) score += 0.2;
-    if (lower.includes('registration') || lower.includes('smc') || lower.includes('stcw'))
-      score += 0.2;
-    return Math.min(score, 1);
   }
 
   private normalizeDate(input?: Date | string | null): Date | null {
@@ -202,15 +224,11 @@ export class DocumentUploadService {
     if (!entityId || typeof entityId !== 'string' || !entityId.trim()) {
       throw new BadRequestException('entityId is required and must be a non-empty string');
     }
-    const trimmed = entityId.trim();
-    return trimmed;
+    return entityId.trim();
   }
 
   private sanitizePathComponent(value: string): string {
-    const normalized = value.normalize('NFKD');
-    const strippedSeparators = normalized.replace(/[\\/]+/g, '');
-    const noTraversal = strippedSeparators.replace(/\.\./g, '').replace(/^[.]+/, '');
-    const safe = noTraversal.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 128);
-    return safe || 'file';
+    return value.replace(/[\\/]+/g, '').replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 128) || 'file';
   }
 }
+

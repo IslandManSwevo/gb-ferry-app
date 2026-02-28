@@ -49,7 +49,7 @@ export class DocumentsController {
   ) {}
 
   @Post('upload')
-  @ApiOperation({ summary: 'Upload a document with metadata extraction' })
+  @ApiOperation({ summary: 'Upload a document with AI metadata extraction' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -57,7 +57,7 @@ export class DocumentsController {
       properties: {
         file: { type: 'string', format: 'binary' },
         name: { type: 'string' },
-        entityType: { type: 'string', enum: ['vessel'] },
+        entityType: { type: 'string', enum: ['vessel', 'crew'] },
         entityId: { type: 'string', format: 'uuid' },
         documentType: { type: 'string' },
         expiryDate: { type: 'string', format: 'date-time' },
@@ -93,20 +93,20 @@ export class DocumentsController {
     @UploadedFile() file: Express.Multer.File,
     @Body() body: UploadBody,
     @CurrentUser() user: KeycloakUser
-  ): Promise<{ data: VesselDocument }> {
+  ): Promise<{ data: any }> {
     if (!file) {
       throw new BadRequestException('file is required');
     }
 
     const mappedUser = await this.mapUser(user);
     const uploadDto = this.mapUploadDto(body);
-    const document = await this.documentUploadService.uploadWithMetadataExtraction(
+    const result = await this.documentUploadService.uploadWithMetadataExtraction(
       file,
       uploadDto,
       mappedUser.id
     );
 
-    return { data: document };
+    return { data: result };
   }
 
   @Get()
@@ -183,8 +183,8 @@ export class DocumentsController {
       throw new BadRequestException('name, entityType, and entityId are required');
     }
 
-    if (body.entityType !== 'vessel') {
-      throw new BadRequestException('Only vessel documents are supported in this phase');
+    if (body.entityType !== 'vessel' && body.entityType !== 'crew') {
+      throw new BadRequestException('Only vessel and crew documents are supported');
     }
 
     const expiryDate = body.expiryDate ? new Date(body.expiryDate) : undefined;
@@ -201,6 +201,7 @@ export class DocumentsController {
       metadata: this.parseMetadata(body.metadata),
     };
   }
+
 
   private parseMetadata(raw: UploadBody['metadata']): Record<string, any> | undefined {
     if (!raw) return undefined;

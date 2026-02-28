@@ -41,14 +41,21 @@ export default function CrewPage() {
   const [searchText, setSearchText] = useState('');
   const [selectedCrew, setSelectedCrew] = useState<any | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [dashboard, setDashboard] = useState<any | null>(null);
 
   const fetchCrew = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await api.crew.list();
-    if (error) {
+    const [crewResult, dashResult] = await Promise.all([
+      api.crew.list(),
+      api.compliance.dashboard(),
+    ]);
+    if (crewResult.error) {
       message.error('Failed to load crew registry');
-    } else if (data) {
-      setCrew(data.items || []);
+    } else if (crewResult.data) {
+      setCrew(crewResult.data.items || []);
+    }
+    if (dashResult.data) {
+      setDashboard(dashResult.data);
     }
     setLoading(false);
   }, []);
@@ -262,7 +269,11 @@ export default function CrewPage() {
                     {crew.filter((c) => c.status === 'ACTIVE').length} On Watch
                   </Title>
                   <Progress
-                    percent={(crew.filter((c) => c.status === 'ACTIVE').length / crew.length) * 100}
+                    percent={
+                      crew.length > 0
+                        ? (crew.filter((c) => c.status === 'ACTIVE').length / crew.length) * 100
+                        : 0
+                    }
                     strokeColor="#1890ff"
                     showInfo={false}
                   />
@@ -278,13 +289,34 @@ export default function CrewPage() {
                   </Text>
                   <Title
                     level={4}
-                    style={{ color: expiringTotal > 0 ? '#ff4d4f' : '#52c41a', margin: 0 }}
+                    style={{
+                      color:
+                        (dashboard?.summary?.expiringCertifications || expiringTotal) > 0
+                          ? '#ff4d4f'
+                          : '#52c41a',
+                      margin: 0,
+                    }}
                   >
-                    {expiringTotal} Attention Needed
+                    {dashboard?.summary?.expiringCertifications ?? expiringTotal} Expiring
                   </Title>
-                  <Tag color={expiringTotal > 0 ? 'error' : 'success'}>
-                    {expiringTotal > 0 ? 'Action required for 30d windows' : 'Fleet compliant'}
-                  </Tag>
+                  <Space size={4}>
+                    <Tag
+                      color={
+                        (dashboard?.summary?.expiringCertifications || expiringTotal) > 0
+                          ? 'error'
+                          : 'success'
+                      }
+                    >
+                      {(dashboard?.summary?.expiringCertifications || expiringTotal) > 0
+                        ? 'Action required within 30 days'
+                        : 'All certifications current'}
+                    </Tag>
+                    {dashboard?.metrics?.certificateValidityRate != null && (
+                      <Tag color="blue" style={{ fontSize: 10 }}>
+                        {dashboard.metrics.certificateValidityRate.toFixed(0)}% valid
+                      </Tag>
+                    )}
+                  </Space>
                 </Space>
               </GlassCard>
             </Col>
@@ -295,11 +327,21 @@ export default function CrewPage() {
                     <TeamOutlined style={{ marginRight: 8 }} />
                     Safe Manning
                   </Text>
-                  <Title level={4} style={{ color: '#fff', margin: 0 }}>
-                    100% Coverage
+                  <Title
+                    level={4}
+                    style={{
+                      color:
+                        (dashboard?.metrics?.safeManningCompliance ?? 100) >= 100
+                          ? '#52c41a'
+                          : '#faad14',
+                      margin: 0,
+                    }}
+                  >
+                    {(dashboard?.metrics?.safeManningCompliance ?? 100).toFixed(0)}% Coverage
                   </Title>
                   <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>
-                    All 4 vessels currently meet minimum requirements
+                    {dashboard?.summary?.compliantVessels ?? '—'} /{' '}
+                    {dashboard?.summary?.totalVessels ?? '—'} vessels meet BMA R106 requirements
                   </Text>
                 </Space>
               </GlassCard>

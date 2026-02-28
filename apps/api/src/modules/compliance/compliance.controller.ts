@@ -53,40 +53,6 @@ export class ComplianceController {
     return this.complianceService.getReports({ type, dateFrom, dateTo });
   }
 
-  @Get('export/manifest/:manifestId')
-  @Roles({ roles: ['realm:compliance_officer', 'realm:admin'] })
-  @ApiOperation({ summary: 'Export manifest in regulatory format' })
-  @ApiQuery({ name: 'format', enum: ['csv', 'xlsx', 'pdf', 'xml'] })
-  @ApiQuery({ name: 'jurisdiction', enum: ['bahamas', 'jamaica', 'barbados'], required: false })
-  @ApiResponse({ status: 200, description: 'Exported file' })
-  async exportManifest(
-    @Param('manifestId') manifestId: string,
-    @Query('format') format: string,
-    @Query('jurisdiction') jurisdiction: string = 'bahamas',
-    @Res() res: Response
-  ) {
-    const exported = await this.adapterService.exportManifest(manifestId, format, jurisdiction);
-
-    try {
-      await this.auditService.logDataExport({
-        entityType: 'Manifest',
-        entityId: manifestId,
-        details: {
-          action: 'MANIFEST_EXPORTED',
-          format,
-          jurisdiction,
-        },
-        reason: 'Compliance manifest export',
-      });
-    } catch (err) {
-      console.error('Audit log failed for MANIFEST_EXPORTED', err);
-    }
-
-    res.setHeader('Content-Type', exported.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${exported.filename}"`);
-    res.send(exported.data);
-  }
-
   @Get('export/crew-compliance/:vesselId')
   @Roles({ roles: ['realm:compliance_officer', 'realm:admin'] })
   @ApiOperation({ summary: 'Export crew compliance pack for a vessel' })

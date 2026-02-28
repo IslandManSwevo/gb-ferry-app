@@ -1,6 +1,6 @@
-# Grand Bahama Ferry - Maritime Compliance Platform
+# Grand Bahama Ferry - Crew Compliance Platform
 
-Enterprise-grade SaaS platform for passenger manifest management, crew compliance tracking, and regulatory reporting.
+Enterprise-grade SaaS platform for maritime crew STCW monitoring, CBP regulatory reporting, and BMA compliance tracking.
 
 ## 🚢 Quick Start
 
@@ -67,10 +67,10 @@ gbferry-platform/
 │   │   └── src/theme/       # Ant Design theme
 │   └── api/                 # NestJS Backend
 │       └── src/modules/     # Feature modules
-│           ├── passengers/  # Passenger check-in & manifests
-│           ├── crew/        # Crew & certifications
+│           ├── crew/        # Crew & STCW certifications
 │           ├── vessels/     # Vessel registry & documents
-│           ├── compliance/  # Export adapter (CSV/PDF/XML)
+│           ├── cbp/         # US CBP Form I-418 & eNOAD
+│           ├── compliance/  # BMA Export adapter (CSV/PDF/XML)
 │           └── audit/       # Immutable audit logging
 ├── packages/
 │   ├── dto/                 # Shared TypeScript types & Zod schemas
@@ -106,19 +106,20 @@ Critical documentation prepared for the executive committee and board of directo
 
 ### MVP Features
 
-- ✅ Passenger check-in with consent capture
-- ✅ Manifest generation with manual approval workflow
 - ✅ Crew certification tracking (STCW compliance)
 - ✅ Vessel registration & safe manning (BMA R106)
+- ✅ Automated STCW expiry alerts (<30 days)
+- ✅ US CBP Form I-418 (Crew List) generation
+- ✅ eNOAD (Electronic Notice of Arrival/Departure) for Crew
 - ✅ Wet-lease document management
-- ✅ Compliance export adapter (Bahamas, Jamaica, Barbados)
+- ✅ Compliance export adapter (BMA, Jamaica, Barbados)
 - ✅ Immutable audit logging
 
 ### Security
 
 - Role-based access control (RBAC) via Keycloak
 - MFA required for admin users
-- Field-level encryption for passport numbers
+- Field-level encryption for passport and seafarer ID numbers
 - TLS 1.3 in transit, AES-256 at rest
 - GDPR & Bahamas Data Protection Act aligned
 
@@ -159,7 +160,8 @@ ENCRYPTION_KEY="generate-32-byte-hex-key"
 
 This platform is designed to support (not replace) regulatory workflows:
 
-- **IMO FAL Form 5**: Passenger/crew manifest format
+- **US CBP Form I-418**: Crew List reporting
+- **eNOAD**: Notice of Arrival/Departure compliance
 - **BMA Seafarer Documents**: Crew certification fields
 - **BMA R102-R106**: Vessel registration forms
 - **Marine Notices**: Validation rules (cert expiry, safe manning)

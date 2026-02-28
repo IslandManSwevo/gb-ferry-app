@@ -1,23 +1,21 @@
 import { validateCrewCompliance, validateSafeManningRequirement } from '@/lib/crew-validators';
-import { PrismaService, decryptField, encryptField, maskField } from '@gbferry/database';
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { PrismaService, decryptField, encryptField, maskField, Prisma, CrewMember } from '@gbferry/database';
+import { CreateCrewMember, CrewRole } from '@gbferry/dto';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
+
+// Define focused types using Prisma payloads to eliminate 'any'
+type CrewMemberWithCerts = Prisma.CrewMemberGetPayload<{
+  include: {
+    certifications: { where: { status: 'VALID' } };
+    medicalCertificate: true;
+  };
+}>;
 
 export interface CrewFilters {
   vesselId?: string;
-  role?: string;
-  certStatus?: string;
-}
-
-export interface CreateCrewDto {
-  firstName: string;
-  lastName: string;
-  identificationNumber: string;
-  passportNumber?: string;
-  nationality: string;
-  role: string;
-  vesselId: string;
-  // ISO 27001 A.8.23: PII Protection - encrypted in database
+  role?: CrewRole;
+  status?: string;
 }
 
 export interface SafeManningStatus {
@@ -30,12 +28,12 @@ export interface SafeManningStatus {
 
 @Injectable()
 export class CrewService {
+  private readonly logger = new Logger(CrewService.name);
+
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService
   ) {}
-
-  private readonly logger = new Logger(CrewService.name);
 
   private encryptValue(value?: string): string | undefined {
     if (!value) return undefined;
@@ -48,84 +46,65 @@ export class CrewService {
       const plain = decryptField(value);
       return maskField(plain);
     } catch (err: any) {
-      const message = err?.message || err?.stack || String(err);
       this.logger.warn(
-        `Failed to decrypt ciphertext${contextField ? ` for ${contextField}` : ''}: ${message}`
+        `Failed to decrypt ciphertext${contextField ? ` for ${contextField}` : ''}: ${err.message}`
       );
-      // Fallback in case legacy data is stored in plaintext
       return maskField(value);
     }
   }
 
-  async create(createDto: CreateCrewDto, userId?: string): Promise<any> {
-    // Validate crew data structure
-    if (!createDto.firstName || !createDto.lastName) {
-      throw new BadRequestException('Crew member must have first and last name');
-    }
-
-    if (!createDto.identificationNumber) {
-      throw new BadRequestException(
-        'Crew member must have identification number (Seafarer Book or STCW ID)'
-      );
-    }
-
-    if (!createDto.role) {
-      throw new BadRequestException('Crew member must have assigned role');
-    }
-
-    const passportValue =
-      createDto.passportNumber || createDto.identificationNumber || `TEMP-${Date.now()}`;
-
-    // Create crew member
+  async create(createDto: CreateCrewMember, userId: string): Promise<CrewMember> {
+    /**
+     * ISO 27001 A.8.23: PII Protection
+     * Sensitive fields (Passport, ID) are encrypted at rest.
+     */
     const crew = await this.prisma.crewMember.create({
       data: {
-        familyName: createDto.lastName,
-        givenNames: createDto.firstName,
-        dateOfBirth: new Date(), // TODO: Add to DTO
+        familyName: createDto.familyName,
+        givenNames: createDto.givenNames,
+        dateOfBirth: new Date(createDto.dateOfBirth),
         nationality: createDto.nationality,
-        gender: 'M', // TODO: Add to DTO
-        passportNumber: this.encryptValue(passportValue),
-        passportCountry: createDto.nationality,
-        passportExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // TODO: Add to DTO
-        identificationNumber: this.encryptValue(createDto.identificationNumber),
-        role: createDto.role as any, // Cast to enum
+        gender: createDto.gender as any,
+        passportNumber: this.encryptValue(createDto.passportNumber),
+        passportCountry: createDto.passportIssuingCountry,
+        passportExpiry: new Date(createDto.passportExpiryDate),
+        identificationNumber: this.encryptValue(createDto.seamanBookNumber || createDto.passportNumber),
+        role: createDto.role as any,
         vessel: createDto.vesselId ? { connect: { id: createDto.vesselId } } : undefined,
         status: 'ACTIVE',
-        createdBy: { connect: { id: userId || 'system' } },
-      } as any,
+        createdById: userId,
+      },
     });
 
-    // Log audit trail via AuditService
     await this.auditService.log({
       action: 'CREW_CREATE',
       entityId: crew.id,
       entityType: 'crew',
       userId,
       details: { role: createDto.role, vesselId: createDto.vesselId },
-      compliance: 'BMA R106 - Crew assignment recorded',
+      compliance: 'BMA R106 - Crew member created and assigned',
     });
 
     return crew;
   }
 
-  async findAll(filters: CrewFilters, userId?: string): Promise<any> {
-    const crew = await this.prisma.crewMember.findMany({
+  async findAll(filters: CrewFilters, userId?: string): Promise<{ data: any[]; total: number }> {
+    const crewMembers = await this.prisma.crewMember.findMany({
       where: {
         ...(filters.vesselId && { vesselId: filters.vesselId }),
         ...(filters.role && { role: filters.role as any }),
+        status: filters.status || 'ACTIVE',
         deletedAt: null,
-      } as any,
+      },
       include: {
         certifications: { where: { status: 'VALID' } },
+        medicalCertificate: true,
       },
-    });
+    }) as CrewMemberWithCerts[];
 
-    const masked = crew.map((member: any) => ({
+    const maskedData = crewMembers.map(member => ({
       ...member,
-      identificationNumber: this.maskCiphertext(
-        member.identificationNumber,
-        'identificationNumber'
-      ),
+      identificationNumber: this.maskCiphertext(member.identificationNumber, 'identificationNumber'),
       passportNumber: this.maskCiphertext(member.passportNumber, 'passportNumber'),
     }));
 
@@ -133,181 +112,106 @@ export class CrewService {
       action: 'CREW_LIST_READ',
       entityType: 'crew',
       userId,
-      details: { filters, resultCount: crew.length },
-      compliance: 'Crew list access logged',
+      details: { filters, resultCount: crewMembers.length },
+      compliance: 'Crew roster access logged',
     });
 
     return {
-      data: masked,
-      total: crew.length,
-      filters,
+      data: maskedData,
+      total: crewMembers.length,
     };
   }
 
-  async assignCrewToVessel(
-    crewId: string,
-    vesselId: string,
-    vesselGrossTonnage: number,
-    userId?: string
-  ): Promise<any> {
-    /**
-     * COMPLIANCE GATE: BMA R106 Safe Manning Document Validation
-     * Before assigning crew to vessel, validate that the assignment maintains
-     * required safe manning levels for the vessel's tonnage category.
-     */
+  async findOne(id: string, userId?: string): Promise<any> {
+    const crew = await this.prisma.crewMember.findUnique({
+      where: { id },
+      include: {
+        certifications: { orderBy: { expiryDate: 'asc' } },
+        medicalCertificate: true,
+      },
+    }) as CrewMemberWithCerts | null;
 
-    // Fetch current crew roster for vessel
-    const currentRoster = await this.prisma.crewMember.findMany({
-      where: { vesselId, deletedAt: null } as any,
-      include: { certifications: { where: { status: 'VALID' } } },
-    });
-
-    // Fetch crew being assigned
-    const crewMember = await this.prisma.crewMember.findUnique({
-      where: { id: crewId },
-      include: { certifications: { where: { status: 'VALID' } } },
-    });
-
-    if (!crewMember) {
-      throw new BadRequestException('Crew member not found');
+    if (!crew) {
+      throw new NotFoundException('Crew member not found');
     }
 
-    const safeManning = await this.prisma.safeManningRequirement.findFirst({
-      where: { vesselId },
-      include: { requirements: true },
-      orderBy: { issueDate: 'desc' },
-    });
-
-    const safeManningRequirements = safeManning?.requirements?.map((req: any) => ({
-      role: req.role,
-      minimumCount: req.minimumCount,
-    }));
-
-    if (
-      vesselGrossTonnage === undefined ||
-      vesselGrossTonnage === null ||
-      Number.isNaN(Number(vesselGrossTonnage))
-    ) {
-      throw new BadRequestException(
-        `Gross tonnage is required to validate safe manning for vessel ${vesselId}`
-      );
-    }
-
-    // Validate safe manning requirement using vessel-specific Safe Manning Document when available
-    const crewForValidation = [...currentRoster, crewMember].map((c) => ({
-      id: c.id,
-      name: `${c.familyName} ${c.givenNames}`,
-      role: c.role,
-    }));
-    const safeManningValidation = validateSafeManningRequirement(crewForValidation, {
-      requirements: safeManningRequirements,
-      vesselGrossTonnage,
-    });
-
-    if (!safeManningValidation.compliant) {
-      throw new BadRequestException({
-        message: 'Crew assignment violates BMA R106 Safe Manning requirements',
-        discrepancies: safeManningValidation.errors,
-      });
-    }
-
-    // Update crew assignment
-    const updated = await this.prisma.crewMember.update({
-      where: { id: crewId },
-      data: { vesselId },
-    });
-
-    // Log audit trail
     await this.auditService.log({
-      action: 'CREW_ASSIGN_VESSEL',
-      entityId: crewId,
+      action: 'CREW_READ',
+      entityId: id,
       entityType: 'crew',
       userId,
-      details: {
-        vesselId,
-        validationPassed: true,
-        rosterSize: currentRoster.length + 1,
-        safeManningDocument: safeManning?.documentNumber,
-      },
-      compliance: 'BMA R106 - Safe manning requirement validated before assignment',
+      compliance: 'ISO 27001 A.8.23 - Crew PII access logged',
     });
 
-    return updated;
+    return {
+      ...crew,
+      identificationNumber: this.maskCiphertext(crew.identificationNumber, 'identificationNumber'),
+      passportNumber: this.maskCiphertext(crew.passportNumber, 'passportNumber'),
+    };
   }
 
   async getRoster(vesselId: string, userId?: string): Promise<SafeManningStatus> {
     /**
-     * Retrieves crew roster for vessel and validates against BMA R106
-     * Safe Manning Document requirements.
-     *
-     * Returns compliance status and any discrepancies that would prevent sailing.
-     * Part of ISO 27001 A.8.28 (Input Validation) - all crew data validated before use.
+     * Optimized Roster Validation
+     * Single query with includes to avoid N+1 issues.
      */
-
     const vessel = await this.prisma.vessel.findUnique({
       where: { id: vesselId },
-    });
-
-    if (!vessel) {
-      throw new BadRequestException('Vessel not found');
-    }
-
-    if (vessel.grossTonnage === null || vessel.grossTonnage === undefined) {
-      throw new BadRequestException(
-        `Vessel ${vesselId} is missing gross tonnage; cannot validate safe manning.`
-      );
-    }
-
-    const crew = await this.prisma.crewMember.findMany({
-      where: { vesselId, deletedAt: null } as any,
       include: {
-        certifications: {
-          where: { status: 'VALID' },
+        crewMembers: {
+          where: { deletedAt: null },
+          include: {
+            certifications: { where: { status: 'VALID' } },
+            medicalCertificate: true,
+          }
         },
-      },
+        safeManningRequirements: {
+          include: { requirements: true },
+          orderBy: { issueDate: 'desc' },
+          take: 1
+        }
+      }
     });
 
-    const safeManning = await this.prisma.safeManningRequirement.findFirst({
-      where: { vesselId },
-      include: { requirements: true },
-      orderBy: { issueDate: 'desc' },
-    });
+    if (!vessel) throw new NotFoundException('Vessel not found');
 
-    // Validate safe manning requirement
-    const crewForValidation = crew.map((c: any) => ({
+    const crewMembers = vessel.crewMembers as CrewMemberWithCerts[];
+    const safeManning = vessel.safeManningRequirements[0];
+
+    // Map data for shared rules engine
+    const crewForValidation = crewMembers.map(c => ({
       id: c.id,
       name: `${c.familyName} ${c.givenNames}`,
-      role: c.role,
-      hasMedical: false, // TODO: Check medical certificate
-      certifications: (c.certifications || []).map((cert: any) => ({
+      role: c.role as any,
+      hasMedical: !!c.medicalCertificate,
+      medicalExpiryDate: c.medicalCertificate?.expiryDate.toISOString(),
+      certifications: c.certifications.map(cert => ({
         type: cert.type,
         expiryDate: cert.expiryDate.toISOString(),
       })),
     }));
-    const stcwValidation = validateCrewCompliance(crewForValidation);
 
-    const safeManningRequirements = safeManning?.requirements?.map((req: any) => ({
+    const stcwValidation = validateCrewCompliance(crewForValidation);
+    
+    const requirements = safeManning?.requirements.map(req => ({
       role: req.role,
       minimumCount: req.minimumCount,
     }));
 
     const safeManningValidation = validateSafeManningRequirement(crewForValidation, {
-      requirements: safeManningRequirements,
+      requirements,
       vesselGrossTonnage: Number(vessel.grossTonnage),
     });
 
-    // Log access
     await this.auditService.log({
       action: 'CREW_ROSTER_READ',
       entityType: 'crew',
       userId,
       details: {
         vesselId,
-        crewCount: crew.length,
         compliant: stcwValidation.compliant && safeManningValidation.compliant,
-        safeManningDocument: safeManning?.documentNumber,
       },
-      compliance: 'BMA R106 - Roster access and validation logged',
+      compliance: 'BMA R106 - Safe manning validation logged',
     });
 
     return {
@@ -316,95 +220,57 @@ export class CrewService {
       actualByRole: safeManningValidation.actualByRole,
       fulfillableByRole: safeManningValidation.fulfillableByRole,
       discrepancies: [
-        ...stcwValidation.errors.map((e) => e.message),
-        ...safeManningValidation.errors.map((e) => e.message),
+        ...stcwValidation.errors.map(e => e.message),
+        ...safeManningValidation.errors.map(e => e.message),
       ],
     };
   }
 
-  async findOne(id: string, userId?: string): Promise<any> {
-    const crew = await this.prisma.crewMember.findUnique({
-      where: { id },
-      include: {
-        certifications: {
-          orderBy: { expiryDate: 'asc' },
-        },
-      },
-    });
-
-    if (!crew) {
-      throw new BadRequestException('Crew member not found');
-    }
-
-    // Log access
-    await this.auditService.log({
-      action: 'CREW_READ',
-      entityId: id,
-      entityType: 'crew',
-      userId,
-      compliance: 'ISO 27001 A.8.23 - Crew member PII access logged',
-    });
-
-    // ISO 27001 A.8.23: PII Protection
-    // Mask sensitive fields before returning:
-    return {
-      ...crew,
-      identificationNumber: this.maskCiphertext(
-        (crew as any).identificationNumber,
-        'identificationNumber'
-      ),
-      passportNumber: this.maskCiphertext((crew as any).passportNumber, 'passportNumber'),
-    };
-  }
-
-  async update(id: string, updateDto: any, userId?: string): Promise<any> {
-    const data: any = { ...updateDto };
+  async update(id: string, updateDto: any, userId?: string): Promise<CrewMember> {
+    const data = { ...updateDto };
 
     if (updateDto.identificationNumber) {
       data.identificationNumber = this.encryptValue(updateDto.identificationNumber);
     }
-
     if (updateDto.passportNumber) {
       data.passportNumber = this.encryptValue(updateDto.passportNumber);
     }
 
-    const crew = await this.prisma.crewMember.update({
+    const updated = await this.prisma.crewMember.update({
       where: { id },
       data,
     });
 
-    // Log audit trail via AuditService
     await this.auditService.log({
       action: 'CREW_UPDATE',
       entityId: id,
       entityType: 'crew',
       userId,
       details: updateDto,
-      compliance: 'ISO 27001 A.8.15 - Crew update logged',
+      compliance: 'ISO 27001 A.8.15 - Crew record updated',
     });
 
-    return crew;
+    return updated;
   }
 
-  async remove(id: string, userId?: string): Promise<any> {
-    // Soft delete (regulatory requirement to retain crew records)
-    const crew = await this.prisma.crewMember.update({
+  async remove(id: string, userId?: string): Promise<CrewMember> {
+    // Soft delete to maintain regulatory audit history
+    const deleted = await this.prisma.crewMember.update({
       where: { id },
       data: {
         deletedAt: new Date(),
         status: 'INACTIVE',
-      } as any,
+      },
     });
 
-    // Log audit trail
     await this.auditService.log({
       action: 'CREW_DELETE',
       entityId: id,
       entityType: 'crew',
       userId,
-      compliance: 'Soft delete - record retained for regulatory audit',
+      compliance: 'Regulatory Record Retention - Soft delete performed',
     });
 
-    return crew;
+    return deleted;
   }
 }
