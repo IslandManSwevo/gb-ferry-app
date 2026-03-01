@@ -19,6 +19,7 @@ import {
   Col,
   Divider,
   Form,
+  Grid,
   Input,
   Layout,
   message,
@@ -43,6 +44,7 @@ export default function EmergencyPage() {
   const [crew, setCrew] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
+  const screens = Grid.useBreakpoint();
   const [emergencyFeed, setEmergencyFeed] = useState<any[]>([
     { id: '1', time: '10:45 AM', type: 'System', message: 'Manual emergency protocol activated' },
     {
@@ -96,8 +98,8 @@ export default function EmergencyPage() {
         <AppHeader />
         <Content
           style={{
-            margin: '24px',
-            padding: '24px',
+            margin: screens.md ? '24px' : '12px',
+            padding: screens.md ? '24px' : '16px',
             background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
             minHeight: 'calc(100vh - 64px - 48px)',
           }}
@@ -151,6 +153,7 @@ export default function EmergencyPage() {
                           color: '#dc2626',
                           border: 'none',
                           fontWeight: 600,
+                          minHeight: '48px', // Mobile Touch Target Fix
                         }}
                       >
                         Initialize Incident Response
@@ -185,6 +188,7 @@ export default function EmergencyPage() {
                           backdropFilter: 'blur(4px)',
                           border: '1px solid rgba(255,255,255,0.3)',
                           fontWeight: 600,
+                          minHeight: '48px', // Mobile Touch Target Fix
                         }}
                         onClick={() => setIsWeatherModalOpen(true)}
                       >
@@ -430,10 +434,11 @@ export default function EmergencyPage() {
         }}
         confirmLoading={submitting}
         okText="DECLARE INCIDENT"
-        okButtonProps={{ danger: true, style: { fontWeight: 700 } }}
+        okButtonProps={{ danger: true, style: { fontWeight: 700, minHeight: '44px' } }}
         cancelText="ABORT"
+        cancelButtonProps={{ style: { minHeight: '44px' } }}
         width={600}
-        style={{ top: 50 }}
+        style={{ top: screens.md ? 50 : 10, maxWidth: '100vw' }}
       >
         <Form form={form} layout="vertical" onFinish={handleIncidentReport}>
           <Form.Item
@@ -495,8 +500,14 @@ export default function EmergencyPage() {
         title="Maritime Weather Advisories"
         open={isWeatherModalOpen}
         onCancel={() => setIsWeatherModalOpen(false)}
+        style={{ maxWidth: '100vw' }}
         footer={[
-          <Button key="close" type="primary" onClick={() => setIsWeatherModalOpen(false)}>
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => setIsWeatherModalOpen(false)}
+            style={{ minHeight: '44px' }}
+          >
             Acknowledged
           </Button>,
         ]}
@@ -531,8 +542,15 @@ export default function EmergencyPage() {
         title="Establishing Secure Link"
         open={isContactModalOpen}
         onCancel={() => setIsContactModalOpen(false)}
+        style={{ maxWidth: '100vw' }}
         footer={[
-          <Button key="end" danger type="primary" onClick={() => setIsContactModalOpen(false)}>
+          <Button
+            key="end"
+            danger
+            type="primary"
+            onClick={() => setIsContactModalOpen(false)}
+            style={{ minHeight: '44px', width: screens.md ? 'auto' : '100%' }}
+          >
             END SECURE CALL
           </Button>,
         ]}

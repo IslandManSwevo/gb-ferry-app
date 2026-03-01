@@ -20,6 +20,7 @@ import {
   Button,
   Col,
   Divider,
+  Grid,
   Layout,
   Progress,
   Row,
@@ -62,6 +63,7 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const screens = Grid.useBreakpoint();
   const canManageCrew = useCanAccess('crew.manage');
   const canExportCompliance = useCanAccess('compliance.export');
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -140,8 +142,8 @@ export default function DashboardPage() {
         <AppHeader />
         <Content
           style={{
-            margin: '24px',
-            padding: '24px',
+            margin: screens.md ? '24px' : '12px',
+            padding: screens.md ? '24px' : '16px',
             background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
             minHeight: 'calc(100vh - 64px - 48px)',
           }}

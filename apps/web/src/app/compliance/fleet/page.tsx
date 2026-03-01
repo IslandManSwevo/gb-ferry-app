@@ -14,6 +14,7 @@ import {
   Card,
   Col,
   Empty,
+  Grid,
   Layout,
   Progress,
   Row,
@@ -34,6 +35,7 @@ const { Title, Text, Paragraph } = Typography;
 
 export default function FleetAnalyticsPage() {
   const [lookbackMonths, setLookbackMonths] = useState(6);
+  const screens = Grid.useBreakpoint();
 
   const { data: trends, isLoading: trendsLoading } = useSWR(
     ['fleet-analytics/trends', lookbackMonths],
@@ -104,8 +106,8 @@ export default function FleetAnalyticsPage() {
         <AppHeader />
         <Content
           style={{
-            margin: '24px',
-            padding: '24px',
+            margin: screens.md ? '24px' : '12px',
+            padding: screens.md ? '24px' : '16px',
             background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
             minHeight: 'calc(100vh - 64px - 48px)',
           }}
@@ -181,6 +183,7 @@ export default function FleetAnalyticsPage() {
                       pagination={false}
                       size="small"
                       className="maritime-table"
+                      scroll={{ x: 'max-content' }}
                     />
                   ) : (
                     <Empty />
@@ -206,6 +209,7 @@ export default function FleetAnalyticsPage() {
                     pagination={false}
                     className="maritime-table"
                     rowKey="vesselId"
+                    scroll={{ x: 'max-content' }}
                   />
                 </Card>
               </Col>
