@@ -53,7 +53,7 @@ const FEATURE_MAP: Record<string, string> = {
   '/settings': 'settings.view',
 };
 
-const menuItems: MenuItem[] = [
+export const menuItems: MenuItem[] = [
   {
     key: '/',
     icon: <DashboardOutlined />,
@@ -111,14 +111,14 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-const parentKeys = new Set(
+export const parentKeys = new Set(
   menuItems.filter(isMenuItemWithChildren).map((item) => String(item.key))
 );
 
 const matchesPath = (pathname: string, matcher: string) =>
   pathname === matcher || pathname.startsWith(`${matcher}/`);
 
-function filterMenuItemsByRole(items: MenuItem[], roles: string[]): MenuItem[] {
+export function filterMenuItemsByRole(items: MenuItem[], roles: string[]): MenuItem[] {
   const recurse = (item: MenuItem): MenuItem | null => {
     if (!item) return null;
     if (isDividerItem(item)) return item;
@@ -145,7 +145,7 @@ function filterMenuItemsByRole(items: MenuItem[], roles: string[]): MenuItem[] {
   return items.map(recurse).filter(Boolean) as MenuItem[];
 }
 
-function findOpenKeys(pathname: string): string[] {
+export function findOpenKeys(pathname: string): string[] {
   const mapping = [
     { key: 'crew-compliance', matchers: ['/crew', '/crew/safe-manning', '/crew/certifications'] },
     {
@@ -156,7 +156,10 @@ function findOpenKeys(pathname: string): string[] {
       key: 'fleet-management',
       matchers: ['/vessels', '/vessels/documents', '/compliance/exports'],
     },
-    { key: 'regulatory', matchers: ['/compliance/fleet', '/compliance/reports', '/compliance/inspections', '/audit'] },
+    {
+      key: 'regulatory',
+      matchers: ['/compliance/fleet', '/compliance/reports', '/compliance/inspections', '/audit'],
+    },
     { key: 'system-management', matchers: ['/settings'] },
   ];
 
@@ -192,6 +195,8 @@ export const AppSidebar: React.FC = () => {
       collapsible
       collapsed={collapsed}
       onCollapse={setCollapsed}
+      breakpoint="lg"
+      collapsedWidth="0"
       width={260}
       theme="dark"
       style={{

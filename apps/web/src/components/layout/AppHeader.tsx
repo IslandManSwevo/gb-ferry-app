@@ -1,9 +1,11 @@
 'use client';
 
+import { useUserRoles } from '@/lib/auth/roles';
 import {
   AlertOutlined,
   BellOutlined,
   LogoutOutlined,
+  MenuOutlined,
   QuestionCircleOutlined,
   SettingOutlined,
   UserOutlined,
@@ -13,16 +15,20 @@ import {
   Avatar,
   Badge,
   Button,
+  Drawer,
   Dropdown,
+  Grid,
   Layout,
+  Menu,
   Skeleton,
   Space,
   Typography,
   notification,
 } from 'antd';
 import { signOut, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+import { filterMenuItemsByRole, findOpenKeys, menuItems, parentKeys } from './AppSidebar';
 
 const API_PREFIX = process.env.NEXT_PUBLIC_API_PREFIX || '/api/v1';
 
@@ -32,7 +38,18 @@ const { Text } = Typography;
 export const AppHeader: React.FC = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const screens = Grid.useBreakpoint();
+
+  const roles = useUserRoles();
+  const filteredItems = React.useMemo(() => filterMenuItemsByRole(menuItems, roles), [roles]);
+  const [openKeys, setOpenKeys] = useState<string[]>(findOpenKeys(pathname));
+
+  useEffect(() => {
+    setOpenKeys(findOpenKeys(pathname));
+  }, [pathname]);
 
   useEffect(() => {
     // Implement SSE for Push Notifications regarding Compliance Alerts
@@ -70,6 +87,7 @@ export const AppHeader: React.FC = () => {
   }, []);
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
+    setDrawerVisible(false); // Close drawer if open
     switch (key) {
       case 'profile':
         router.push('/settings');
@@ -79,6 +97,12 @@ export const AppHeader: React.FC = () => {
         break;
       case 'logout':
         signOut({ callbackUrl: '/auth/signin' });
+        break;
+      default:
+        const targetKey = String(key);
+        if (!parentKeys.has(targetKey)) {
+          router.push(targetKey);
+        }
         break;
     }
   };
@@ -132,17 +156,48 @@ export const AppHeader: React.FC = () => {
       }}
     >
       {/* Left section */}
-      <div>
-        <Text type="secondary">
-          Today:{' '}
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </Text>
-      </div>
+      <Space>
+        {!screens.lg && (
+          <Button
+            type="text"
+            icon={<MenuOutlined style={{ fontSize: '18px' }} />}
+            onClick={() => setDrawerVisible(true)}
+            aria-label="Menu"
+            style={{ marginRight: 8 }}
+          />
+        )}
+        {screens.md && (
+          <Text type="secondary">
+            Today:{' '}
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </Text>
+        )}
+      </Space>
+
+      {/* Mobile Navigation Drawer */}
+      <Drawer
+        title="GB Ferry Compliance"
+        placement="left"
+        onClose={() => setDrawerVisible(false)}
+        open={drawerVisible}
+        width={280}
+        styles={{ body: { padding: 0 } }}
+      >
+        <Menu
+          mode="inline"
+          selectedKeys={[pathname]}
+          openKeys={openKeys}
+          onOpenChange={(keys) => setOpenKeys(keys as string[])}
+          items={filteredItems}
+          onClick={handleMenuClick}
+          style={{ borderRight: 0 }}
+        />
+      </Drawer>
 
       {/* Right section */}
       <Space size="middle">
