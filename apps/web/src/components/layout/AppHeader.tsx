@@ -9,10 +9,22 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { Avatar, Badge, Button, Dropdown, Layout, Skeleton, Space, Typography } from 'antd';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Dropdown,
+  Layout,
+  Skeleton,
+  Space,
+  Typography,
+  notification,
+} from 'antd';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+
+const API_PREFIX = process.env.NEXT_PUBLIC_API_PREFIX || '/api/v1';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -20,6 +32,42 @@ const { Text } = Typography;
 export const AppHeader: React.FC = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    // Implement SSE for Push Notifications regarding Compliance Alerts
+    const sseUrl = `${API_PREFIX}/notifications/stream`;
+    const eventSource = new EventSource(sseUrl);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload?.type === 'EXPIRY_WARNING') {
+          notification.warning({
+            message: 'STCW Certificate Expiring',
+            description: payload.message,
+            duration: 0, // Stay open until dismissed
+            placement: 'topRight',
+          });
+          setUnreadCount((c) => c + 1);
+        } else if (payload?.type === 'MANNING_ALERT') {
+          notification.error({
+            message: 'Critical Manning Shortage',
+            description: payload.message,
+            duration: 0,
+            placement: 'topRight',
+          });
+          setUnreadCount((c) => c + 1);
+        }
+      } catch (err) {
+        console.error('Failed to parse SSE notification chunk:', err);
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     switch (key) {
@@ -110,8 +158,13 @@ export const AppHeader: React.FC = () => {
 
         <Button type="text" icon={<QuestionCircleOutlined />} aria-label="Help" />
 
-        <Badge count={3} size="small">
-          <Button type="text" icon={<BellOutlined />} aria-label="Notifications" />
+        <Badge count={unreadCount} size="small">
+          <Button
+            type="text"
+            icon={<BellOutlined />}
+            aria-label="Notifications"
+            onClick={() => setUnreadCount(0)}
+          />
         </Badge>
 
         {status === 'loading' ? (

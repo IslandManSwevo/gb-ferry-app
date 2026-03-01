@@ -53,11 +53,14 @@ We have transitioned from a "Data Management System" to a **Maritime Compliance 
 - **Live BMA/IMO Verification**: Native connection to global seafarer registries (BORIS) for real-time authenticity confirmation.
 - **eNOAD SOAP Automation**: Fully activated the electronic Notice of Arrival pipeline for US-bound manifest transmission.
 - **AI Document Parsing**: Advanced heuristic extraction for scanned crew certifications and medical records.
+- **Predictive Analytics**: Forecasting Port State Control inspection readiness based on fleet-wide compliance trends.
+- **Offline Bridge Sync**: Architecting data persistence for vessels operating in low-connectivity maritime environments.
+- **Real-Time Push Alerts**: Centralized SSE alert engine processing STCW expirations and safe manning violations instantly to the UI.
 
 ## 6. Next Horizon
 
-- **Predictive Analytics**: Forecasting Port State Control inspection readiness based on fleet-wide compliance trends.
-- **Offline Bridge Sync**: Architecting data persistence for vessels operating in low-connectivity maritime environments.
+- **Automated USCG Data Exchange**: Two-way integration for continuous Port State Control deficiency clearing.
+- **Advanced Bio-Metric Readiness**: Facial recognition tie-ins for instantaneous bridge-check boarding.
 
 ---
 

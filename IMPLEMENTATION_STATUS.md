@@ -142,3 +142,25 @@
 | 3 — Advanced AI Parsing (v2.0) | 5      | ✅     |
 | 4 — Fleet Analytics Dashboard  | 6      | ✅     |
 | **Total new tests**            | **28** | **✅** |
+
+---
+
+## Phase 5: Platform Settings & Emergency Operations [COMPLETED]
+
+### Milestone 1: Platform Settings Backend
+
+- **Status**: Implemented & Verified
+- **Features**: NestJS `SettingsModule` integrated with PostgreSQL/Prisma. Dynamic UI forms (Organization, CBP Rules, Notifications) successfully persisting configuration.
+- **Verification**: Local dev backend validation complete.
+
+### Milestone 2: Emergency Response Refinement
+
+- **Status**: Implemented & Verified
+- **Features**: Purged legacy passenger terms ("Passenger Muster Lists"); updated SOPs to strictly feature Crew Muster Stations and STCW Emergency Duties.
+- **Verification**: UI updated and deployed.
+
+### Milestone 3: Real-Time SSE Notification Engine
+
+- **Status**: Implemented & Verified
+- **Features**: Push notifications via Server-Sent Events (SSE). Background cron process evaluating STCW expiries and Manning shortages, pushing directly to the React application state.
+- **Verification**: Emitting simulated expiry and manning warning events live to the UI header.

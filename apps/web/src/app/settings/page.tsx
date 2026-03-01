@@ -429,14 +429,14 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Space direction="vertical" size={0}>
                       <Text strong style={labelStyle}>
-                        Manifest Hard-Lock
+                        Automated CBP eNOAD Submission
                       </Text>
                       <Text style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>
-                        Freeze manifest edits exactly 15 minutes before departure
+                        Automatically submit ACE eNOAD 96 hours before scheduled departure
                       </Text>
                     </Space>
                     <Form.Item
-                      name="manifestLock"
+                      name="autoCbpSubmission"
                       valuePropName="checked"
                       initialValue={true}
                       noStyle
@@ -447,10 +447,10 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Space direction="vertical" size={0}>
                       <Text strong style={labelStyle}>
-                        Remote Bridge Override
+                        Remote Shore-Side Override
                       </Text>
                       <Text style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>
-                        Allow shore-side ops to approve manifest if bridge sync fails
+                        Allow shore-side compliance officers to override bridge-sync blocks
                       </Text>
                     </Space>
                     <Form.Item

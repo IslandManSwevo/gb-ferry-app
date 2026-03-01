@@ -252,7 +252,7 @@ export default function EmergencyPage() {
                   Standard Operating Procedures (SOPs)
                 </Title>
                 <Row gutter={[16, 16]}>
-                  <Col xs={24} md={8}>
+                  <Col xs={24} md={12} lg={8}>
                     <Card
                       hoverable
                       style={{
@@ -274,7 +274,7 @@ export default function EmergencyPage() {
                       </Text>
                     </Card>
                   </Col>
-                  <Col xs={24} md={8}>
+                  <Col xs={24} md={12} lg={8}>
                     <Card
                       hoverable
                       style={{
@@ -296,7 +296,7 @@ export default function EmergencyPage() {
                       </Text>
                     </Card>
                   </Col>
-                  <Col xs={24} md={8}>
+                  <Col xs={24} md={12} lg={8}>
                     <Card
                       hoverable
                       style={{
@@ -315,6 +315,50 @@ export default function EmergencyPage() {
                         3. Mark chart plotter
                         <br />
                         4. Launch rescue tender
+                      </Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12} lg={8}>
+                    <Card
+                      hoverable
+                      style={{
+                        background: 'rgba(24, 144, 255, 0.05)',
+                        border: '1px solid rgba(24, 144, 255, 0.2)',
+                      }}
+                    >
+                      <Title level={5} style={{ color: '#1890ff', fontSize: '15px' }}>
+                        Crew Muster Stations
+                      </Title>
+                      <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13 }}>
+                        1. Sound emergency alarm
+                        <br />
+                        2. All crew to assigned stations
+                        <br />
+                        3. Section leaders report headcounts
+                        <br />
+                        4. Cross-check against live roster
+                      </Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12} lg={8}>
+                    <Card
+                      hoverable
+                      style={{
+                        background: 'rgba(24, 144, 255, 0.05)',
+                        border: '1px solid rgba(24, 144, 255, 0.2)',
+                      }}
+                    >
+                      <Title level={5} style={{ color: '#1890ff', fontSize: '15px' }}>
+                        STCW Emergency Duties
+                      </Title>
+                      <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13 }}>
+                        1. Access digital muster list
+                        <br />
+                        2. Verify STCW qualifications for specialized roles (Fire/Medical)
+                        <br />
+                        3. Assign alternate if primary incapacitated
+                        <br />
+                        4. Deploy survival crafts
                       </Text>
                     </Card>
                   </Col>
