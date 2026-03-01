@@ -1,53 +1,41 @@
-import { CertificationType } from '@gbferry/database';
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CertificationsService } from './certifications.service';
+import { CrewService } from './crew.service';
 
-@ApiTags('crew')
+@ApiTags('crew-certifications')
 @ApiBearerAuth()
-@Controller('certifications')
+@Controller('crew/certifications')
 export class CertificationsController {
-  constructor(private readonly certificationsService: CertificationsService) {}
-
-  @Post()
-  @ApiOperation({ summary: 'Add a certification to a crew member' })
-  @ApiResponse({ status: 201, description: 'Certification added' })
-  async create(@Body() createDto: any): Promise<any> {
-    return this.certificationsService.create(createDto);
-  }
+  constructor(private readonly crewService: CrewService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List certifications with expiry filters' })
+  @ApiOperation({ summary: 'List certifications across crew members' })
   @ApiQuery({ name: 'crewId', required: false })
-  @ApiQuery({ name: 'type', required: false })
-  @ApiQuery({ name: 'expiringWithinDays', required: false })
   @ApiResponse({ status: 200, description: 'List of certifications' })
-  async findAll(
-    @Query('crewId') crewId?: string,
-    @Query('type') type?: CertificationType,
-    @Query('expiringWithinDays') expiringWithinDays?: number
-  ): Promise<any> {
-    return this.certificationsService.findAll({ crewId, type, expiringWithinDays });
-  }
+  async findAll(@Query('crewId') crewId?: string): Promise<any[]> {
+    // We can reuse the CrewService findAll and extract certifications to match the frontend shape
+    const { data: crewMembers } = await this.crewService.findAll({} as any, 'system');
 
-  @Get('expiring')
-  @ApiOperation({ summary: 'Get certifications expiring within 30 days' })
-  @ApiResponse({ status: 200, description: 'List of expiring certifications' })
-  async getExpiring(): Promise<any> {
-    return this.certificationsService.getExpiring();
-  }
+    const allCerts: any[] = [];
+    crewMembers.forEach((crew) => {
+      if (crewId && crew.id !== crewId) return;
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get certification details' })
-  @ApiResponse({ status: 200, description: 'Certification details' })
-  async findOne(@Param('id') id: string): Promise<any> {
-    return this.certificationsService.findOne(id);
-  }
+      if (crew.certifications && Array.isArray(crew.certifications)) {
+        crew.certifications.forEach((cert: any) => {
+          allCerts.push({
+            id: cert.id,
+            crewName: `${crew.familyName} ${crew.givenNames}`,
+            type: cert.type,
+            certificateNumber: cert.certificateNumber,
+            issuingAuthority: cert.issuingAuthority,
+            issueDate: cert.issueDate,
+            expiryDate: cert.expiryDate,
+            status: cert.status,
+          });
+        });
+      }
+    });
 
-  @Put(':id')
-  @ApiOperation({ summary: 'Update certification (e.g., renewal)' })
-  @ApiResponse({ status: 200, description: 'Certification updated' })
-  async update(@Param('id') id: string, @Body() updateDto: any): Promise<any> {
-    return this.certificationsService.update(id, updateDto);
+    return allCerts;
   }
 }

@@ -228,12 +228,16 @@ export const api = {
       fetchWithAuth<any[]>('/cbp/submissions', { params }),
   },
 
-  // Fleet Analytics
   fleetAnalytics: {
     trends: (months?: number) =>
       fetchWithAuth<any>('/fleet-analytics/trends', { params: { months } }),
     vesselScores: () => fetchWithAuth<any[]>('/fleet-analytics/vessel-scores'),
     forecast: () => fetchWithAuth<any>('/fleet-analytics/forecast'),
+  },
+
+  // Users Management
+  users: {
+    list: () => fetchWithAuth<any[]>('/users'),
   },
 };
 

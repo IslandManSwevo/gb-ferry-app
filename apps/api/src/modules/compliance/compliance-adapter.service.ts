@@ -1,6 +1,6 @@
-import { validateCrewCompliance, validateSafeManningRequirement } from '@/lib/crew-validators';
 import { PrismaService } from '@gbferry/database';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { validateCrewCompliance, validateSafeManningRequirement } from '../../lib/crew-validators';
 import { AuditService } from '../audit/audit.service';
 
 /**

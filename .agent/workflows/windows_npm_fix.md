@@ -2,6 +2,8 @@
 description: fix Windows npm global path missing from environment variables
 ---
 
+# Fix Windows npm global path
+
 1. Check the npm global prefix to find where global packages are installed.
    // turbo
 2. run_command: `npm config get prefix`

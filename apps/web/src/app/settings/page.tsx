@@ -3,6 +3,7 @@
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { api } from '@/lib/api';
 import { canAccess, ROLES } from '@/lib/auth/access';
 import { useUserRoles } from '@/lib/auth/roles';
 import {
@@ -81,44 +82,8 @@ const settingsMenuDefs = [
   { key: 'profile', icon: <UserOutlined />, label: 'My Profile', feature: 'settings.profile' },
 ];
 
-const mockUsers = [
-  {
-    id: '1',
-    name: 'Capt. James Wilson',
-    email: 'j.wilson@gbferry.com',
-    role: 'admin',
-    status: 'active',
-    department: 'Fleet Ops',
-    lastLogin: '10m ago',
-  },
-  {
-    id: '2',
-    name: 'Sarah Johnson',
-    email: 's.johnson@gbferry.com',
-    role: 'compliance_officer',
-    status: 'active',
-    department: 'Compliance',
-    lastLogin: '2h ago',
-  },
-  {
-    id: '3',
-    name: 'Robert Chen',
-    email: 'r.chen@gbferry.com',
-    role: 'captain',
-    status: 'active',
-    department: 'Bridge',
-    lastLogin: '5m ago',
-  },
-  {
-    id: '4',
-    name: 'Anita Desai',
-    email: 'a.desai@gbferry.com',
-    role: 'operations',
-    status: 'away',
-    department: 'Port Authority',
-    lastLogin: '1d ago',
-  },
-];
+// Role permissions are kept hardcoded as BMA configuration mapping
+// (this is not currently a table in the database).
 
 const rolePermissions = [
   {
@@ -173,9 +138,29 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   useEffect(() => {
     fetchSettingsOptions().then(setOptions);
+
+    // Fetch users for the identity management section
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
+      try {
+        const res = await api.users.list();
+        if (res.data) {
+          setUsers(res.data);
+        } else {
+          message.error(res.error || 'Failed to sync live users list');
+        }
+      } catch (err) {
+        message.error('Failed to load users');
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+    fetchUsers();
   }, []);
 
   const visibleMenuItems = useMemo(() => {
@@ -220,7 +205,7 @@ export default function SettingsPage() {
                   Identity & Access Management
                 </Title>
                 <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
-                  Managing access for {mockUsers.length} staff members
+                  Managing access for {users.length} staff members
                 </Text>
               </div>
               <Button
@@ -270,9 +255,12 @@ export default function SettingsPage() {
             </Row>
 
             <Table
-              dataSource={mockUsers}
+              dataSource={users}
+              loading={loadingUsers}
+              rowKey="id"
               pagination={false}
               className="maritime-table"
+              scroll={{ x: 'max-content' }}
               columns={[
                 {
                   title: 'User Identity',
@@ -282,7 +270,7 @@ export default function SettingsPage() {
                       <Avatar src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${r.id}`} />
                       <Space direction="vertical" size={0}>
                         <Text strong style={{ color: '#fff' }}>
-                          {r.name}
+                          {r.firstName ? `${r.firstName} ${r.lastName}` : r.email.split('@')[0]}
                         </Text>
                         <Text style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>
                           {r.email}
@@ -299,17 +287,23 @@ export default function SettingsPage() {
                 },
                 {
                   title: 'Last Activity',
-                  dataIndex: 'lastLogin',
-                  key: 'lastLogin',
-                  render: (t) => <Text style={{ color: 'rgba(255,255,255,0.6)' }}>{t}</Text>,
+                  dataIndex: 'lastLoginAt',
+                  key: 'lastLoginAt',
+                  render: (t) => (
+                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>
+                      {t ? new Date(t).toLocaleDateString() : 'Never'}
+                    </Text>
+                  ),
                 },
                 {
                   title: 'Status',
-                  key: 'status',
+                  key: 'isActive',
                   render: (_, r) => (
                     <Badge
-                      status={r.status === 'active' ? 'success' : 'warning'}
-                      text={<Text style={{ color: '#fff' }}>{r.status}</Text>}
+                      status={r.isActive ? 'success' : 'warning'}
+                      text={
+                        <Text style={{ color: '#fff' }}>{r.isActive ? 'Active' : 'Inactive'}</Text>
+                      }
                     />
                   ),
                 },

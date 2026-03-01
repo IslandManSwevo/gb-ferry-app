@@ -28,6 +28,7 @@ import {
   Statistic,
   Tag,
   Typography,
+  message,
 } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -97,29 +98,7 @@ export default function DashboardPage() {
     const response = await api.compliance.dashboard();
 
     if (response.error) {
-      // Fallback/Mock data if API fails
-      setDashboard({
-        summary: {
-          totalVessels: 4,
-          compliantVessels: 3,
-          expiringCertifications: 5,
-          totalCrew: 112,
-          upcomingInspections: 1,
-          nonCompliantAlertsCount: 2,
-        },
-        metrics: {
-          safeManningCompliance: 96,
-          certificateValidityRate: 95,
-          auditTrailCoverage: 100,
-        },
-        alerts: [
-          {
-            id: '1',
-            severity: 'warning',
-            message: '3 STCW certificates expiring in < 30 days on Spirit of Freeport',
-          },
-        ],
-      });
+      message.error(response.error || 'Failed to sync live dashboard data: API Error');
     } else if (response.data) {
       setDashboard(response.data);
     }

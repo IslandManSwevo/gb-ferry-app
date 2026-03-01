@@ -1,0 +1,93 @@
+﻿[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDatabaseModule dependencies initialized[39m[38;5;3m +24ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mHttpModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBridgeSyncModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mFleetAnalyticsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuditModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mEventEmitterModule dependencies initialized[39m[38;5;3m +0ms[39m
+node.exe : [31m[Nest] 17704  - [39m03/01/2026, 4:48:52 PM 
+[31m  ERROR[39m [38;5;3m[ExceptionHandler] [39m[31mNest 
+can't resolve dependencies of the LoggingAuthGuard 
+(KEYCLOAK_INSTANCE, KEYCLOAK_CONNECT_OPTIONS, KEYCLOAK_LOGGER, 
+KEYCLOAK_MULTITENANT_SERVICE, Reflector, ?). Please make sure 
+that the argument AuditService at index [5] is available in the 
+SettingsModule context.
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([31m[Nest] 177...M 
+   odule context.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Potential solutions:
+- Is SettingsModule a valid NestJS module?
+- If AuditService is a provider, is it part of the current 
+SettingsModule?
+- If AuditService is exported from a separate @Module, is that 
+module imported within SettingsModule?
+  @Module({
+    imports: [ /* the Module containing AuditService */ ]
+  })
+[39m
+Error: Nest can't resolve dependencies of the LoggingAuthGuard 
+(KEYCLOAK_INSTANCE, KEYCLOAK_CONNECT_OPTIONS, KEYCLOAK_LOGGER, 
+KEYCLOAK_MULTITENANT_SERVICE, Reflector, ?). Please make sure 
+that the argument AuditService at index [5] is available in the 
+SettingsModule context.
+
+Potential solutions:
+- Is SettingsModule a valid NestJS module?
+- If AuditService is a provider, is it part of the current 
+SettingsModule?
+- If AuditService is exported from a separate @Module, is that 
+module imported within SettingsModule?
+  @Module({
+    imports: [ /* the Module containing AuditService */ ]
+  })
+
+    at Injector.lookupComponentInParentModules 
+(C:\Users\green\GB Ferry App\node_modules\.pnpm\@nestjs+core@10.4
+.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_refle
+ct-metadata@0.2.2_rxjs@7.8.2\node_modules\@nestjs\core\injector\i
+njector.js:262:19)
+    at async Injector.resolveComponentInstance 
+(C:\Users\green\GB Ferry App\node_modules\.pnpm\@nestjs+core@10.4
+.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_refle
+ct-metadata@0.2.2_rxjs@7.8.2\node_modules\@nestjs\core\injector\i
+njector.js:215:33)
+    at async resolveParam (C:\Users\green\GB Ferry App\node_modul
+es\.pnpm\@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+plat
+form-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2\node_modul
+es\@nestjs\core\injector\injector.js:129:38)
+    at async Promise.all (index 5)
+    at async Injector.resolveConstructorParams 
+(C:\Users\green\GB Ferry App\node_modules\.pnpm\@nestjs+core@10.4
+.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_refle
+ct-metadata@0.2.2_rxjs@7.8.2\node_modules\@nestjs\core\injector\i
+njector.js:144:27)
+    at async Injector.loadInstance (C:\Users\green\GB Ferry App\n
+ode_modules\.pnpm\@nestjs+core@10.4.20_@nestjs+common@10.4.20_@ne
+stjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2\n
+ode_modules\@nestjs\core\injector\injector.js:70:13)
+    at async Injector.loadInjectable (C:\Users\green\GB Ferry App
+\node_modules\.pnpm\@nestjs+core@10.4.20_@nestjs+common@10.4.20_@
+nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2
+\node_modules\@nestjs\core\injector\injector.js:94:9)
+    at async C:\Users\green\GB Ferry App\node_modules\.pnpm\@nest
+js+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@1
+0.4.20_reflect-metadata@0.2.2_rxjs@7.8.2\node_modules\@nestjs\cor
+e\injector\instance-loader.js:80:13
+    at async Promise.all (index 0)
+    at async InstanceLoader.createInstancesOfInjectables 
+(C:\Users\green\GB Ferry App\node_modules\.pnpm\@nestjs+core@10.4
+.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_refle
+ct-metadata@0.2.2_rxjs@7.8.2\node_modules\@nestjs\core\injector\i
+nstance-loader.js:79:9)

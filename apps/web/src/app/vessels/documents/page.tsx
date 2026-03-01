@@ -3,7 +3,7 @@
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { api } from '@/lib/api';
-import { FileTextOutlined, UploadOutlined, SafetyCertificateOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { FileTextOutlined, SafetyCertificateOutlined, UploadOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
@@ -26,7 +26,7 @@ import dayjs from 'dayjs';
 import { useEffect, useMemo, useState } from 'react';
 
 const { Content } = Layout;
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { Dragger } = Upload;
 
 interface DocumentRow {
@@ -64,6 +64,30 @@ export default function VesselDocumentsPage() {
   const [fileList, setFileList] = useState<any[]>([]);
   const [form] = Form.useForm();
 
+  // Watch documentType to auto-fill and lock the name
+  const selectedType = Form.useWatch('documentType', form);
+
+  const typeMap: Record<string, string> = {
+    R102: 'Registry Certificate (R102)',
+    R106: 'Safe Manning (R106)',
+    SHIPS_LIBRARY: "Ship's Library",
+    RADIO_LICENSE: 'Radio License',
+    CLASS_CERT: 'Classification Certificate',
+  };
+
+  const handleValuesChange = (changedValues: any) => {
+    if (changedValues.documentType) {
+      const newName = typeMap[changedValues.documentType];
+      if (newName) {
+        form.setFieldsValue({ name: newName });
+      } else if (changedValues.documentType === 'OTHER') {
+        form.setFieldsValue({ name: '' });
+      }
+    }
+  };
+
+  const isNameLocked = !!selectedType && selectedType !== 'OTHER';
+
   const columns = useMemo(
     () => [
       {
@@ -72,10 +96,10 @@ export default function VesselDocumentsPage() {
         key: 'title',
         render: (text: string, record: DocumentRow) => (
           <Space direction="vertical" size={0}>
-            <Text strong style={{ color: '#fff' }}>{text}</Text>
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-              {record.fileName}
+            <Text strong style={{ color: '#fff' }}>
+              {text}
             </Text>
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{record.fileName}</Text>
           </Space>
         ),
       },
@@ -203,11 +227,16 @@ export default function VesselDocumentsPage() {
                 Vessel Document Registry
               </Title>
               <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                Immutable storage for BMA R102-R106 certificates and ship's library.
+                Immutable storage for BMA R102-R106 certificates and ship&apos;s library.
               </Text>
             </Col>
             <Col>
-              <Button type="primary" icon={<UploadOutlined />} size="large" onClick={() => setUploadOpen(true)}>
+              <Button
+                type="primary"
+                icon={<UploadOutlined />}
+                size="large"
+                onClick={() => setUploadOpen(true)}
+              >
                 Upload Document
               </Button>
             </Col>
@@ -239,7 +268,9 @@ export default function VesselDocumentsPage() {
                   { label: 'Pending Review', value: 'PENDING_REVIEW' },
                 ]}
               />
-              <Tag color="blue" icon={<SafetyCertificateOutlined />}>AI EXTRACTION ENABLED</Tag>
+              <Tag color="blue" icon={<SafetyCertificateOutlined />}>
+                AI EXTRACTION ENABLED
+              </Tag>
             </Space>
 
             <Table
@@ -247,12 +278,12 @@ export default function VesselDocumentsPage() {
               columns={columns}
               dataSource={data}
               loading={loading}
-              pagination={{ 
-                current: page, 
-                pageSize, 
-                total, 
+              pagination={{
+                current: page,
+                pageSize,
+                total,
                 showSizeChanger: true,
-                showTotal: (total) => `Total ${total} documents` 
+                showTotal: (total) => `Total ${total} documents`,
               }}
               onChange={handleTableChange}
               className="maritime-table"
@@ -275,14 +306,15 @@ export default function VesselDocumentsPage() {
             .maritime-table .ant-table-tbody > tr:hover > td {
               background: rgba(255, 255, 255, 0.02) !important;
             }
-            .ant-input-search .ant-input, .ant-select-selector {
+            .ant-input-search .ant-input,
+            .ant-select-selector {
               background: rgba(255, 255, 255, 0.05) !important;
               border: 1px solid rgba(255, 255, 255, 0.1) !important;
               color: #fff !important;
             }
             .ant-input {
-               background: transparent !important;
-               color: #fff !important;
+              background: transparent !important;
+              color: #fff !important;
             }
           `}</style>
         </Content>
@@ -301,15 +333,24 @@ export default function VesselDocumentsPage() {
           mask: { backdropFilter: 'blur(4px)' },
         }}
       >
-        <Form layout="vertical" form={form} initialValues={{ documentType: undefined }}>
+        <Form 
+          layout="vertical" 
+          form={form} 
+          initialValues={{ documentType: undefined }}
+          onValuesChange={handleValuesChange}
+        >
           <Form.Item
             name="name"
             label={<Text style={{ color: '#e6f7ff' }}>Document Name</Text>}
             rules={[{ required: true, message: 'Enter a document name' }]}
           >
-            <Input placeholder="e.g., Safe Manning Certificate" />
+            <Input 
+              placeholder="e.g., Safe Manning Certificate" 
+              readOnly={isNameLocked}
+              style={isNameLocked ? { background: 'rgba(255,255,255,0.05)', cursor: 'not-allowed' } : {}}
+            />
           </Form.Item>
-          
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -321,31 +362,47 @@ export default function VesselDocumentsPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-               <Form.Item name="expiryDate" label={<Text style={{ color: '#e6f7ff' }}>Expiry Date</Text>}>
+              <Form.Item
+                name="expiryDate"
+                label={<Text style={{ color: '#e6f7ff' }}>Expiry Date</Text>}
+              >
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item name="documentType" label={<Text style={{ color: '#e6f7ff' }}>Document Type</Text>}>
-            <Select 
-               placeholder="Select category"
-               options={[
-                  { label: 'Registry Certificate (R102)', value: 'R102' },
-                  { label: 'Safe Manning (R106)', value: 'R106' },
-                  { label: 'Radio License', value: 'RADIO_LICENSE' },
-                  { label: 'Classification Certificate', value: 'CLASS_CERT' },
-                  { label: 'Other Regulatory', value: 'OTHER' },
-               ]}
+          <Form.Item
+            name="documentType"
+            label={<Text style={{ color: '#e6f7ff' }}>Document Type</Text>}
+          >
+            <Select
+              placeholder="Select category"
+              options={[
+                { label: 'Registry Certificate (R102)', value: 'R102' },
+                { label: 'Safe Manning (R106)', value: 'R106' },
+                { label: "Ship's Library", value: 'SHIPS_LIBRARY' },
+                { label: 'Radio License', value: 'RADIO_LICENSE' },
+                { label: 'Classification Certificate', value: 'CLASS_CERT' },
+                { label: 'Other Regulatory', value: 'OTHER' },
+              ]}
             />
           </Form.Item>
 
           <Form.Item label={<Text style={{ color: '#e6f7ff' }}>Document File (PDF)</Text>} required>
-            <Dragger {...uploadProps} accept="application/pdf" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.2)' }}>
+            <Dragger
+              {...uploadProps}
+              accept="application/pdf"
+              style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px dashed rgba(255,255,255,0.2)',
+              }}
+            >
               <p className="ant-upload-drag-icon">
                 <UploadOutlined style={{ color: '#1890ff' }} />
               </p>
-              <p className="ant-upload-text" style={{ color: '#fff' }}>Drop PDF or Click to Browse</p>
+              <p className="ant-upload-text" style={{ color: '#fff' }}>
+                Drop PDF or Click to Browse
+              </p>
               <p className="ant-upload-hint" style={{ color: 'rgba(255,255,255,0.45)' }}>
                 AI will automatically extract dates and document numbers for verification.
               </p>

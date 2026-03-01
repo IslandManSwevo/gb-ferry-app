@@ -1,7 +1,7 @@
-import { validateCrewCompliance } from '@/lib/crew-validators';
+import { Inspection, Prisma, PrismaService } from '@gbferry/database';
 import { RecordInspection } from '@gbferry/dto';
-import { Inspection, PrismaService, Prisma } from '@gbferry/database';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { validateCrewCompliance } from '../../lib/crew-validators';
 import { AuditService } from '../audit/audit.service';
 
 // Define focused types using Prisma payloads to eliminate 'any'
@@ -79,18 +79,18 @@ export class ComplianceService {
      * Optimized Dashboard Fetch
      * Fixes N+1 issue by using recursive includes for vessel -> crew -> certifications
      */
-    const vessels = await this.prisma.vessel.findMany({
+    const vessels = (await this.prisma.vessel.findMany({
       include: {
         crewMembers: {
           include: {
             certifications: {
-              where: { status: 'VALID' }
+              where: { status: 'VALID' },
             },
-            medicalCertificate: true
-          }
-        }
-      }
-    }) as VesselWithCrewAndCerts[];
+            medicalCertificate: true,
+          },
+        },
+      },
+    })) as VesselWithCrewAndCerts[];
 
     // Calculate safe manning compliance and validity rates
     let compliantVesselsCount = 0;
@@ -100,15 +100,15 @@ export class ComplianceService {
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     let expiringCount = 0;
 
-    vessels.forEach(vessel => {
-      const crewForValidation = vessel.crewMembers.map(crew => {
+    vessels.forEach((vessel) => {
+      const crewForValidation = vessel.crewMembers.map((crew) => {
         // Collect cert stats
         totalCerts += crew.certifications.length;
-        totalValidCerts += crew.certifications.filter(c => c.expiryDate > now).length;
-        
+        totalValidCerts += crew.certifications.filter((c) => c.expiryDate > now).length;
+
         // Count expiring certs
-        expiringCount += crew.certifications.filter(c => 
-          c.expiryDate <= thirtyDaysFromNow && c.expiryDate > now
+        expiringCount += crew.certifications.filter(
+          (c) => c.expiryDate <= thirtyDaysFromNow && c.expiryDate > now
         ).length;
 
         return {
@@ -117,7 +117,7 @@ export class ComplianceService {
           role: crew.role,
           hasMedical: !!crew.medicalCertificate,
           medicalExpiryDate: crew.medicalCertificate?.expiryDate.toISOString(),
-          certifications: crew.certifications.map(cert => ({
+          certifications: crew.certifications.map((cert) => ({
             type: cert.type,
             expiryDate: cert.expiryDate.toISOString(),
           })),
@@ -153,9 +153,7 @@ export class ComplianceService {
       compliance: 'Dashboard access logged for audit trail',
     });
 
-    const certificateValidityRate = totalCerts > 0 
-      ? (totalValidCerts / totalCerts) * 100 
-      : 100;
+    const certificateValidityRate = totalCerts > 0 ? (totalValidCerts / totalCerts) * 100 : 100;
 
     return {
       summary: {
@@ -166,7 +164,7 @@ export class ComplianceService {
         upcomingInspections: 0,
         nonCompliantAlertsCount: alerts.filter((a) => a.severity === 'critical').length,
       },
-      recentActivity: recentActivity.map(log => ({
+      recentActivity: recentActivity.map((log) => ({
         timestamp: log.timestamp,
         action: log.action,
         entityType: log.entityType,
@@ -176,7 +174,8 @@ export class ComplianceService {
       })),
       alerts,
       metrics: {
-        safeManningCompliance: vessels.length > 0 ? (compliantVesselsCount / vessels.length) * 100 : 100,
+        safeManningCompliance:
+          vessels.length > 0 ? (compliantVesselsCount / vessels.length) * 100 : 100,
         certificateValidityRate,
         auditTrailCoverage: 100,
       },
@@ -206,7 +205,7 @@ export class ComplianceService {
     }
 
     // Default: Fetch audit logs for reporting
-    const reports = await this.prisma.auditLog.findMany({
+    const reports = (await this.prisma.auditLog.findMany({
       where: {
         ...(filters.dateFrom && {
           timestamp: { gte: new Date(filters.dateFrom) },
@@ -217,7 +216,7 @@ export class ComplianceService {
       },
       include: { user: true },
       orderBy: { timestamp: 'desc' },
-    }) as AuditLogWithUser[];
+    })) as AuditLogWithUser[];
 
     // Log report generation
     await this.auditService.log({
@@ -229,9 +228,9 @@ export class ComplianceService {
     });
 
     return {
-      data: reports.map(log => ({
+      data: reports.map((log) => ({
         ...log,
-        metadata: (log.metadata as Record<string, any>) || {}
+        metadata: (log.metadata as Record<string, any>) || {},
       })),
       total: reports.length,
       filters,
@@ -244,7 +243,7 @@ export class ComplianceService {
   }
 
   private async getPscDeficiencyTrends(filters: ReportFilters): Promise<any> {
-    const inspections = await this.prisma.inspection.findMany({
+    const inspections = (await this.prisma.inspection.findMany({
       where: {
         type: 'PORT_STATE_CONTROL',
         completedDate: {
@@ -253,13 +252,13 @@ export class ComplianceService {
         },
       },
       include: { deficiencies: true },
-    }) as InspectionWithDeficiencies[];
+    })) as InspectionWithDeficiencies[];
 
     const deficiencyCounts: Record<string, number> = {};
     const severityCounts: Record<string, number> = { major: 0, minor: 0, observation: 0 };
 
-    inspections.forEach(insp => {
-      insp.deficiencies.forEach(def => {
+    inspections.forEach((insp) => {
+      insp.deficiencies.forEach((def) => {
         deficiencyCounts[def.code] = (deficiencyCounts[def.code] || 0) + 1;
         severityCounts[def.severity] = (severityCounts[def.severity] || 0) + 1;
       });
@@ -270,41 +269,41 @@ export class ComplianceService {
       period: { from: filters.dateFrom, to: filters.dateTo },
       summary: {
         totalInspections: inspections.length,
-        inspectionsWithDeficiencies: inspections.filter(i => i.deficiencies.length > 0).length,
+        inspectionsWithDeficiencies: inspections.filter((i) => i.deficiencies.length > 0).length,
         totalDeficiencies: Object.values(deficiencyCounts).reduce((a, b) => a + b, 0),
       },
       trends: {
         byCode: deficiencyCounts,
         bySeverity: severityCounts,
       },
-      compliance: 'BMA / PSC Historical Analysis'
+      compliance: 'BMA / PSC Historical Analysis',
     };
   }
 
   private async getFleetComplianceSnapshot(filters: ReportFilters): Promise<any> {
     const snapshotDate = filters.dateTo ? new Date(filters.dateTo) : new Date();
-    
-    const vessels = await this.prisma.vessel.findMany({
+
+    const vessels = (await this.prisma.vessel.findMany({
       include: {
         crewMembers: {
           include: {
             certifications: {
-              where: { status: 'VALID', expiryDate: { gt: snapshotDate } }
+              where: { status: 'VALID', expiryDate: { gt: snapshotDate } },
             },
-            medicalCertificate: true
-          }
-        }
-      }
-    }) as VesselWithCrewAndCerts[];
+            medicalCertificate: true,
+          },
+        },
+      },
+    })) as VesselWithCrewAndCerts[];
 
-    const vesselCompliance = vessels.map(vessel => {
-      const crewForValidation = vessel.crewMembers.map(crew => ({
+    const vesselCompliance = vessels.map((vessel) => {
+      const crewForValidation = vessel.crewMembers.map((crew) => ({
         id: crew.id,
         name: `${crew.familyName} ${crew.givenNames}`,
         role: crew.role,
         hasMedical: !!crew.medicalCertificate,
         medicalExpiryDate: crew.medicalCertificate?.expiryDate.toISOString(),
-        certifications: crew.certifications.map(cert => ({
+        certifications: crew.certifications.map((cert) => ({
           type: cert.type,
           expiryDate: cert.expiryDate.toISOString(),
         })),
@@ -315,8 +314,8 @@ export class ComplianceService {
         vesselName: vessel.name,
         vesselImo: vessel.imoNumber,
         isCompliant: validation.compliant,
-        deficiencies: validation.errors.map(e => e.message),
-        crewCount: vessel.crewMembers.length
+        deficiencies: validation.errors.map((e) => e.message),
+        crewCount: vessel.crewMembers.length,
       };
     });
 
@@ -326,9 +325,12 @@ export class ComplianceService {
       vessels: vesselCompliance,
       summary: {
         totalVessels: vessels.length,
-        compliantVessels: vesselCompliance.filter(v => v.isCompliant).length,
-        overallComplianceRate: vessels.length > 0 ? (vesselCompliance.filter(v => v.isCompliant).length / vessels.length) * 100 : 100
-      }
+        compliantVessels: vesselCompliance.filter((v) => v.isCompliant).length,
+        overallComplianceRate:
+          vessels.length > 0
+            ? (vesselCompliance.filter((v) => v.isCompliant).length / vessels.length) * 100
+            : 100,
+      },
     };
   }
 
@@ -392,13 +394,13 @@ export class ComplianceService {
 
     for (const vessel of vessels) {
       // 1. Safe Manning Checks
-      const crewForValidation = vessel.crewMembers.map(crew => ({
+      const crewForValidation = vessel.crewMembers.map((crew) => ({
         id: crew.id,
         name: `${crew.familyName} ${crew.givenNames}`,
         role: crew.role,
         hasMedical: !!crew.medicalCertificate,
         medicalExpiryDate: crew.medicalCertificate?.expiryDate.toISOString(),
-        certifications: crew.certifications.map(cert => ({
+        certifications: crew.certifications.map((cert) => ({
           type: cert.type,
           expiryDate: cert.expiryDate.toISOString(),
         })),

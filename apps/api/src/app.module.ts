@@ -15,6 +15,7 @@ import { FleetAnalyticsModule } from './modules/fleet-analytics/fleet-analytics.
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PscModule } from './modules/psc/psc.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { UsersModule } from './modules/users/users.module';
 import { VesselsModule } from './modules/vessels/vessels.module';
 
 @Module({
@@ -46,6 +47,7 @@ import { VesselsModule } from './modules/vessels/vessels.module';
     BridgeSyncModule,
     FleetAnalyticsModule,
     SettingsModule,
+    UsersModule,
     NotificationsModule,
   ],
   controllers: [HealthController],

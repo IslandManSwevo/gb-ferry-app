@@ -1,4 +1,3 @@
-import { validateCrewCompliance, validateSafeManningRequirement } from '@/lib/crew-validators';
 import {
   CrewMember,
   decryptField,
@@ -9,6 +8,7 @@ import {
 } from '@gbferry/database';
 import { CreateCrewMember, CrewRole } from '@gbferry/dto';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { validateCrewCompliance, validateSafeManningRequirement } from '../../lib/crew-validators';
 import { AuditService } from '../audit/audit.service';
 
 // Define focused types using Prisma payloads to eliminate 'any'

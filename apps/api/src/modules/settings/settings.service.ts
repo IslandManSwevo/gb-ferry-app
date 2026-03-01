@@ -1,4 +1,5 @@
-import { PlatformSetting, PrismaService } from '@gbferry/database';
+import { PrismaService } from '@gbferry/database';
+import type { PlatformSetting } from '@gbferry/database';
 import { Injectable, Logger } from '@nestjs/common';
 
 export interface SettingUpdateDto {

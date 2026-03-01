@@ -41,7 +41,24 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 export type { Prisma } from '@prisma/client';
 export { PrismaClient };
 
-// Re-export generated types
+// Re-export enums and other values from @prisma/client
+export {
+  AuditAction,
+  CbpSubmissionStatus,
+  CertificationStatus,
+  CertificationType,
+  CrewRole,
+  CrewStatus,
+  DocumentStatus,
+  Gender,
+  InspectionResult,
+  InspectionStatus,
+  InspectionType,
+  VesselStatus,
+  VesselType,
+} from '@prisma/client';
+
+// Re-export types from @prisma/client
 export type {
   AuditLog,
   BmaComplianceRecord,
@@ -59,21 +76,4 @@ export type {
   Vessel,
   VesselDocument,
   VesselOwner,
-} from '@prisma/client';
-
-// Re-export enums
-export {
-  AuditAction,
-  CbpSubmissionStatus,
-  CertificationStatus,
-  CertificationType,
-  CrewRole,
-  CrewStatus,
-  DocumentStatus,
-  Gender,
-  InspectionResult,
-  InspectionStatus,
-  InspectionType,
-  VesselStatus,
-  VesselType,
 } from '@prisma/client';

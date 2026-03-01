@@ -21,12 +21,16 @@ import {
   Button,
   Col,
   Divider,
+  Form,
   Input,
+  InputNumber,
   Layout,
   message,
+  Modal,
   Progress,
   Row,
   Segmented,
+  Select,
   Skeleton,
   Space,
   Table,
@@ -45,6 +49,9 @@ export default function VesselsPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [searchText, setSearchText] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form] = Form.useForm();
 
   const fetchVessels = useCallback(async () => {
     setLoading(true);
@@ -60,6 +67,26 @@ export default function VesselsPage() {
   useEffect(() => {
     fetchVessels();
   }, [fetchVessels]);
+
+  const handleRegister = async () => {
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      const { error } = await api.vessels.create(values);
+      if (error) {
+        message.error(error || 'Failed to register vessel');
+      } else {
+        message.success('Vessel registered successfully');
+        setIsModalOpen(false);
+        form.resetFields();
+        fetchVessels();
+      }
+    } catch (err) {
+      // Form validation error
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const filteredVessels = vessels.filter(
     (v) =>
@@ -315,7 +342,12 @@ export default function VesselsPage() {
                   ]}
                   style={{ background: 'rgba(255,255,255,0.1)', color: '#fff' }}
                 />
-                <Button type="primary" icon={<PlusOutlined />} size="large">
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />} 
+                  size="large"
+                  onClick={() => setIsModalOpen(true)}
+                >
                   Register New Vessel
                 </Button>
               </Space>
@@ -380,6 +412,124 @@ export default function VesselsPage() {
           `}</style>
         </Content>
       </Layout>
+
+      <Modal
+        title="Register New Vessel"
+        open={isModalOpen}
+        onOk={handleRegister}
+        onCancel={() => setIsModalOpen(false)}
+        confirmLoading={submitting}
+        width={800}
+        styles={{
+          body: { background: '#0c2f4a', color: '#fff', padding: '24px' },
+          mask: { backdropFilter: 'blur(4px)' },
+        }}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{
+            flagState: 'BHS',
+            portOfRegistry: 'Nassau',
+            status: 'ACTIVE',
+            type: 'PASSENGER_FERRY',
+          }}
+        >
+          <Row gutter={24}>
+            <Col span={12}>
+              <Form.Item
+                name="name"
+                label={<Text style={{ color: '#e6f7ff' }}>Vessel Name</Text>}
+                rules={[{ required: true, message: 'Vessel name is required' }]}
+              >
+                <Input placeholder="e.g. Grand Bahama Express" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="imoNumber"
+                label={<Text style={{ color: '#e6f7ff' }}>IMO Number</Text>}
+                rules={[{ required: true, message: 'IMO number is required' }]}
+              >
+                <Input placeholder="e.g. IMO9876543" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={24}>
+            <Col span={8}>
+              <Form.Item
+                name="type"
+                label={<Text style={{ color: '#e6f7ff' }}>Vessel Type</Text>}
+                rules={[{ required: true }]}
+              >
+                <Select
+                  options={[
+                    { label: 'Passenger Ferry', value: 'PASSENGER_FERRY' },
+                    { label: 'Ro-Ro Passenger', value: 'RO_RO_PASSENGER' },
+                    { label: 'High Speed Craft', value: 'HIGH_SPEED_CRAFT' },
+                    { label: 'Cargo', value: 'CARGO' },
+                    { label: 'Tanker', value: 'TANKER' },
+                    { label: 'Other', value: 'OTHER' },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="flagState" label={<Text style={{ color: '#e6f7ff' }}>Flag State</Text>}>
+                <Input placeholder="BHS" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="portOfRegistry"
+                label={<Text style={{ color: '#e6f7ff' }}>Port of Registry</Text>}
+              >
+                <Input placeholder="Nassau" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={24}>
+            <Col span={6}>
+              <Form.Item
+                name="grossTonnage"
+                label={<Text style={{ color: '#e6f7ff' }}>Gross Tonnage</Text>}
+                rules={[{ required: true }]}
+              >
+                <InputNumber style={{ width: '100%' }} min={0} />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item
+                name="netTonnage"
+                label={<Text style={{ color: '#e6f7ff' }}>Net Tonnage</Text>}
+                rules={[{ required: true }]}
+              >
+                <InputNumber style={{ width: '100%' }} min={0} />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item
+                name="lengthOverall"
+                label={<Text style={{ color: '#e6f7ff' }}>Length (LOA)</Text>}
+                rules={[{ required: true }]}
+              >
+                <InputNumber style={{ width: '100%' }} min={0} step={0.1} />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item
+                name="yearBuilt"
+                label={<Text style={{ color: '#e6f7ff' }}>Year Built</Text>}
+                rules={[{ required: true }]}
+              >
+                <InputNumber style={{ width: '100%' }} min={1900} max={new Date().getFullYear()} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
     </Layout>
   );
 }

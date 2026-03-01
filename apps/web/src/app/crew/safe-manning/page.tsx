@@ -5,13 +5,11 @@ import { AppSidebar } from '@/components/layout/AppSidebar';
 import { api } from '@/lib/api';
 import {
   CheckCircleOutlined,
-  CloseCircleOutlined,
   InfoCircleOutlined,
   TeamOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
 import {
-  Alert,
   Card,
   Col,
   Empty,
@@ -248,10 +246,18 @@ export default function SafeManningPage() {
                     rowKey="role"
                     className="maritime-table"
                   />
-                  <div style={{ marginTop: 24, padding: 16, background: 'rgba(24,144,255,0.05)', borderRadius: 8 }}>
+                  <div
+                    style={{
+                      marginTop: 24,
+                      padding: 16,
+                      background: 'rgba(24,144,255,0.05)',
+                      borderRadius: 8,
+                    }}
+                  >
                     <Paragraph style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 12 }}>
-                      <strong>Note:</strong> Safe Manning validation includes checking for valid STCW Certificates of Competency (CoC), 
-                      Medical Fitness certificates, and specific Bahamas Maritime Authority (BMA) endorsements where required.
+                      <strong>Note:</strong> Safe Manning validation includes checking for valid
+                      STCW Certificates of Competency (CoC), Medical Fitness certificates, and
+                      specific Bahamas Maritime Authority (BMA) endorsements where required.
                     </Paragraph>
                   </div>
                 </Card>

@@ -1,6 +1,6 @@
-import { validateCrewCompliance } from '@/lib/crew-validators';
 import { Prisma, PrismaService } from '@gbferry/database';
 import { Injectable } from '@nestjs/common';
+import { validateCrewCompliance } from '../../lib/crew-validators';
 
 // ─── Prisma payload types ───────────────────────────────────────────────────
 type VesselWithCrew = Prisma.VesselGetPayload<{

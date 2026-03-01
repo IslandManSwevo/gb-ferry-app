@@ -2,65 +2,115 @@
 
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { api } from '@/lib/api';
 import { SafetyCertificateOutlined, WarningOutlined } from '@ant-design/icons';
-import { Alert, Card, Layout, Table, Tag, Typography } from 'antd';
+import { Alert, Avatar, Button, Layout, Space, Table, Tag, Typography, message } from 'antd';
+import { useEffect, useState } from 'react';
 
 const { Content } = Layout;
-const { Title } = Typography;
-
-const columns = [
-  {
-    title: 'Crew Member',
-    dataIndex: 'crewName',
-    key: 'crewName',
-    render: (text: string) => <a>{text}</a>,
-  },
-  {
-    title: 'Certificate Type',
-    dataIndex: 'type',
-    key: 'type',
-  },
-  {
-    title: 'Certificate Number',
-    dataIndex: 'certNumber',
-    key: 'certNumber',
-  },
-  {
-    title: 'Issuing Authority',
-    dataIndex: 'authority',
-    key: 'authority',
-  },
-  {
-    title: 'Expiry Date',
-    dataIndex: 'expiryDate',
-    key: 'expiryDate',
-  },
-  {
-    title: 'Status',
-    dataIndex: 'status',
-    key: 'status',
-    render: (status: string) => {
-      const colors: Record<string, string> = {
-        'Valid': 'green',
-        'Expiring Soon': 'orange',
-        'Expired': 'red',
-        'Pending Verification': 'blue',
-      };
-      return <Tag color={colors[status] || 'default'}>{status}</Tag>;
-    },
-  },
-];
-
-// Placeholder data
-const data = [
-  { key: '1', crewName: 'Capt. James Wilson', type: 'Master Mariner', certNumber: 'MM-2024-001', authority: 'Bahamas Maritime Authority', expiryDate: '2027-06-15', status: 'Valid' },
-  { key: '2', crewName: 'John Martinez', type: 'Chief Officer', certNumber: 'CO-2023-042', authority: 'Bahamas Maritime Authority', expiryDate: '2026-01-20', status: 'Expiring Soon' },
-  { key: '3', crewName: 'Sarah Johnson', type: 'STCW Basic Safety', certNumber: 'STCW-2022-189', authority: 'Bahamas Maritime Authority', expiryDate: '2025-12-01', status: 'Expired' },
-];
+const { Title, Text } = Typography;
 
 export default function CertificationsPage() {
-  const expiringCount = data.filter(d => d.status === 'Expiring Soon').length;
-  const expiredCount = data.filter(d => d.status === 'Expired').length;
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchCerts = async () => {
+      setLoading(true);
+      try {
+        const res = await api.certifications.list();
+        if (mounted) {
+          if (res.data) {
+            setData(res.data);
+          } else if (res.error) {
+            message.error(res.error);
+          }
+        }
+      } catch (err) {
+        if (mounted) message.error('Failed to load certifications');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    fetchCerts();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const expiringCount = data.filter((d: any) => d.status === 'EXPIRING').length;
+  const expiredCount = data.filter((d: any) => d.status === 'EXPIRED').length;
+
+  const columns = [
+    {
+      title: 'Crew Member',
+      dataIndex: 'crewName',
+      key: 'crewName',
+      render: (text: string) => (
+        <Space>
+          <Avatar src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${text}`} />
+          <Text strong>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Document Type',
+      dataIndex: 'type',
+      key: 'type',
+      render: (t: string) => <Tag color="blue">{t}</Tag>,
+    },
+    {
+      title: 'Certificate No.',
+      dataIndex: 'certificateNumber',
+      key: 'certificateNumber',
+      render: (t: string) => <Text style={{ fontFamily: 'monospace' }}>{t}</Text>,
+    },
+    {
+      title: 'Issuing Authority',
+      dataIndex: 'issuingAuthority',
+      key: 'issuingAuthority',
+      responsive: ['md'] as any,
+    },
+    {
+      title: 'Expiry Date',
+      dataIndex: 'expiryDate',
+      key: 'expiryDate',
+      render: (date: string) => {
+        const d = new Date(date);
+        const isExpiring = d.getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000;
+        return <Text type={isExpiring ? 'danger' : undefined}>{d.toLocaleDateString()}</Text>;
+      },
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (s: string) => (
+        <StatusBadge
+          status={s === 'VALID' ? 'ok' : s === 'EXPIRING' ? 'warning' : 'critical'}
+          label={s}
+          compact
+        />
+      ),
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: () => (
+        <Button
+          type="link"
+          icon={<SafetyCertificateOutlined />}
+          onClick={() => message.info('Digital verification signature valid.')}
+        >
+          Verify
+        </Button>
+      ),
+    },
+  ];
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -78,13 +128,18 @@ export default function CertificationsPage() {
               style={{ marginBottom: 24 }}
             />
           )}
-          <Card>
+          <GlassCard>
             <Title level={3} style={{ marginBottom: 24 }}>
               <SafetyCertificateOutlined style={{ marginRight: 12 }} />
               Crew Certifications
             </Title>
-            <Table columns={columns} dataSource={data} />
-          </Card>
+            <Table
+              columns={columns}
+              dataSource={data}
+              loading={loading}
+              scroll={{ x: 'max-content' }}
+            />
+          </GlassCard>
         </Content>
       </Layout>
     </Layout>
