@@ -22,6 +22,16 @@ describe('DocumentUploadService', () => {
     uploadFile: jest.fn().mockResolvedValue('documents/vessel/doc-key.pdf'),
   } as any;
 
+  const aiExtractionService = {
+    extractMetadata: jest.fn().mockResolvedValue({
+      certificateNumber: 'ABC123',
+      issuingAuthority: 'Bahamas',
+      extractedExpiryDate: '2030-01-01T00:00:00Z',
+      confidence: 0.95,
+      detectedType: 'SAFE_MANNING_CERTIFICATE',
+    }),
+  } as any;
+
   beforeEach(() => {
     jest.clearAllMocks();
     (pdfParse as unknown as jest.Mock).mockResolvedValue({
@@ -30,7 +40,12 @@ describe('DocumentUploadService', () => {
   });
 
   it('uploads vessel documents, extracts metadata, and persists audit log', async () => {
-    const service = new DocumentUploadService(prisma, auditService, storageService);
+    const service = new DocumentUploadService(
+      prisma,
+      auditService,
+      aiExtractionService,
+      storageService
+    );
     const file = {
       originalname: 'test.pdf',
       mimetype: 'application/pdf',
@@ -82,7 +97,12 @@ describe('DocumentUploadService', () => {
   });
 
   it('rejects non-vessel uploads during phased rollout', async () => {
-    const service = new DocumentUploadService(prisma, auditService, storageService);
+    const service = new DocumentUploadService(
+      prisma,
+      auditService,
+      aiExtractionService,
+      storageService
+    );
     const file = {
       originalname: 'test.pdf',
       mimetype: 'application/pdf',
@@ -93,9 +113,14 @@ describe('DocumentUploadService', () => {
     await expect(
       service.uploadWithMetadataExtraction(
         file,
-        { name: 'Crew Doc', entityType: 'crew', entityId: 'crew-1' } as any,
+        {
+          name: 'Passenger Doc',
+          entityType: 'passenger',
+          entityId: 'pass-1',
+          documentType: 'OTHER',
+        } as any,
         'user-1'
       )
-    ).rejects.toThrow('Only vessel documents are supported in this phase');
+    ).rejects.toThrow('Entity type passenger is not supported');
   });
 });

@@ -49,16 +49,16 @@ pnpm --filter @gbferry/database db:seed
 pnpm dev
 ```
 
-- **Frontend**: http://localhost:3000
-- **API**: http://localhost:3001
-- **API Docs**: http://localhost:3001/api/docs
-- **Keycloak**: http://localhost:8080 (admin/admin)
-- **MinIO Console**: http://localhost:9001 (gbferry/gbferry_dev_s3)
-- **Mailhog**: http://localhost:8025
+- **Frontend**: <http://localhost:3000>
+- **API**: <http://localhost:3001>
+- **API Docs**: <http://localhost:3001/api/docs>
+- **Keycloak**: <http://localhost:8080> (admin/admin)
+- **MinIO Console**: <http://localhost:9001> (gbferry/gbferry_dev_s3)
+- **Mailhog**: <http://localhost:8025>
 
 ## 📁 Project Structure
 
-```
+```text
 gbferry-platform/
 ├── apps/
 │   ├── web/                 # Next.js 14 Frontend (Ant Design)
@@ -109,8 +109,9 @@ Critical documentation prepared for the executive committee and board of directo
 - ✅ Crew certification tracking (STCW compliance)
 - ✅ Vessel registration & safe manning (BMA R106)
 - ✅ Automated STCW expiry alerts (<30 days)
-- ✅ US CBP Form I-418 (Crew List) generation
-- ✅ eNOAD (Electronic Notice of Arrival/Departure) for Crew
+- ✅ Live USCG eNOAD SOAP Gateway for Crew manifest submission
+- ✅ Live BMA BORIS Gateway for real-time certificate verification
+- ✅ Strategic Gateway Abstraction (Mock/Live switching)
 - ✅ Wet-lease document management
 - ✅ Compliance export adapter (BMA, Jamaica, Barbados)
 - ✅ Immutable audit logging
@@ -152,6 +153,12 @@ KEYCLOAK_REALM="gbferry"
 KEYCLOAK_CLIENT_ID="gbferry-web"
 NEXTAUTH_SECRET="generate-secure-secret"
 ENCRYPTION_KEY="generate-32-byte-hex-key"
+
+# Live Gateway Configuration
+ENOAD_LIVE=true
+ENOAD_URL=https://noad.nvmc.uscg.gov/noadwebservice/noadwebservice.asmx
+BMA_LIVE=true
+BMA_VERIFICATION_URL=https://www.bahamasmaritime.com/verify
 ```
 
 > **Important**: `KEYCLOAK_URL` must be reachable from both the browser and the Next.js server container.

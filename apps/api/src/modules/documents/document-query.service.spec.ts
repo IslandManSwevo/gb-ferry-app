@@ -20,16 +20,13 @@ describe('DocumentQueryService', () => {
 
     const result = await service.search({ vesselId: 'v-1', q: 'safe' }, 'user-1');
 
-    expect(prisma.$transaction).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({
-          where: expect.objectContaining({
-            vesselId: 'v-1',
-            OR: expect.any(Array),
-          }),
+    expect(prisma.vesselDocument.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          vesselId: 'v-1',
+          OR: expect.any(Array),
         }),
-        expect.any(Object),
-      ])
+      })
     );
     expect(auditService.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'READ', userId: 'user-1' })

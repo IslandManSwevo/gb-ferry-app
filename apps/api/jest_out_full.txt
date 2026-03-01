@@ -1,0 +1,130 @@
+PASS src/lib/crew-validators.spec.ts
+PASS src/modules/crew/certifications.service.spec.ts
+FAIL src/modules/documents/document-query.service.spec.ts
+  ● DocumentQueryService › returns paginated vessel documents with filters
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ArrayContaining [ObjectContaining {"where": ObjectContaining {"OR": Any<Array>, "vesselId": "v-1"}}, Any<Object>]
+    Received: [{}, {}]
+
+    Number of calls: 1
+
+    [0m [90m 21 |[39m     [36mconst[39m result [33m=[39m [36mawait[39m service[33m.[39msearch({ vesselId[33m:[39m [32m'v-1'[39m[33m,[39m q[33m:[39m [32m'safe'[39m }[33m,[39m [32m'user-1'[39m)[33m;[39m
+     [90m 22 |[39m
+    [31m[1m>[22m[39m[90m 23 |[39m     expect(prisma[33m.[39m$transaction)[33m.[39mtoHaveBeenCalledWith(
+     [90m    |[39m                                 [31m[1m^[22m[39m
+     [90m 24 |[39m       expect[33m.[39marrayContaining([
+     [90m 25 |[39m         expect[33m.[39mobjectContaining({
+     [90m 26 |[39m           where[33m:[39m expect[33m.[39mobjectContaining({[0m
+
+      at Object.<anonymous> (modules/documents/document-query.service.spec.ts:23:33)
+
+PASS src/modules/audit/audit.service.spec.ts
+  ● Console
+
+    console.error
+      Audit log creation failed: Error: DB offline
+          at Object.<anonymous> (C:\Users\green\GB Ferry App\apps\api\src\modules\audit\audit.service.spec.ts:132:48)
+          at Promise.then.completed (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\utils.js:231:10)
+          at _callCircusTest (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:105:5)
+          at _runTest (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:252:3)
+          at _runTestsForDescribeBlock (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:126:9)
+          at _runTestsForDescribeBlock (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:121:9)
+          at _runTestsForDescribeBlock (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:121:9)
+          at run (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\run.js:71:3)
+          at runAndTransformResultsToJestFormat (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+          at jestAdapter (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-circus@29.7.0\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+          at runTestInternal (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-runner@29.7.0\node_modules\jest-runner\build\runTest.js:367:16)
+          at runTest (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-runner@29.7.0\node_modules\jest-runner\build\runTest.js:444:34)
+          at Object.worker (C:\Users\green\GB Ferry App\node_modules\.pnpm\jest-runner@29.7.0\node_modules\jest-runner\build\testWorker.js:106:12)
+
+    [0m [90m 202 |[39m     } [36mcatch[39m (error) {
+     [90m 203 |[39m       [90m// Log error but don't fail the main operation[39m
+    [31m[1m>[22m[39m[90m 204 |[39m       console[33m.[39merror([32m'Audit log creation failed:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 205 |[39m       [36mreturn[39m [36mnull[39m[33m;[39m
+     [90m 206 |[39m     }
+     [90m 207 |[39m   }[0m
+
+      at AuditService.log (modules/audit/audit.service.ts:204:15)
+      at Object.<anonymous> (modules/audit/audit.service.spec.ts:134:7)
+
+FAIL src/modules/documents/document-upload.service.spec.ts
+  ● DocumentUploadService › uploads vessel documents, extracts metadata, and persists audit log
+
+    TypeError: this.aiExtractionService.extractMetadata is not a function
+
+    [0m [90m 39 |[39m     
+     [90m 40 |[39m     [90m// AI-Powered Metadata Extraction[39m
+    [31m[1m>[22m[39m[90m 41 |[39m     [36mconst[39m metadata [33m=[39m [36mawait[39m [36mthis[39m[33m.[39maiExtractionService[33m.[39mextractMetadata(file)[33m;[39m
+     [90m    |[39m                                                     [31m[1m^[22m[39m
+     [90m 42 |[39m     
+     [90m 43 |[39m     [36mconst[39m bucket [33m=[39m
+     [90m 44 |[39m       process[33m.[39menv[33m.[39m[33mNODE_ENV[39m [33m===[39m [32m'production'[39m[0m
+
+      at DocumentUploadService.uploadWithMetadataExtraction (modules/documents/document-upload.service.ts:41:53)
+      at Object.<anonymous> (modules/documents/document-upload.service.spec.ts:53:34)
+
+  ● DocumentUploadService › rejects non-vessel uploads during phased rollout
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Only vessel documents are supported in this phase"
+    Received message:   "this.aiExtractionService.extractMetadata is not a function"
+
+        [0m [90m 39 |[39m     
+         [90m 40 |[39m     [90m// AI-Powered Metadata Extraction[39m
+        [31m[1m>[22m[39m[90m 41 |[39m     [36mconst[39m metadata [33m=[39m [36mawait[39m [36mthis[39m[33m.[39maiExtractionService[33m.[39mextractMetadata(file)[33m;[39m
+         [90m    |[39m                                                     [31m[1m^[22m[39m
+         [90m 42 |[39m     
+         [90m 43 |[39m     [36mconst[39m bucket [33m=[39m
+         [90m 44 |[39m       process[33m.[39menv[33m.[39m[33mNODE_ENV[39m [33m===[39m [32m'production'[39m[0m
+
+      at DocumentUploadService.uploadWithMetadataExtraction (modules/documents/document-upload.service.ts:41:53)
+      at Object.<anonymous> (modules/documents/document-upload.service.spec.ts:94:15)
+      at Object.toThrow (../../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> (modules/documents/document-upload.service.spec.ts:99:15)
+
+[31m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [31m  ERROR[39m [38;5;3m[BMAGateway] [39m[31mBMA verification failed (1/5): Connection reset[39m
+[31m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [31m  ERROR[39m [38;5;3m[BMAGateway] [39m[31mBMA verification failed (2/5): Connection reset[39m
+[31m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [31m  ERROR[39m [38;5;3m[BMAGateway] [39m[31mBMA verification failed (3/5): Connection reset[39m
+[31m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [31m  ERROR[39m [38;5;3m[BMAGateway] [39m[31mBMA verification failed (4/5): Connection reset[39m
+[31m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [31m  ERROR[39m [38;5;3m[BMAGateway] [39m[31mBMA verification failed (5/5): Connection reset[39m
+[31m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [31m  ERROR[39m [38;5;3m[BMAGateway] [39m[31mBMA circuit breaker OPENED — will retry after 2026-03-01T00:39:17.252Z[39m
+PASS src/modules/crew/bma.gateway.spec.ts
+[31m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [31m  ERROR[39m [38;5;3m[EnoAdGateway] [39m[31meNOAD submission failed: eNOAD SOAP Fault: Server was unable to process request.[39m
+PASS src/modules/cbp/enoad.gateway.spec.ts
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mBMAGateway initialized → https://boris.local/verify[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mBMAGateway initialized → https://boris.local/verify[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mVerifying cert BMA-12345 via BMA BORIS[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mBMAGateway initialized → https://boris.local/verify[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mVerifying cert BMA-12345 via BMA BORIS[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mBMAGateway initialized → https://boris.local/verify[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mVerifying cert BMA-12345 via BMA BORIS[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mVerifying cert BMA-12345 via BMA BORIS[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mVerifying cert BMA-12345 via BMA BORIS[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mVerifying cert BMA-12345 via BMA BORIS[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mVerifying cert BMA-12345 via BMA BORIS[39m
+[32m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[BMAGateway] [39m[32mVerifying cert BMA-12345 via BMA BORIS[39m
+[33m[Nest] 32648  - [39m02/28/2026, 7:38:17 PM [33m   WARN[39m [38;5;3m[BMAGateway] [39m[33mBMA circuit breaker OPEN — returning PENDING status[39m
+[32m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[EnoAdGateway] [39m[32meNOAD Gateway initialized → https://testnoad.local (TEST)[39m
+[32m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[EnoAdGateway] [39m[32mSubmitting eNOAD via eNOAD SOAP — vessel IMO1234567, 1 crew members[39m
+[32m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[EnoAdGateway] [39m[32meNOAD submission accepted: 550e8400-e29b-41d4-a716-446655440000[39m
+[32m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[EnoAdGateway] [39m[32meNOAD Gateway initialized → https://testnoad.local (TEST)[39m
+[32m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[EnoAdGateway] [39m[32mSubmitting eNOAD via eNOAD SOAP — vessel IMO1234567, 1 crew members[39m
+[33m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [33m   WARN[39m [38;5;3m[EnoAdGateway] [39m[33meNOAD attempt 1 failed, retrying in 2000ms[39m
+[32m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[EnoAdGateway] [39m[32meNOAD submission accepted: 11111111-2222-3333-4444-555555555555[39m
+[32m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[EnoAdGateway] [39m[32meNOAD Gateway initialized → https://testnoad.local (TEST)[39m
+[32m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [32m    LOG[39m [38;5;3m[EnoAdGateway] [39m[32mSubmitting eNOAD via eNOAD SOAP — vessel IMO1234567, 1 crew members[39m
+[33m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [33m   WARN[39m [38;5;3m[EnoAdGateway] [39m[33meNOAD attempt 1 failed, retrying in 2000ms[39m
+[33m[Nest] 36644  - [39m02/28/2026, 7:38:17 PM [33m   WARN[39m [38;5;3m[EnoAdGateway] [39m[33meNOAD attempt 2 failed, retrying in 4000ms[39m
+
+Test Suites: 2 failed, 1 skipped, 5 passed, 7 of 8 total
+Tests:       3 failed, 4 skipped, 53 passed, 60 total
+Snapshots:   0 total
+Time:        6.035 s, estimated 20 s
+Ran all test suites.

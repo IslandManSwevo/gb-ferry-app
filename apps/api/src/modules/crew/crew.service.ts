@@ -1,7 +1,14 @@
 import { validateCrewCompliance, validateSafeManningRequirement } from '@/lib/crew-validators';
-import { PrismaService, decryptField, encryptField, maskField, Prisma, CrewMember } from '@gbferry/database';
+import {
+  CrewMember,
+  decryptField,
+  encryptField,
+  maskField,
+  Prisma,
+  PrismaService,
+} from '@gbferry/database';
 import { CreateCrewMember, CrewRole } from '@gbferry/dto';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 
 // Define focused types using Prisma payloads to eliminate 'any'
@@ -65,15 +72,17 @@ export class CrewService {
         dateOfBirth: new Date(createDto.dateOfBirth),
         nationality: createDto.nationality,
         gender: createDto.gender as any,
-        passportNumber: this.encryptValue(createDto.passportNumber),
+        passportNumber: this.encryptValue(createDto.passportNumber) as any,
         passportCountry: createDto.passportIssuingCountry,
         passportExpiry: new Date(createDto.passportExpiryDate),
-        identificationNumber: this.encryptValue(createDto.seamanBookNumber || createDto.passportNumber),
+        identificationNumber: this.encryptValue(
+          createDto.seamanBookNumber || createDto.passportNumber
+        ),
         role: createDto.role as any,
-        vessel: createDto.vesselId ? { connect: { id: createDto.vesselId } } : undefined,
-        status: 'ACTIVE',
+        ...(createDto.vesselId && { vessel: { connect: { id: createDto.vesselId } } }),
+        status: 'ACTIVE' as any,
         createdById: userId,
-      },
+      } as any,
     });
 
     await this.auditService.log({
@@ -89,22 +98,25 @@ export class CrewService {
   }
 
   async findAll(filters: CrewFilters, userId?: string): Promise<{ data: any[]; total: number }> {
-    const crewMembers = await this.prisma.crewMember.findMany({
+    const crewMembers = (await this.prisma.crewMember.findMany({
       where: {
         ...(filters.vesselId && { vesselId: filters.vesselId }),
         ...(filters.role && { role: filters.role as any }),
-        status: filters.status || 'ACTIVE',
+        status: (filters.status || 'ACTIVE') as any,
         deletedAt: null,
       },
       include: {
         certifications: { where: { status: 'VALID' } },
         medicalCertificate: true,
       },
-    }) as CrewMemberWithCerts[];
+    })) as CrewMemberWithCerts[];
 
-    const maskedData = crewMembers.map(member => ({
+    const maskedData = crewMembers.map((member) => ({
       ...member,
-      identificationNumber: this.maskCiphertext(member.identificationNumber, 'identificationNumber'),
+      identificationNumber: this.maskCiphertext(
+        member.identificationNumber,
+        'identificationNumber'
+      ),
       passportNumber: this.maskCiphertext(member.passportNumber, 'passportNumber'),
     }));
 
@@ -123,13 +135,13 @@ export class CrewService {
   }
 
   async findOne(id: string, userId?: string): Promise<any> {
-    const crew = await this.prisma.crewMember.findUnique({
+    const crew = (await this.prisma.crewMember.findUnique({
       where: { id },
       include: {
         certifications: { orderBy: { expiryDate: 'asc' } },
         medicalCertificate: true,
       },
-    }) as CrewMemberWithCerts | null;
+    })) as CrewMemberWithCerts | null;
 
     if (!crew) {
       throw new NotFoundException('Crew member not found');
@@ -163,37 +175,37 @@ export class CrewService {
           include: {
             certifications: { where: { status: 'VALID' } },
             medicalCertificate: true,
-          }
+          },
         },
-        safeManningRequirements: {
+        safeManningReqs: {
           include: { requirements: true },
           orderBy: { issueDate: 'desc' },
-          take: 1
-        }
-      }
+          take: 1,
+        },
+      },
     });
 
     if (!vessel) throw new NotFoundException('Vessel not found');
 
     const crewMembers = vessel.crewMembers as CrewMemberWithCerts[];
-    const safeManning = vessel.safeManningRequirements[0];
+    const safeManning = vessel.safeManningReqs[0];
 
     // Map data for shared rules engine
-    const crewForValidation = crewMembers.map(c => ({
+    const crewForValidation = crewMembers.map((c) => ({
       id: c.id,
       name: `${c.familyName} ${c.givenNames}`,
       role: c.role as any,
       hasMedical: !!c.medicalCertificate,
       medicalExpiryDate: c.medicalCertificate?.expiryDate.toISOString(),
-      certifications: c.certifications.map(cert => ({
+      certifications: c.certifications.map((cert) => ({
         type: cert.type,
         expiryDate: cert.expiryDate.toISOString(),
       })),
     }));
 
     const stcwValidation = validateCrewCompliance(crewForValidation);
-    
-    const requirements = safeManning?.requirements.map(req => ({
+
+    const requirements = safeManning?.requirements.map((req: any) => ({
       role: req.role,
       minimumCount: req.minimumCount,
     }));
@@ -220,8 +232,8 @@ export class CrewService {
       actualByRole: safeManningValidation.actualByRole,
       fulfillableByRole: safeManningValidation.fulfillableByRole,
       discrepancies: [
-        ...stcwValidation.errors.map(e => e.message),
-        ...safeManningValidation.errors.map(e => e.message),
+        ...stcwValidation.errors.map((e) => e.message),
+        ...safeManningValidation.errors.map((e) => e.message),
       ],
     };
   }

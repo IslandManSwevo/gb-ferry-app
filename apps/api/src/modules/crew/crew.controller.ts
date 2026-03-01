@@ -26,7 +26,7 @@ export class CrewController {
     @Query('role') role?: string,
     @Query('certStatus') certStatus?: string
   ): Promise<any> {
-    return this.crewService.findAll({ vesselId, role: role as any, certStatus });
+    return this.crewService.findAll({ vesselId, role, certStatus } as any);
   }
 
   @Get('roster/:vesselId')

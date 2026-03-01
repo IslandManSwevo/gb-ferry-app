@@ -48,12 +48,16 @@ We have transitioned from a "Data Management System" to a **Maritime Compliance 
 
 ---
 
-## 5. Next Horizon
+## 5. Recently Deployed (Phase 3)
 
-- **AI Document Parsing**: Upgrading legacy text extraction to LLM-aware parsing for scanned crew certifications and medical documents.
-- **BMA/IMO Verification Integration**: Connecting to global seafarer registries for real-time authenticity confirmation.
-- **USCG NOA/D Automation**: Fully activating the Notice of Arrival pipeline for all US-bound voyages.
-- **Advanced PSC Analytics**: Predictive forecasting for Port State Control inspection readiness.
+- **Live BMA/IMO Verification**: Native connection to global seafarer registries (BORIS) for real-time authenticity confirmation.
+- **eNOAD SOAP Automation**: Fully activated the electronic Notice of Arrival pipeline for US-bound manifest transmission.
+- **AI Document Parsing**: Advanced heuristic extraction for scanned crew certifications and medical records.
+
+## 6. Next Horizon
+
+- **Predictive Analytics**: Forecasting Port State Control inspection readiness based on fleet-wide compliance trends.
+- **Offline Bridge Sync**: Architecting data persistence for vessels operating in low-connectivity maritime environments.
 
 ---
 

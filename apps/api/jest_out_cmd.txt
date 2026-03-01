@@ -1,0 +1,163 @@
+FAIL src/test/integration.spec.ts (19.485 s)
+  Grand Bahama Ferry - Crew Compliance Integration
+    AI Document Extraction
+      × should extract metadata and create certification for crew (4416 ms)
+    Automated Verification
+      × should verify a certification against external BMA simulation (4105 ms)
+      × should mark certification as INVALID if it has FAKE in the number (4104 ms)
+    Advanced Reporting
+      × should generate fleet compliance snapshot (4092 ms)
+
+  ● Grand Bahama Ferry - Crew Compliance Integration › AI Document Extraction › should extract metadata and create certification for crew
+
+    PrismaClientInitializationError: Can't reach database server at `localhost:5433`
+
+    Please make sure your database server is running at `localhost:5433`.
+
+    [0m [90m 31 |[39m
+     [90m 32 |[39m   [36masync[39m onModuleInit() {
+    [31m[1m>[22m[39m[90m 33 |[39m     [36mawait[39m [36mthis[39m[33m.[39m$connect()[33m;[39m
+     [90m    |[39m     [31m[1m^[22m[39m
+     [90m 34 |[39m   }
+     [90m 35 |[39m
+     [90m 36 |[39m   [36masync[39m onModuleDestroy() {[0m
+
+      at t (../../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:112:2488)
+      at Proxy.onModuleInit (../../../packages/database/src/client.ts:33:5)
+          at async Promise.all (index 0)
+      at callModuleInitHook (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/hooks/on-module-init.hook.js:43:5)
+      at Proxy.callInitHook (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/nest-application-context.js:234:13)
+      at Proxy.init (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/nest-application.js:100:9)
+      at Object.<anonymous> (test/integration.spec.ts:87:5)
+
+  ● Grand Bahama Ferry - Crew Compliance Integration › AI Document Extraction › should extract metadata and create certification for crew
+
+    TypeError: Cannot read properties of undefined (reading 'auditLog')
+
+    [0m [90m 152 |[39m
+     [90m 153 |[39m   [36masync[39m [36mfunction[39m cleanupTestData() {
+    [31m[1m>[22m[39m[90m 154 |[39m     [36mawait[39m prisma[33m.[39mauditLog[33m.[39mdeleteMany({ where[33m:[39m { userId[33m:[39m testUserId } })[33m;[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 155 |[39m     [36mawait[39m prisma[33m.[39mvesselDocument[33m.[39mdeleteMany({ where[33m:[39m { vesselId[33m:[39m testVesselId } })[33m;[39m
+     [90m 156 |[39m     [36mawait[39m prisma[33m.[39mcertification[33m.[39mdeleteMany({})[33m;[39m
+     [90m 157 |[39m     [36mawait[39m prisma[33m.[39mmedicalCertificate[33m.[39mdeleteMany({})[33m;[39m[0m
+
+      at cleanupTestData (test/integration.spec.ts:154:18)
+      at Object.<anonymous> (test/integration.spec.ts:100:11)
+
+  ● Grand Bahama Ferry - Crew Compliance Integration › Automated Verification › should verify a certification against external BMA simulation
+
+    PrismaClientInitializationError: Can't reach database server at `localhost:5433`
+
+    Please make sure your database server is running at `localhost:5433`.
+
+    [0m [90m 31 |[39m
+     [90m 32 |[39m   [36masync[39m onModuleInit() {
+    [31m[1m>[22m[39m[90m 33 |[39m     [36mawait[39m [36mthis[39m[33m.[39m$connect()[33m;[39m
+     [90m    |[39m     [31m[1m^[22m[39m
+     [90m 34 |[39m   }
+     [90m 35 |[39m
+     [90m 36 |[39m   [36masync[39m onModuleDestroy() {[0m
+
+      at t (../../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:112:2488)
+      at Proxy.onModuleInit (../../../packages/database/src/client.ts:33:5)
+          at async Promise.all (index 0)
+      at callModuleInitHook (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/hooks/on-module-init.hook.js:43:5)
+      at Proxy.callInitHook (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/nest-application-context.js:234:13)
+      at Proxy.init (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/nest-application.js:100:9)
+      at Object.<anonymous> (test/integration.spec.ts:87:5)
+
+  ● Grand Bahama Ferry - Crew Compliance Integration › Automated Verification › should verify a certification against external BMA simulation
+
+    TypeError: Cannot read properties of undefined (reading 'auditLog')
+
+    [0m [90m 152 |[39m
+     [90m 153 |[39m   [36masync[39m [36mfunction[39m cleanupTestData() {
+    [31m[1m>[22m[39m[90m 154 |[39m     [36mawait[39m prisma[33m.[39mauditLog[33m.[39mdeleteMany({ where[33m:[39m { userId[33m:[39m testUserId } })[33m;[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 155 |[39m     [36mawait[39m prisma[33m.[39mvesselDocument[33m.[39mdeleteMany({ where[33m:[39m { vesselId[33m:[39m testVesselId } })[33m;[39m
+     [90m 156 |[39m     [36mawait[39m prisma[33m.[39mcertification[33m.[39mdeleteMany({})[33m;[39m
+     [90m 157 |[39m     [36mawait[39m prisma[33m.[39mmedicalCertificate[33m.[39mdeleteMany({})[33m;[39m[0m
+
+      at cleanupTestData (test/integration.spec.ts:154:18)
+      at Object.<anonymous> (test/integration.spec.ts:100:11)
+
+  ● Grand Bahama Ferry - Crew Compliance Integration › Automated Verification › should mark certification as INVALID if it has FAKE in the number
+
+    PrismaClientInitializationError: Can't reach database server at `localhost:5433`
+
+    Please make sure your database server is running at `localhost:5433`.
+
+    [0m [90m 31 |[39m
+     [90m 32 |[39m   [36masync[39m onModuleInit() {
+    [31m[1m>[22m[39m[90m 33 |[39m     [36mawait[39m [36mthis[39m[33m.[39m$connect()[33m;[39m
+     [90m    |[39m     [31m[1m^[22m[39m
+     [90m 34 |[39m   }
+     [90m 35 |[39m
+     [90m 36 |[39m   [36masync[39m onModuleDestroy() {[0m
+
+      at t (../../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:112:2488)
+      at Proxy.onModuleInit (../../../packages/database/src/client.ts:33:5)
+          at async Promise.all (index 0)
+      at callModuleInitHook (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/hooks/on-module-init.hook.js:43:5)
+      at Proxy.callInitHook (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/nest-application-context.js:234:13)
+      at Proxy.init (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/nest-application.js:100:9)
+      at Object.<anonymous> (test/integration.spec.ts:87:5)
+
+  ● Grand Bahama Ferry - Crew Compliance Integration › Automated Verification › should mark certification as INVALID if it has FAKE in the number
+
+    TypeError: Cannot read properties of undefined (reading 'auditLog')
+
+    [0m [90m 152 |[39m
+     [90m 153 |[39m   [36masync[39m [36mfunction[39m cleanupTestData() {
+    [31m[1m>[22m[39m[90m 154 |[39m     [36mawait[39m prisma[33m.[39mauditLog[33m.[39mdeleteMany({ where[33m:[39m { userId[33m:[39m testUserId } })[33m;[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 155 |[39m     [36mawait[39m prisma[33m.[39mvesselDocument[33m.[39mdeleteMany({ where[33m:[39m { vesselId[33m:[39m testVesselId } })[33m;[39m
+     [90m 156 |[39m     [36mawait[39m prisma[33m.[39mcertification[33m.[39mdeleteMany({})[33m;[39m
+     [90m 157 |[39m     [36mawait[39m prisma[33m.[39mmedicalCertificate[33m.[39mdeleteMany({})[33m;[39m[0m
+
+      at cleanupTestData (test/integration.spec.ts:154:18)
+      at Object.<anonymous> (test/integration.spec.ts:100:11)
+
+  ● Grand Bahama Ferry - Crew Compliance Integration › Advanced Reporting › should generate fleet compliance snapshot
+
+    PrismaClientInitializationError: Can't reach database server at `localhost:5433`
+
+    Please make sure your database server is running at `localhost:5433`.
+
+    [0m [90m 31 |[39m
+     [90m 32 |[39m   [36masync[39m onModuleInit() {
+    [31m[1m>[22m[39m[90m 33 |[39m     [36mawait[39m [36mthis[39m[33m.[39m$connect()[33m;[39m
+     [90m    |[39m     [31m[1m^[22m[39m
+     [90m 34 |[39m   }
+     [90m 35 |[39m
+     [90m 36 |[39m   [36masync[39m onModuleDestroy() {[0m
+
+      at t (../../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:112:2488)
+      at Proxy.onModuleInit (../../../packages/database/src/client.ts:33:5)
+          at async Promise.all (index 0)
+      at callModuleInitHook (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/hooks/on-module-init.hook.js:43:5)
+      at Proxy.callInitHook (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/nest-application-context.js:234:13)
+      at Proxy.init (../../../node_modules/.pnpm/@nestjs+core@10.4.20_@nestjs+common@10.4.20_@nestjs+platform-express@10.4.20_reflect-metadata@0.2.2_rxjs@7.8.2/node_modules/@nestjs/core/nest-application.js:100:9)
+      at Object.<anonymous> (test/integration.spec.ts:87:5)
+
+  ● Grand Bahama Ferry - Crew Compliance Integration › Advanced Reporting › should generate fleet compliance snapshot
+
+    TypeError: Cannot read properties of undefined (reading 'auditLog')
+
+    [0m [90m 152 |[39m
+     [90m 153 |[39m   [36masync[39m [36mfunction[39m cleanupTestData() {
+    [31m[1m>[22m[39m[90m 154 |[39m     [36mawait[39m prisma[33m.[39mauditLog[33m.[39mdeleteMany({ where[33m:[39m { userId[33m:[39m testUserId } })[33m;[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 155 |[39m     [36mawait[39m prisma[33m.[39mvesselDocument[33m.[39mdeleteMany({ where[33m:[39m { vesselId[33m:[39m testVesselId } })[33m;[39m
+     [90m 156 |[39m     [36mawait[39m prisma[33m.[39mcertification[33m.[39mdeleteMany({})[33m;[39m
+     [90m 157 |[39m     [36mawait[39m prisma[33m.[39mmedicalCertificate[33m.[39mdeleteMany({})[33m;[39m[0m
+
+      at cleanupTestData (test/integration.spec.ts:154:18)
+      at Object.<anonymous> (test/integration.spec.ts:100:11)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 4 total
+Snapshots:   0 total
+Time:        19.755 s, estimated 20 s
+Ran all test suites matching /src\\test\\integration.spec.ts/i.

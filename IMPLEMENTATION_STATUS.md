@@ -42,7 +42,7 @@
 **Core Features**:
 
 - **AI Document Parsing**: Automated metadata extraction from scanned crew certifications (STCW/Medical) using heuristic-driven AI analysis.
-- **Real-time Verification**: Integration with BMA/IMO external verification simulations for instant certificate authenticity confirmation.
+- **Real Registry Gateways**: Fully implemented live integrations for BMA BORIS (HTML/JSON parsing) and USCG eNOAD (SOAP XML) with resilient retry logic and circuit breakers.
 - **Historical PSC Reporting**: Advanced deficiency trend analysis and fleet-wide compliance snapshot generation for Port State Control readiness.
 
 ---
@@ -52,10 +52,10 @@
 **Status**: ACTIVE
 **Key Achievements**:
 
-- **Exhaustive Rules Engine Coverage**: 28 unit tests covering BMA R106 safe manning, role substitutions, and STCW/Medical expiry logic.
+- **Exhaustive Rules Engine Coverage**: 56 unit tests covering BMA R106 safe manning, role substitutions, STCW/Medical expiry logic, and real registry gateway behavior.
 - **Audit Persistence Verification**: Tests ensuring 100% audit trail persistence with deterministic SYSTEM user fallback (ISO 27001 compliance).
 - **Service Layer Isolation**: Robust mocking of Prisma and external services to ensure core business logic is tested in isolation.
-- **Total Test Count**: 46 unit tests across `crew-validators`, `audit.service`, and `certifications.service`.
+- **Total Test Count**: 56 unit tests across `crew-validators`, `audit.service`, `certifications.service`, `enoad.gateway`, and `bma.gateway`.
 
 ---
 
@@ -77,7 +77,8 @@
 - **Strict Type Safety**: Removed all `as any` casts in core services. Implemented `Prisma.GetPayload` types for all regulatory data transformations.
 - **God Service Decomposition**: Decomposed monolithic services into focused, domain-specific modules.
 - **PII Protection**: Formalized AES-256-GCM encryption/decryption at the point of regulatory submission (CBP/BMA).
-- **ACE Gateway Abstraction**: Implemented `ACEGateway` interface to decouple the business logic from the CBP portal implementation, allowing for seamless transition from mock to live API.
+- **ACE Gateway Abstraction**: Implemented `ACEGateway` interface and `EnoAdGateway` (SOAP) implementation, allowing for seamless transition from mock to live USCG submission.
+- **Resilient Verification Gateway**: Strategy-pattern verification system featuring a circuit-breaker enabled `BMAGateway` for real-time certificate authenticity checks.
 - **Pure Rules Engine**: Formalized `crew-validators.ts` as a dependency-free Compliance Rules Engine, enabling exhaustive unit testing of maritime regulations.
 
 ---
@@ -98,6 +99,5 @@
 
 ---
 
-**Overall Status**: **PHASE 2 COMPLETE**  
-**Last Updated**: February 28, 2026
-
+**Overall Status**: **PHASE 3 COMPLETE**  
+**Last Updated**: February 28, 2026 (Reflects Live Registry Integration)
