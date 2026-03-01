@@ -17,10 +17,10 @@ const DENIAL_AUDIT_TIMEOUT_MS = Number(process.env.PROXY_AUDIT_TIMEOUT_MS || 400
 // This prevents the proxy from becoming a generic SSRF-style tunnel.
 const ALLOWED_PATHS: RegExp[] = [
   /^health$/,
-  /^passengers(\/.*)?$/,
   /^crew(\/.*)?$/,
   /^vessels(\/.*)?$/,
   /^compliance(\/.*)?$/,
+  /^cbp(\/.*)?$/,
   /^audit(\/.*)?$/,
 ];
 
@@ -38,33 +38,10 @@ const ACCESS_RULES: AccessRule[] = [
   // Health
   { path: /^health$/, methods: ['GET'] },
 
-  // Passengers
-  { path: /^passengers$/, methods: ['GET'], feature: 'passengers.view' },
-  { path: /^passengers$/, methods: ['POST'], feature: 'passengers.checkin' },
-  { path: /^passengers\/checkin$/, methods: ['POST'], feature: 'passengers.checkin' },
-  { path: /^passengers\/sailings$/, methods: ['GET'], feature: 'passengers.view' },
-  { path: /^passengers\/[^/]+$/, methods: ['GET'], feature: 'passengers.view' },
-  { path: /^passengers\/[^/]+$/, methods: ['PATCH'], feature: 'passengers.checkin' },
-  { path: /^passengers\/[^/]+\/check-in$/, methods: ['POST'], feature: 'passengers.checkin' },
-
-  // Manifests
-  { path: /^passengers\/manifests$/, methods: ['GET'], feature: 'passengers.view' },
-  { path: /^passengers\/manifests\/[^/]+$/, methods: ['GET'], feature: 'passengers.view' },
-  {
-    path: /^passengers\/manifests\/generate\/[^/]+$/,
-    methods: ['POST'],
-    feature: 'manifests.generate',
-  },
-  {
-    path: /^passengers\/manifests\/[^/]+\/approve$/,
-    methods: ['POST'],
-    feature: 'manifests.approve',
-  },
-  {
-    path: /^passengers\/manifests\/[^/]+\/submit$/,
-    methods: ['POST'],
-    feature: 'manifests.submit',
-  },
+  // CBP / Regulatory Submissions
+  { path: /^cbp\/submit\/[^/]+$/, methods: ['POST'], feature: 'cbp.submit' },
+  { path: /^cbp\/submissions$/, methods: ['GET'], feature: 'cbp.view' },
+  { path: /^cbp\/submissions\/[^/]+$/, methods: ['GET'], feature: 'cbp.view' },
 
   // Crew
   { path: /^crew$/, methods: ['GET'], feature: 'crew.view' },

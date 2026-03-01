@@ -1,72 +1,65 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Certification, CertificationType } from '@gbferry/database';
+import { Certification } from '@gbferry/database';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  VERIFICATION_GATEWAY,
+  VerificationGateway,
+  VerificationResult,
+} from './verification-gateway.interface';
 
-export interface VerificationResult {
-  verified: Boolean;
-  authorityResponse: any;
-  verificationDate: Date;
-  status: 'VALID' | 'INVALID' | 'PENDING' | 'NOT_FOUND';
-}
-
+/**
+ * Orchestrator service that routes verification requests to the appropriate gateway.
+ *
+ * Uses strategy pattern: each gateway implements `supports()` to declare which
+ * issuing country / authority it handles. The first matching gateway wins.
+ *
+ * If no gateway matches, returns NOT_FOUND status (graceful degradation).
+ *
+ * Skills applied:
+ *   - nestjs-expert: DI token injection, provider array pattern
+ *   - api-patterns: interface abstraction, separation of transport from logic
+ *   - cc-skill-backend-patterns: service layer pattern — business logic separated from data access
+ */
 @Injectable()
 export class VerificationService {
   private readonly logger = new Logger(VerificationService.name);
 
+  constructor(
+    @Inject(VERIFICATION_GATEWAY)
+    private readonly gateways: VerificationGateway[]
+  ) {
+    this.logger.log(`VerificationService initialized with ${this.gateways.length} gateway(s)`);
+  }
+
   /**
-   * Verifies a maritime certification against external registries (BMA/IMO/etc).
-   * In a production environment, this would involve SOAP/REST calls to official government portals.
+   * Verify a certification by routing to the first gateway that supports it.
    */
   async verifyCertification(certification: Certification): Promise<VerificationResult> {
-    this.logger.log(`Verifying certification ${certification.certificateNumber} with ${certification.issuingAuthority}`);
+    const gateway = this.gateways.find((g) =>
+      g.supports(certification.issuingCountry, certification.issuingAuthority)
+    );
 
-    // Simulation of external registry check
-    // In a real scenario, this would use the certificateNumber and seafarer details
-    
-    await this.delay(1500); // Simulate network latency
+    if (!gateway) {
+      this.logger.warn(
+        `No verification gateway found for country=${certification.issuingCountry}, ` +
+          `authority=${certification.issuingAuthority}`
+      );
 
-    if (certification.issuingCountry === 'BS' || certification.issuingAuthority.toLowerCase().includes('bahamas')) {
-      return this.verifyWithBMAPortal(certification);
+      return {
+        verified: false,
+        status: 'NOT_FOUND',
+        authorityResponse: {
+          source: 'VerificationService',
+          reason: `No gateway registered for ${certification.issuingCountry} / ${certification.issuingAuthority}`,
+          timestamp: new Date().toISOString(),
+        },
+        verificationDate: new Date(),
+      };
     }
 
-    return this.verifyWithIMORegistry(certification);
-  }
+    this.logger.log(
+      `Routing cert ${certification.certificateNumber} → ${gateway.constructor.name}`
+    );
 
-  private async verifyWithBMAPortal(cert: Certification): Promise<VerificationResult> {
-    // Mock BMA Verification Logic
-    const isMockValid = !cert.certificateNumber.includes('FAKE') && cert.expiryDate > new Date();
-    
-    return {
-      verified: isMockValid,
-      status: isMockValid ? 'VALID' : 'INVALID',
-      authorityResponse: {
-        source: 'Bahamas Maritime Authority (BMA) Online Verification',
-        timestamp: new Date().toISOString(),
-        reference: `BMA-VR-${Math.floor(Math.random() * 1000000)}`,
-        matchDetails: {
-          name: 'MATCHED',
-          number: cert.certificateNumber,
-          expiry: cert.expiryDate.toISOString()
-        }
-      },
-      verificationDate: new Date()
-    };
-  }
-
-  private async verifyWithIMORegistry(cert: Certification): Promise<VerificationResult> {
-    // Mock IMO Global Integrated Shipping Information System (GISIS) check
-    return {
-      verified: true,
-      status: 'VALID',
-      authorityResponse: {
-        source: 'IMO GISIS Verification Service',
-        timestamp: new Date().toISOString(),
-        status: 'Certificate authenticity confirmed by issuing state'
-      },
-      verificationDate: new Date()
-    };
-  }
-
-  private delay(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return gateway.verify(certification);
   }
 }

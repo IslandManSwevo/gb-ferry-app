@@ -1,15 +1,20 @@
-import { PrismaService, decryptField, Prisma } from '@gbferry/database';
+import { decryptField, Prisma, PrismaService } from '@gbferry/database';
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
-import { ACE_GATEWAY, ACEGateway, ACESubmissionResult } from './ace-gateway.interface';
+import {
+  ACE_GATEWAY,
+  ACECrewPayload,
+  ACEGateway,
+  ACESubmissionResult,
+} from './ace-gateway.interface';
 
 // Define focused type for Vessel with Crew for CBP submission
 type VesselWithCrew = Prisma.VesselGetPayload<{
   include: {
     crewMembers: {
-      where: { deletedAt: null }
-    }
-  }
+      where: { deletedAt: null };
+    };
+  };
 }>;
 
 @Injectable()
@@ -33,17 +38,17 @@ export class CBPService {
     this.logger.log(`Starting CBP submission (${formType}) for vessel ${vesselId}`);
 
     // 1. Fetch data efficiently (Single Query)
-    const vessel = await this.prisma.vessel.findUnique({
+    const vessel = (await this.prisma.vessel.findUnique({
       where: { id: vesselId },
       include: {
         crewMembers: {
-          where: { 
+          where: {
             deletedAt: null,
-            status: 'ACTIVE'
-          }
+            status: 'ACTIVE',
+          },
         },
       },
-    }) as VesselWithCrew | null;
+    })) as VesselWithCrew | null;
 
     if (!vessel) {
       throw new NotFoundException(`Vessel ${vesselId} not found`);
@@ -62,8 +67,8 @@ export class CBPService {
         formType,
         status: result.status === 'ACCEPTED' ? 'SUBMITTED' : 'REJECTED',
         transmissionId: result.submissionId,
-        submittedAt: result.timestamp,
-        notes: result.message,
+        submittedAt:
+          result.timestamp instanceof Date ? result.timestamp.toISOString() : result.timestamp,
       },
     });
 
@@ -78,9 +83,9 @@ export class CBPService {
         submissionId: result.submissionId,
         crewCount: vessel.crewMembers.length,
         status: result.status,
-        message: result.message
+        message: result.message,
       },
-      compliance: `US CBP ACE Submission - Status: ${result.status}`
+      compliance: `US CBP ACE Submission - Status: ${result.status}`,
     });
 
     return result;
@@ -89,22 +94,17 @@ export class CBPService {
   /**
    * Internal data transformation logic for CBP
    */
-  private transformToCbpPayload(vessel: VesselWithCrew): any {
-    const crew = vessel.crewMembers.map(c => ({
-      id: c.id,
+  private transformToCbpPayload(vessel: VesselWithCrew): ACECrewPayload {
+    const crew = vessel.crewMembers.map((c) => ({
       familyName: c.familyName,
       givenNames: c.givenNames,
       role: c.role,
       nationality: c.nationality,
-      dateOfBirth: c.dateOfBirth,
-      // PII Decryption only happens at the point of submission to the regulator
-      passportNumber: this.safeDecrypt(c.passportNumber),
-      passportCountry: c.passportCountry,
-      passportExpiry: c.passportExpiry,
-      identificationNumber: this.safeDecrypt(c.identificationNumber),
-      alienRegistrationNumber: c.alienRegistrationNumber,
-      usVisaNumber: c.usVisaNumber,
-      usVisaType: c.usVisaType,
+      dateOfBirth:
+        c.dateOfBirth instanceof Date
+          ? c.dateOfBirth.toISOString().split('T')[0]
+          : String(c.dateOfBirth),
+      travelDocNumber: this.safeDecrypt(c.passportNumber) || '',
     }));
 
     return {
@@ -112,8 +112,8 @@ export class CBPService {
       vesselInfo: {
         name: vessel.name,
         imoNumber: vessel.imoNumber,
-        callSign: vessel.callSign,
-        flag: vessel.flagState
+        callSign: vessel.callSign || undefined,
+        flag: vessel.flagState,
       },
       crew,
       submissionTime: new Date(),

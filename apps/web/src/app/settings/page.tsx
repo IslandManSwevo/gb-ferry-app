@@ -122,14 +122,14 @@ const mockUsers = [
 
 const rolePermissions = [
   {
-    feature: 'Passenger Check-In',
+    feature: 'CBP Submission',
     admin: true,
-    operations: true,
-    captain: true,
-    compliance: false,
+    operations: false,
+    captain: false,
+    compliance: true,
   },
   {
-    feature: 'Manifest Approval',
+    feature: 'Crew Roster Mgmt',
     admin: true,
     operations: false,
     captain: true,
@@ -151,6 +151,13 @@ const rolePermissions = [
   },
   {
     feature: 'Certification Verify',
+    admin: true,
+    operations: false,
+    captain: false,
+    compliance: true,
+  },
+  {
+    feature: 'Compliance Export',
     admin: true,
     operations: false,
     captain: false,

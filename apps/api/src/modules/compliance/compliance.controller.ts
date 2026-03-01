@@ -90,6 +90,6 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Record an inspection event' })
   @ApiResponse({ status: 201, description: 'Inspection recorded' })
   async recordInspection(@Body() inspectionDto: any): Promise<Inspection> {
-    return this.complianceService.recordInspection(inspectionDto);
+    return this.complianceService.recordInspection(inspectionDto, 'system');
   }
 }

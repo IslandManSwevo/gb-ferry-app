@@ -8,7 +8,7 @@
  */
 
 import { CertificationType, PrismaService } from '@gbferry/database';
-import { BadRequestException, INestApplication } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditService } from '../modules/audit/audit.service';
 import { ComplianceService } from '../modules/compliance/compliance.service';
@@ -17,7 +17,10 @@ import { CrewService } from '../modules/crew/crew.service';
 import { VerificationService } from '../modules/crew/verification.service';
 import { AIExtractionService } from '../modules/documents/ai-extraction.service';
 import { DocumentQueryService } from '../modules/documents/document-query.service';
-import { DocumentUploadService, STORAGE_SERVICE } from '../modules/documents/document-upload.service';
+import {
+  DocumentUploadService,
+  STORAGE_SERVICE,
+} from '../modules/documents/document-upload.service';
 
 jest.mock('../modules/auth', () => ({
   CurrentUser: () => () => undefined,
@@ -30,9 +33,7 @@ describe('Grand Bahama Ferry - Crew Compliance Integration', () => {
   let crewService: CrewService;
   let certificationsService: CertificationsService;
   let complianceService: ComplianceService;
-  let auditService: AuditService;
   let documentUploadService: DocumentUploadService;
-  let verificationService: VerificationService;
 
   // Test IDs
   const testUserId = 'test-user-001';
@@ -50,7 +51,10 @@ describe('Grand Bahama Ferry - Crew Compliance Integration', () => {
         DocumentQueryService,
         AIExtractionService,
         VerificationService,
-        { provide: STORAGE_SERVICE, useValue: { uploadFile: jest.fn().mockResolvedValue('test-key') } },
+        {
+          provide: STORAGE_SERVICE,
+          useValue: { uploadFile: jest.fn().mockResolvedValue('test-key') },
+        },
       ],
     }).compile();
 
@@ -61,9 +65,7 @@ describe('Grand Bahama Ferry - Crew Compliance Integration', () => {
     crewService = moduleRef.get<CrewService>(CrewService);
     certificationsService = moduleRef.get<CertificationsService>(CertificationsService);
     complianceService = moduleRef.get<ComplianceService>(ComplianceService);
-    auditService = moduleRef.get<AuditService>(AuditService);
     documentUploadService = moduleRef.get<DocumentUploadService>(DocumentUploadService);
-    verificationService = moduleRef.get<VerificationService>(VerificationService);
 
     await cleanupTestData();
     await seedTestData();
@@ -136,24 +138,29 @@ describe('Grand Bahama Ferry - Crew Compliance Integration', () => {
 
   describe('AI Document Extraction', () => {
     it('should extract metadata and create certification for crew', async () => {
-      const crew = await crewService.create({
-        familyName: 'Doe',
-        givenNames: 'John',
-        dateOfBirth: new Date('1990-01-01'),
-        nationality: 'BHS',
-        gender: 'M',
-        passportNumber: 'PASS123',
-        passportCountry: 'BHS',
-        passportExpiry: new Date('2030-01-01'),
-        role: 'MASTER',
-        vesselId: testVesselId,
-      }, testUserId);
+      const crew = await crewService.create(
+        {
+          familyName: 'Doe',
+          givenNames: 'John',
+          dateOfBirth: new Date('1990-01-01'),
+          nationality: 'BHS',
+          gender: 'M',
+          passportNumber: 'PASS123',
+          passportCountry: 'BHS',
+          passportExpiry: new Date('2030-01-01'),
+          role: 'MASTER',
+          vesselId: testVesselId,
+        } as any,
+        testUserId
+      );
 
       // Mock PDF file
       const mockFile: any = {
         originalname: 'master_cert.pdf',
         mimetype: 'application/pdf',
-        buffer: Buffer.from('%PDF-1.4 ... STCW Master Certificate Expire: 2029-12-31 CertNo: STCW-999 Authority: BMA'),
+        buffer: Buffer.from(
+          '%PDF-1.4 ... STCW Master Certificate Expire: 2029-12-31 CertNo: STCW-999 Authority: BMA'
+        ),
         size: 1024,
       };
 
@@ -176,27 +183,33 @@ describe('Grand Bahama Ferry - Crew Compliance Integration', () => {
 
   describe('Automated Verification', () => {
     it('should verify a certification against external BMA simulation', async () => {
-      const crew = await crewService.create({
-        familyName: 'Smith',
-        givenNames: 'Jane',
-        dateOfBirth: new Date('1985-05-15'),
-        nationality: 'BHS',
-        gender: 'F',
-        passportNumber: 'PASS456',
-        passportCountry: 'BHS',
-        passportExpiry: new Date('2030-01-01'),
-        role: 'CHIEF_OFFICER',
-        vesselId: testVesselId,
-      }, testUserId);
+      const crew = await crewService.create(
+        {
+          familyName: 'Smith',
+          givenNames: 'Jane',
+          dateOfBirth: new Date('1985-05-15'),
+          nationality: 'BHS',
+          gender: 'F',
+          passportNumber: 'PASS456',
+          passportCountry: 'BHS',
+          passportExpiry: new Date('2030-01-01'),
+          role: 'CHIEF_OFFICER',
+          vesselId: testVesselId,
+        } as any,
+        testUserId
+      );
 
-      const cert = await certificationsService.create({
-        crewId: crew.id,
-        type: CertificationType.STCW_COC,
-        issueDate: new Date('2024-01-01'),
-        expiryDate: new Date('2029-01-01'),
-        issuingAuthority: 'Bahamas Maritime Authority',
-        certificationNumber: 'BHS-COC-555',
-      }, testUserId);
+      const cert = await certificationsService.create(
+        {
+          crewId: crew.id,
+          type: CertificationType.STCW_COC,
+          issueDate: new Date('2024-01-01'),
+          expiryDate: new Date('2029-01-01'),
+          issuingAuthority: 'Bahamas Maritime Authority',
+          certificationNumber: 'BHS-COC-555',
+        },
+        testUserId
+      );
 
       const verification = await certificationsService.verify(cert.id, testUserId);
 
@@ -206,27 +219,33 @@ describe('Grand Bahama Ferry - Crew Compliance Integration', () => {
     });
 
     it('should mark certification as INVALID if it has FAKE in the number', async () => {
-      const crew = await crewService.create({
-        familyName: 'Jones',
-        givenNames: 'Bob',
-        dateOfBirth: new Date('1980-10-10'),
-        nationality: 'BHS',
-        gender: 'M',
-        passportNumber: 'PASS789',
-        passportCountry: 'BHS',
-        passportExpiry: new Date('2030-01-01'),
-        role: 'ENGINE_OFFICER',
-        vesselId: testVesselId,
-      }, testUserId);
+      const crew = await crewService.create(
+        {
+          familyName: 'Jones',
+          givenNames: 'Bob',
+          dateOfBirth: new Date('1980-10-10'),
+          nationality: 'BHS',
+          gender: 'M',
+          passportNumber: 'PASS789',
+          passportCountry: 'BHS',
+          passportExpiry: new Date('2030-01-01'),
+          role: 'ENGINE_OFFICER',
+          vesselId: testVesselId,
+        } as any,
+        testUserId
+      );
 
-      const cert = await certificationsService.create({
-        crewId: crew.id,
-        type: CertificationType.STCW_COC,
-        issueDate: new Date('2024-01-01'),
-        expiryDate: new Date('2029-01-01'),
-        issuingAuthority: 'Bahamas Maritime Authority',
-        certificationNumber: 'BHS-FAKE-000',
-      }, testUserId);
+      const cert = await certificationsService.create(
+        {
+          crewId: crew.id,
+          type: CertificationType.STCW_COC,
+          issueDate: new Date('2024-01-01'),
+          expiryDate: new Date('2029-01-01'),
+          issuingAuthority: 'Bahamas Maritime Authority',
+          certificationNumber: 'BHS-FAKE-000',
+        },
+        testUserId
+      );
 
       const verification = await certificationsService.verify(cert.id, testUserId);
 
@@ -237,9 +256,12 @@ describe('Grand Bahama Ferry - Crew Compliance Integration', () => {
 
   describe('Advanced Reporting', () => {
     it('should generate fleet compliance snapshot', async () => {
-      const report = await complianceService.getReports({
-        type: 'fleet_compliance_snapshot',
-      }, testUserId);
+      const report = await complianceService.getReports(
+        {
+          type: 'fleet_compliance_snapshot',
+        },
+        testUserId
+      );
 
       expect(report.reportType).toBe('Fleet Compliance Snapshot');
       expect(report.vessels).toBeDefined();
@@ -247,4 +269,3 @@ describe('Grand Bahama Ferry - Crew Compliance Integration', () => {
     });
   });
 });
-

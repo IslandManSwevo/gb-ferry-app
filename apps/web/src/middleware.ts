@@ -10,7 +10,6 @@ const ROLE_RULES: RoleRule[] = [
   { prefix: '/audit', roles: ['admin'] },
   { prefix: '/compliance', roles: ['compliance_officer', 'admin', 'regulator'] },
   { prefix: '/crew', roles: ['captain', 'admin', 'operations'] },
-  { prefix: '/passengers', roles: ['operations', 'admin', 'captain'] },
   { prefix: '/vessels', roles: ['captain', 'admin', 'operations', 'compliance_officer'] },
   { prefix: '/settings', roles: ['admin'] },
 ];

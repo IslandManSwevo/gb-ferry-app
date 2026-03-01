@@ -107,7 +107,7 @@ export class AuditController {
   @ApiQuery({
     name: 'entityType',
     required: false,
-    enum: ['passenger', 'crew', 'vessel', 'manifest', 'certification'],
+    enum: ['crew', 'vessel', 'certification', 'cbpSubmission', 'compliance'],
   })
   @ApiQuery({ name: 'entityId', required: false })
   @ApiQuery({

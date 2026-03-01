@@ -10,18 +10,15 @@ export const ROLES = {
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export const FEATURE_ACCESS: Record<string, Role[]> = {
-  // Passenger features
-  'passengers.checkin': [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.OPERATIONS, ROLES.CAPTAIN],
-  'passengers.view': [
+  // CBP / Regulatory Submission features
+  'cbp.submit': [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.COMPLIANCE_OFFICER],
+  'cbp.view': [
     ROLES.SUPERADMIN,
     ROLES.ADMIN,
     ROLES.OPERATIONS,
     ROLES.CAPTAIN,
     ROLES.COMPLIANCE_OFFICER,
   ],
-  'manifests.generate': [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.OPERATIONS],
-  'manifests.approve': [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.CAPTAIN],
-  'manifests.submit': [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.COMPLIANCE_OFFICER],
 
   // Crew features
   'crew.manage': [ROLES.SUPERADMIN, ROLES.ADMIN, ROLES.CAPTAIN],

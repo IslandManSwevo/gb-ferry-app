@@ -1,21 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ACEGateway, ACESubmissionResult } from './ace-gateway.interface';
+import { ACECrewPayload, ACEGateway, ACESubmissionResult } from './ace-gateway.interface';
 
 @Injectable()
 export class MockACEGateway implements ACEGateway {
   private readonly logger = new Logger(MockACEGateway.name);
 
   async submitCrewList(
-    vesselData: any,
+    payload: ACECrewPayload,
     formType: 'I_418' | 'eNOAD'
   ): Promise<ACESubmissionResult> {
-    this.logger.log(`Mocking CBP ACE Submission for ${formType} - Vessel: ${vesselData.vesselId}`);
+    this.logger.log(
+      `[MOCK] CBP ACE Submission for ${formType} — Vessel: ${payload.vesselId}, ` +
+        `crew count: ${payload.crew.length}`
+    );
 
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Simulate a failure for specific test cases (e.g., if vessel name is 'FAKE')
-    if (vesselData.vesselInfo?.name?.includes('FAKE')) {
+    // Simulate rejection for FAKE vessels
+    if (payload.vesselInfo.name.includes('FAKE')) {
       return {
         submissionId: `ACE-REJECT-${Date.now()}`,
         status: 'REJECTED',
@@ -27,7 +30,7 @@ export class MockACEGateway implements ACEGateway {
     return {
       submissionId: `ACE-${formType}-${Date.now()}`,
       status: 'ACCEPTED',
-      message: `CBP ACE received ${vesselData.crew.length} crew records for vessel ${vesselData.vesselInfo?.imoNumber}`,
+      message: `CBP ACE received ${payload.crew.length} crew records for vessel ${payload.vesselInfo.imoNumber}`,
       timestamp: new Date(),
     };
   }

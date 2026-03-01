@@ -1,19 +1,5 @@
-import {
-    Body,
-    Controller,
-    Get,
-    Param,
-    Post,
-    Put,
-    Query,
-} from '@nestjs/common';
-import {
-    ApiBearerAuth,
-    ApiOperation,
-    ApiQuery,
-    ApiResponse,
-    ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CrewService } from './crew.service';
 
 @ApiTags('crew')
@@ -26,7 +12,7 @@ export class CrewController {
   @ApiOperation({ summary: 'Add a new crew member' })
   @ApiResponse({ status: 201, description: 'Crew member created' })
   async create(@Body() createDto: any): Promise<any> {
-    return this.crewService.create(createDto);
+    return this.crewService.create(createDto, 'system');
   }
 
   @Get()
@@ -38,9 +24,9 @@ export class CrewController {
   async findAll(
     @Query('vesselId') vesselId?: string,
     @Query('role') role?: string,
-    @Query('certStatus') certStatus?: string,
+    @Query('certStatus') certStatus?: string
   ): Promise<any> {
-    return this.crewService.findAll({ vesselId, role, certStatus });
+    return this.crewService.findAll({ vesselId, role: role as any, certStatus });
   }
 
   @Get('roster/:vesselId')

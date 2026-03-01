@@ -48,10 +48,10 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Grand Bahama Ferry API')
     .setDescription(
-      'Maritime Passenger & Compliance Support Platform API. Provides decision support for passenger manifests, crew compliance, and regulatory reporting.'
+      'Crew Compliance & Regulatory Support Platform API. Provides decision support for crew management, STCW certification, CBP submissions, and regulatory reporting.'
     )
     .setVersion('1.0')
-    .addTag('passengers', 'Passenger check-in and manifest operations')
+    .addTag('cbp', 'US CBP ACE crew list submissions')
     .addTag('crew', 'Crew management and certification tracking')
     .addTag('vessels', 'Vessel registry and wet-lease documentation')
     .addTag('compliance', 'Compliance reporting and export operations')

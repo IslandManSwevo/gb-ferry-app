@@ -3,7 +3,18 @@
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { AuditOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, DatePicker, Input, Layout, Select, Space, Table, Tag, Typography } from 'antd';
+import {
+  Button,
+  Card,
+  DatePicker,
+  Input,
+  Layout,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Typography,
+} from 'antd';
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -54,11 +65,56 @@ const columns = [
 
 // Placeholder data
 const data = [
-  { key: '1', timestamp: '2026-01-02 14:32:15', user: 'ops@gbferry.com', action: 'PASSENGER_CHECKIN', entityType: 'Passenger', entityId: 'pass-abc-123', details: 'Passenger John Smith checked in', ipAddress: '192.168.1.100' },
-  { key: '2', timestamp: '2026-01-02 14:30:45', user: 'captain@gbferry.com', action: 'MANIFEST_APPROVED', entityType: 'Manifest', entityId: 'man-2026-001', details: 'Manifest approved for sailing NAS → FPB', ipAddress: '192.168.1.105' },
-  { key: '3', timestamp: '2026-01-02 14:25:00', user: 'ops@gbferry.com', action: 'MANIFEST_GENERATED', entityType: 'Manifest', entityId: 'man-2026-001', details: 'Manifest generated with 248 passengers', ipAddress: '192.168.1.100' },
-  { key: '4', timestamp: '2026-01-02 13:15:30', user: 'admin@gbferry.com', action: 'CREW_CREATE', entityType: 'CrewMember', entityId: 'crew-xyz-789', details: 'New crew member added: John Martinez', ipAddress: '192.168.1.50' },
-  { key: '5', timestamp: '2026-01-02 12:00:00', user: 'compliance@gbferry.com', action: 'CERTIFICATION_VERIFY', entityType: 'Certification', entityId: 'cert-456', details: 'STCW certificate verified', ipAddress: '192.168.1.120' },
+  {
+    key: '1',
+    timestamp: '2026-01-02 14:32:15',
+    user: 'compliance@gbferry.com',
+    action: 'CBP_APIS_SUBMITTED',
+    entityType: 'CbpSubmission',
+    entityId: 'cbp-sub-001',
+    details: 'CBP crew list submitted for MV Bahama Spirit',
+    ipAddress: '192.168.1.100',
+  },
+  {
+    key: '2',
+    timestamp: '2026-01-02 14:30:45',
+    user: 'captain@gbferry.com',
+    action: 'CREW_CREATE',
+    entityType: 'CrewMember',
+    entityId: 'crew-xyz-789',
+    details: 'New crew member added: John Martinez',
+    ipAddress: '192.168.1.105',
+  },
+  {
+    key: '3',
+    timestamp: '2026-01-02 14:25:00',
+    user: 'compliance@gbferry.com',
+    action: 'DATA_EXPORT',
+    entityType: 'Vessel',
+    entityId: 'vessel-001',
+    details: 'Compliance data exported for BMA audit (CSV)',
+    ipAddress: '192.168.1.100',
+  },
+  {
+    key: '4',
+    timestamp: '2026-01-02 13:15:30',
+    user: 'admin@gbferry.com',
+    action: 'CERTIFICATION_VERIFY',
+    entityType: 'Certification',
+    entityId: 'cert-456',
+    details: 'STCW certificate verified via BMA registry',
+    ipAddress: '192.168.1.50',
+  },
+  {
+    key: '5',
+    timestamp: '2026-01-02 12:00:00',
+    user: 'compliance@gbferry.com',
+    action: 'COMPLIANCE_REPORT_GENERATED',
+    entityType: 'Compliance',
+    entityId: 'rpt-2026-001',
+    details: 'Fleet compliance snapshot generated',
+    ipAddress: '192.168.1.120',
+  },
 ];
 
 export default function AuditLogPage() {
@@ -69,7 +125,14 @@ export default function AuditLogPage() {
         <AppHeader />
         <Content style={{ margin: '24px', padding: '24px', background: '#f0f2f5' }}>
           <Card>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 24,
+              }}
+            >
               <Title level={3} style={{ margin: 0 }}>
                 <AuditOutlined style={{ marginRight: 12 }} />
                 Audit Log
@@ -85,11 +148,11 @@ export default function AuditLogPage() {
                   style={{ width: 150 }}
                   allowClear
                   options={[
-                    { value: 'Passenger', label: 'Passenger' },
-                    { value: 'Manifest', label: 'Manifest' },
                     { value: 'CrewMember', label: 'Crew Member' },
                     { value: 'Certification', label: 'Certification' },
                     { value: 'Vessel', label: 'Vessel' },
+                    { value: 'CbpSubmission', label: 'CBP Submission' },
+                    { value: 'Compliance', label: 'Compliance' },
                   ]}
                 />
                 <Select
@@ -97,21 +160,25 @@ export default function AuditLogPage() {
                   style={{ width: 180 }}
                   allowClear
                   options={[
-                    { value: 'PASSENGER_CHECKIN', label: 'Passenger Check-In' },
-                    { value: 'MANIFEST_GENERATED', label: 'Manifest Generated' },
-                    { value: 'MANIFEST_APPROVED', label: 'Manifest Approved' },
                     { value: 'CREW_CREATE', label: 'Crew Created' },
                     { value: 'CERTIFICATION_VERIFY', label: 'Cert Verified' },
+                    { value: 'CBP_APIS_SUBMITTED', label: 'CBP Submitted' },
+                    { value: 'DATA_EXPORT', label: 'Data Export' },
+                    { value: 'COMPLIANCE_REPORT_GENERATED', label: 'Report Generated' },
                   ]}
                 />
                 <RangePicker />
                 <Button icon={<FilterOutlined />}>Filter</Button>
               </Space>
             </div>
-            <Table 
-              columns={columns} 
-              dataSource={data} 
-              pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Total ${total} entries` }}
+            <Table
+              columns={columns}
+              dataSource={data}
+              pagination={{
+                pageSize: 20,
+                showSizeChanger: true,
+                showTotal: (total) => `Total ${total} entries`,
+              }}
             />
           </Card>
         </Content>

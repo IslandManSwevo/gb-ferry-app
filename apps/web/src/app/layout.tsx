@@ -7,9 +7,8 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Grand Bahama Ferry | Maritime Compliance Platform',
-  description:
-    'Maritime Passenger & Compliance Support Platform for Grand Bahama Ferry operations.',
-  keywords: ['ferry', 'maritime', 'compliance', 'bahamas', 'passenger manifest'],
+  description: 'Crew Compliance & Regulatory Support Platform for Grand Bahama Ferry operations.',
+  keywords: ['ferry', 'maritime', 'compliance', 'bahamas', 'crew', 'STCW', 'BMA'],
 };
 
 export default function RootLayout({

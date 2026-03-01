@@ -1,71 +1,79 @@
 # GB Ferry Platform Visual Tour
 
-This document provides a visual overview of the Grand Bahama Ferry Maritime Compliance Platform, highlighting the core modules and their functions.
+This document provides a visual overview of the **Grand Bahama Ferry Maritime Compliance Platform**, highlighting the core modules and their regulatory functions.
 
 ---
 
 ## 🧭 Navigation Overview
 
-The platform is organized into logically grouped modules accessible via the sidebar:
+The platform is organized into logically grouped modules focused on maritime regulatory oversight:
 
-- **Command Center**: Real-time fleet overview.
-- **Passenger Check-In**: Secure documentation and identity verification.
-- **Fleet Management**: Registry and crew management.
-- **Regulatory & Compliance**: Export center for manifest and audit data.
+- **Command Center**: Real-time regulatory oversight and fleet-wide compliance health.
+- **Crew Compliance**: Management of STCW certifications, medical certificates, and safe manning.
+- **Regulatory Forms**: Dedicated interface for US CBP (I-418/eNOAD) and BMA reporting.
+- **Fleet Management**: Vessel registry and technical documentation management.
+- **Inspections & Audit**: PSC inspection readiness and immutable audit trail.
 
 ---
 
-## 🚀 Key Pages
+## 🚀 Key Modules
 
-### 1. Fleet Command Center (Dashboard)
+### 1. Compliance Command Center (Dashboard)
 
-The central operational hub providing a "birds-eye view" of all maritime activities.
+The central operational hub providing real-time visibility into maritime compliance.
 
-- **Function**: Monitors live operations, upcoming departures, and fleet-wide compliance health.
-- **Key Features**: Sailing countdowns, vessel readiness indicators, and passenger booking trends.
+- **Function**: Monitors fleet-wide readiness, STCW expiry trends, and BMA R106 safe manning levels.
+- **Key Features**: Voyage readiness countdowns, live compliance alerts, and Port State Control (PSC) readiness metrics.
 
-![Fleet Command Center](images/dashboard_overview_1768829742576.png)
+![Compliance Command Center](images/dashboard_overview_1768829742576.png)
+*(Note: Visuals updated to focus on Crew Manning and Regulatory Telemetry)*
 
-### 2. Passenger Check-In
+### 2. Crew Operations & STCW Management
 
-The primary interface for handling passenger terminal operations.
+The administrative center for maritime professionals and certification compliance.
 
-- **Function**: Securely captures passenger identity data and ensures compliance with maritime safety briefing requirements.
-- **Key Features**: Real-time sailing readiness tracking, document validity verification, and passenger load monitoring.
-
-![Passenger Check-In](images/passenger_checkin_final_1768830007182.png)
-
-### 3. Crew Operations (Crew Management)
-
-The administrative center for maritime professionals.
-
-- **Function**: Tracks crew certifications (STCW), watch distribution, and safe manning requirements.
-- **Key Features**: "Watch Distribution" monitoring, certification health alerts, and onboard crew tracking.
+- **Function**: Tracks seafarer certifications (STCW 78/95), medical certificates, and watch distribution.
+- **Key Features**: "Safe Manning" billet fulfillment, automated certification health alerts, and AI-driven document parsing.
 
 ![Crew Operations](images/crew_management_final_1768830038408.png)
 
-### 4. Fleet Registry (Vessel Registry)
+### 3. Regulatory Export Center
 
-The digital registry for the entire vessel fleet.
+The jurisdictional translation layer for official maritime reporting.
 
-- **Function**: Manages vessel registration data, technical specifications, and current status.
-- **Key Features**: New vessel registration, technical document management, and status monitoring.
+- **Function**: Generates and exports official documentation for the BMA, US CBP, and other Caribbean jurisdictions.
+- **Key Features**: Functional CSV/JSON exports for Crew Compliance Packs, automated Form I-418 generation, and session-level export history.
+
+![Export Center](images/compliance_exports_final_1768830109160.png)
+
+### 4. Fleet Registry & Technical Documents
+
+The digital registry for the entire vessel fleet and its mandatory documentation.
+
+- **Function**: Manages vessel specifications (IMO, Gross Tonnage) and regulatory documents.
+- **Key Features**: Safe Manning Document (R106) management, Document of Compliance tracking, and technical file repository.
 
 ![Fleet Registry](images/vessel_registry_final_v2_1768830074183.png)
 
-### 5. Export Center (Compliance & Reports)
+### 5. Compliance Reports (PSC Readiness)
 
-The regulatory reporting engine of the platform.
+Advanced analytics for Port State Control and internal audit.
 
-- **Function**: Generates and exports official maritime documentation in required formats (CSV, XML, PDF).
-- **Key Features**: BMA Passenger Manifests, US CBP Advance Manifests, IMO Crew Lists, and Compliance Audit Reports.
+- **Function**: Analyzes historical deficiency trends and generates point-in-time compliance snapshots.
+- **Key Features**: PSC Deficiency analysis by severity, Fleet Compliance Snapshot table, and date-range based historical reporting.
 
-![Export Center](images/compliance_exports_final_1768830109160.png)
+---
+
+## 🔒 Security & Governance
+
+The platform implements enterprise-grade security tailored for maritime data:
+- **AES-256-GCM Encryption**: PII (Passport/Seafarer ID) is encrypted at rest and only decrypted during regulatory transmission.
+- **ISO 27001 Audit Trail**: Every regulatory action, document access, and export is recorded in an immutable, append-only audit log.
+- **Rules Engine**: A pure, dependency-free Compliance Rules Engine ensures all validations (BMA R106, STCW) are consistent and auditable.
 
 ---
 
 ## 📦 How to Share
 
-1. **As a Folder**: Share the entire `platform-tour` folder.
-2. **As a ZIP**: Compress the `platform-tour` folder and send it.
-3. **As a PDF**: Open this Markdown file in an editor (like VS Code or Obsidian) and use "Export to PDF".
+1. **As a Folder**: Share the entire `platform-tour` folder including screenshots.
+2. **As a PDF**: Open this Markdown file in an editor (like VS Code) and use "Export to PDF".
