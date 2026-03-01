@@ -19,13 +19,15 @@ describe('PscRiskService', () => {
         certifications: [
           {
             status: CertificationStatus.VALID,
-            expiryDate: new Date(Date.now() + 40 * 24 * 60 * 60 * 1000),
+            expiryDate: new Date('2026-04-10'), // Fixed date for deterministic tests
           },
         ],
       },
     ],
     inspections: [],
   };
+
+  const testRefDate = new Date('2026-02-28');
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -58,7 +60,7 @@ describe('PscRiskService', () => {
   });
 
   it('should calculate LOW risk for a perfect vessel', async () => {
-    const result = await service.calculateRiskScore('vessel-1');
+    const result = await service.calculateRiskScore('vessel-1', testRefDate);
     expect(result.score).toBe(0);
     expect(result.level).toBe(RiskLevel.LOW);
   });
@@ -69,13 +71,13 @@ describe('PscRiskService', () => {
       crewMembers: [
         {
           id: 'crew-1',
-          certifications: [{ status: CertificationStatus.EXPIRED, expiryDate: new Date() }],
+          certifications: [{ status: CertificationStatus.EXPIRED, expiryDate: new Date('2026-01-01') }],
         },
       ],
     };
     jest.spyOn(prisma.vessel, 'findUnique').mockResolvedValue(highRiskVessel as any);
 
-    const result = await service.calculateRiskScore('vessel-1');
+    const result = await service.calculateRiskScore('vessel-1', testRefDate);
     expect(result.score).toBeGreaterThanOrEqual(50);
     expect(result.breakdown.find((b) => b.category === 'Certifications')?.points).toBe(50);
   });
@@ -83,16 +85,16 @@ describe('PscRiskService', () => {
   it('should calculate HIGH risk for non-compliant manning', async () => {
     jest.spyOn(crewService, 'getRoster').mockResolvedValue({ compliant: false } as any);
 
-    const result = await service.calculateRiskScore('vessel-1');
+    const result = await service.calculateRiskScore('vessel-1', testRefDate);
     expect(result.score).toBe(30);
     expect(result.breakdown.find((b) => b.category === 'Safe Manning')?.points).toBe(30);
   });
 
   it('should include vessel age in scoring', async () => {
-    const oldVessel = { ...mockVessel, yearBuilt: 1990 }; // 36 years old in 2026
+    const oldVessel = { ...mockVessel, yearBuilt: 1990 }; // 36 years old relative to 2026
     jest.spyOn(prisma.vessel, 'findUnique').mockResolvedValue(oldVessel as any);
 
-    const result = await service.calculateRiskScore('vessel-1');
+    const result = await service.calculateRiskScore('vessel-1', testRefDate);
     expect(result.breakdown.find((b) => b.category === 'Vessel Age')?.points).toBe(5);
   });
 
@@ -102,13 +104,28 @@ describe('PscRiskService', () => {
       inspections: [
         {
           deficiencies: [{ resolved: false }],
-          scheduledDate: new Date(),
+          scheduledDate: new Date('2026-02-01'),
         },
       ],
     };
     jest.spyOn(prisma.vessel, 'findUnique').mockResolvedValue(vesselWithDeficiencies as any);
 
-    const result = await service.calculateRiskScore('vessel-1');
+    const result = await service.calculateRiskScore('vessel-1', testRefDate);
     expect(result.breakdown.find((b) => b.category === 'Inspection History')?.points).toBe(20);
+  });
+
+  it('should return points for data incomplete if manning check fails', async () => {
+    jest.spyOn(crewService, 'getRoster').mockRejectedValue(new Error('Prisma Error'));
+
+    const result = await service.calculateRiskScore('vessel-1', testRefDate);
+    expect(result.breakdown.find((b) => b.category === 'Safe Manning')?.points).toBe(10);
+  });
+
+  it('should be deterministic based on referenceDate', async () => {
+    // Cert expires on 2026-04-10
+    // At 2026-04-11, it should be expired (50 pts)
+    const futureDate = new Date('2026-04-11');
+    const result = await service.calculateRiskScore('vessel-1', futureDate);
+    expect(result.breakdown.find((b) => b.category === 'Certifications')?.points).toBe(50);
   });
 });

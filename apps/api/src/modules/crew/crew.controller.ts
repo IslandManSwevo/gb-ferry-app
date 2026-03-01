@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { BridgeSyncInterceptor } from '../bridge-sync/bridge-sync.interceptor';
 import { CrewService } from './crew.service';
 
 @ApiTags('crew')
@@ -16,6 +17,7 @@ export class CrewController {
   }
 
   @Get()
+  @UseInterceptors(BridgeSyncInterceptor)
   @ApiOperation({ summary: 'List crew members with filters' })
   @ApiQuery({ name: 'vesselId', required: false })
   @ApiQuery({ name: 'role', required: false })
@@ -30,6 +32,7 @@ export class CrewController {
   }
 
   @Get('roster/:vesselId')
+  @UseInterceptors(BridgeSyncInterceptor)
   @ApiOperation({ summary: 'Get crew roster for a specific vessel' })
   @ApiResponse({ status: 200, description: 'Crew roster with safe manning compliance' })
   async getRoster(@Param('vesselId') vesselId: string): Promise<any> {

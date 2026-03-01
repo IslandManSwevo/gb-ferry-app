@@ -1,9 +1,10 @@
 import { Inspection } from '@gbferry/database';
-import { Body, Controller, Get, Param, Post, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Res, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Roles } from 'nest-keycloak-connect';
 import { AuditService } from '../audit/audit.service';
+import { BridgeSyncInterceptor } from '../bridge-sync/bridge-sync.interceptor';
 import { ComplianceAdapterService } from './compliance-adapter.service';
 import { ComplianceService } from './compliance.service';
 
@@ -31,6 +32,7 @@ export class ComplianceController {
   }
 
   @Get('dashboard')
+  @UseInterceptors(BridgeSyncInterceptor)
   @Roles({ roles: ['realm:compliance_officer', 'realm:admin'] })
   @ApiOperation({ summary: 'Get compliance dashboard overview' })
   @ApiResponse({ status: 200, description: 'Compliance dashboard data' })
