@@ -7,6 +7,7 @@ import { ComplianceModule } from './modules/compliance/compliance.module';
 import { CrewModule } from './modules/crew/crew.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { PscModule } from './modules/psc/psc.module';
 import { VesselsModule } from './modules/vessels/vessels.module';
 
 @Module({
@@ -29,6 +30,7 @@ import { VesselsModule } from './modules/vessels/vessels.module';
     ComplianceModule,
     DocumentsModule,
     AuditModule,
+    PscModule,
   ],
   controllers: [HealthController],
   providers: [],

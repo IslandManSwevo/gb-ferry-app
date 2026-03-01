@@ -33,10 +33,10 @@ We have transitioned from a "Data Management System" to a **Maritime Compliance 
 
 ## 3. Selling Points (The "Why")
 
-1.  **Zero-Penalty Compliance**: Automated validation gates prevent non-compliant crew lists from being transmitted, eliminating major regional fines and vessel detentions.
-2.  **Operational Velocity**: AI-enhanced certification verification reduces manual "Document Review" time by an estimated 50%.
-3.  **Risk Mitigation**: The platform's architecture includes global lockdown and remote bridge override designs, ensuring regulatory control is maintained during degraded link scenarios.
-4.  **Scale Ready**: Designed with a multi-role, multi-region architecture that supports STCW and Port State Control standards across the Caribbean.
+1. **Zero-Penalty Compliance**: Automated validation gates prevent non-compliant crew lists from being transmitted, eliminating major regional fines and vessel detentions.
+2. **Operational Velocity**: AI-enhanced certification verification reduces manual "Document Review" time by an estimated 50%.
+3. **Risk Mitigation**: The platform's architecture includes global lockdown and remote bridge override designs, ensuring regulatory control is maintained during degraded link scenarios.
+4. **Scale Ready**: Designed with a multi-role, multi-region architecture that supports STCW and Port State Control standards across the Caribbean.
 
 ---
 

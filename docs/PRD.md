@@ -64,3 +64,4 @@ The platform provides decision support and reporting automation only. All regula
 - **Phase 1**: Core Crew & Vessel Registry with STCW tracking.
 - **Phase 2**: AI-driven document parsing and multi-region regulatory adapters.
 - **Phase 3**: Live external verification with global seafarer registries (COMPLETE).
+- **Phase 4**: Predictive Compliance Scoring & Offline Operational Resilience.
