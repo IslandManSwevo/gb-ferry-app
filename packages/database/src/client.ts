@@ -52,6 +52,7 @@ export type {
   Inspection,
   InspectionDeficiency,
   MedicalCertificate,
+  PlatformSetting,
   SafeManningRequirement,
   SafeManningRole,
   User,

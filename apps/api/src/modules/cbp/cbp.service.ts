@@ -1,12 +1,8 @@
-import { decryptField, Prisma, PrismaService } from '@gbferry/database';
+import { Prisma, PrismaService } from '@gbferry/database';
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
-import {
-  ACE_GATEWAY,
-  ACECrewPayload,
-  ACEGateway,
-  ACESubmissionResult,
-} from './ace-gateway.interface';
+import { ACE_GATEWAY, ACEGateway, ACESubmissionResult } from './ace-gateway.interface';
+import { CbpTransformer } from './cbp-transformer.service';
 
 // Define focused type for Vessel with Crew for CBP submission
 type VesselWithCrew = Prisma.VesselGetPayload<{
@@ -24,6 +20,7 @@ export class CBPService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly cbpTransformer: CbpTransformer,
     @Inject(ACE_GATEWAY) private readonly aceGateway: ACEGateway
   ) {}
 
@@ -54,8 +51,8 @@ export class CBPService {
       throw new NotFoundException(`Vessel ${vesselId} not found`);
     }
 
-    // 2. Transform to CBP Format (Handling PII Decryption)
-    const cbpPayload = this.transformToCbpPayload(vessel);
+    // 2. Transform to CBP Format
+    const cbpPayload = this.cbpTransformer.toAcePayload(vessel);
 
     // 3. Submit via Gateway (Abstracted ACE interaction)
     const result = await this.aceGateway.submitCrewList(cbpPayload, formType);
@@ -89,44 +86,5 @@ export class CBPService {
     });
 
     return result;
-  }
-
-  /**
-   * Internal data transformation logic for CBP
-   */
-  private transformToCbpPayload(vessel: VesselWithCrew): ACECrewPayload {
-    const crew = vessel.crewMembers.map((c) => ({
-      familyName: c.familyName,
-      givenNames: c.givenNames,
-      role: c.role,
-      nationality: c.nationality,
-      dateOfBirth:
-        c.dateOfBirth instanceof Date
-          ? c.dateOfBirth.toISOString().split('T')[0]
-          : String(c.dateOfBirth),
-      travelDocNumber: this.safeDecrypt(c.passportNumber) || '',
-    }));
-
-    return {
-      vesselId: vessel.id,
-      vesselInfo: {
-        name: vessel.name,
-        imoNumber: vessel.imoNumber,
-        callSign: vessel.callSign || undefined,
-        flag: vessel.flagState,
-      },
-      crew,
-      submissionTime: new Date(),
-    };
-  }
-
-  private safeDecrypt(value: string | null | undefined): string | null {
-    if (!value) return null;
-    try {
-      return decryptField(value);
-    } catch (e: any) {
-      this.logger.warn(`Decryption failed during CBP transformation: ${e.message}`);
-      return null;
-    }
   }
 }

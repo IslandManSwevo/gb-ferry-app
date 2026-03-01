@@ -216,6 +216,25 @@ export const api = {
       endDate?: string;
     }) => fetchWithAuth<PaginatedResponse<any>>('/audit', { params }),
   },
+
+  // CBP Regulatory
+  cbp: {
+    submitCrewList: (vesselId: string, formType: 'I_418' | 'eNOAD') =>
+      fetchWithAuth<any>(`/cbp/vessel/${vesselId}/submit-crew-list`, {
+        method: 'POST',
+        body: JSON.stringify({ formType }),
+      }),
+    submissions: (params?: { vesselId?: string }) =>
+      fetchWithAuth<any[]>('/cbp/submissions', { params }),
+  },
+
+  // Fleet Analytics
+  fleetAnalytics: {
+    trends: (months?: number) =>
+      fetchWithAuth<any>('/fleet-analytics/trends', { params: { months } }),
+    vesselScores: () => fetchWithAuth<any[]>('/fleet-analytics/vessel-scores'),
+    forecast: () => fetchWithAuth<any>('/fleet-analytics/forecast'),
+  },
 };
 
 export default api;

@@ -3,15 +3,17 @@
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { api } from '@/lib/api';
-import { FileTextOutlined, UploadOutlined } from '@ant-design/icons';
+import { FileTextOutlined, UploadOutlined, SafetyCertificateOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
+  Col,
   DatePicker,
   Form,
   Input,
   Layout,
   Modal,
+  Row,
   Select,
   Space,
   Table,
@@ -24,7 +26,7 @@ import dayjs from 'dayjs';
 import { useEffect, useMemo, useState } from 'react';
 
 const { Content } = Layout;
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { Dragger } = Upload;
 
 interface DocumentRow {
@@ -39,10 +41,10 @@ interface DocumentRow {
 }
 
 const statusColor: Record<string, string> = {
-  VALID: 'green',
-  EXPIRING: 'orange',
-  EXPIRED: 'red',
-  PENDING_REVIEW: 'blue',
+  VALID: 'success',
+  EXPIRING: 'warning',
+  EXPIRED: 'error',
+  PENDING_REVIEW: 'processing',
 };
 
 export default function VesselDocumentsPage() {
@@ -70,8 +72,8 @@ export default function VesselDocumentsPage() {
         key: 'title',
         render: (text: string, record: DocumentRow) => (
           <Space direction="vertical" size={0}>
-            <Text strong>{text}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
+            <Text strong style={{ color: '#fff' }}>{text}</Text>
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
               {record.fileName}
             </Text>
           </Space>
@@ -81,17 +83,17 @@ export default function VesselDocumentsPage() {
         title: 'Type',
         dataIndex: 'type',
         key: 'type',
-      },
-      {
-        title: 'Vessel ID',
-        dataIndex: 'vesselId',
-        key: 'vesselId',
+        render: (type: string) => <Text style={{ color: '#e6f7ff' }}>{type}</Text>,
       },
       {
         title: 'Expiry',
         dataIndex: 'expiryDate',
         key: 'expiryDate',
-        render: (value?: string) => (value ? dayjs(value).format('YYYY-MM-DD') : '—'),
+        render: (value?: string) => (
+          <Text style={{ color: value ? '#fff' : 'rgba(255,255,255,0.25)' }}>
+            {value ? dayjs(value).format('YYYY-MM-DD') : '—'}
+          </Text>
+        ),
       },
       {
         title: 'Status',
@@ -186,36 +188,44 @@ export default function VesselDocumentsPage() {
       <AppSidebar />
       <Layout>
         <AppHeader />
-        <Content style={{ margin: '24px', padding: '24px', background: '#f0f2f5' }}>
-          <Card>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 24,
-              }}
-            >
-              <div>
-                <Title level={3} style={{ margin: 0 }}>
-                  <FileTextOutlined style={{ marginRight: 12 }} />
-                  Vessel Documents
-                </Title>
-                <Text type="secondary">
-                  Uploads run through server-side metadata extraction and are audited.
-                </Text>
-              </div>
-              <Button type="primary" icon={<UploadOutlined />} onClick={() => setUploadOpen(true)}>
+        <Content
+          style={{
+            margin: '24px',
+            padding: '24px',
+            background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
+            minHeight: 'calc(100vh - 64px - 48px)',
+          }}
+        >
+          <Row justify="space-between" align="middle" style={{ marginBottom: 32 }}>
+            <Col>
+              <Title level={2} style={{ color: '#fff', margin: 0 }}>
+                <FileTextOutlined style={{ marginRight: 12, color: '#1890ff' }} />
+                Vessel Document Registry
+              </Title>
+              <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
+                Immutable storage for BMA R102-R106 certificates and ship's library.
+              </Text>
+            </Col>
+            <Col>
+              <Button type="primary" icon={<UploadOutlined />} size="large" onClick={() => setUploadOpen(true)}>
                 Upload Document
               </Button>
-            </div>
+            </Col>
+          </Row>
 
-            <Space style={{ marginBottom: 16 }} wrap>
+          <Card
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+            headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            <Space style={{ marginBottom: 24 }} wrap>
               <Input.Search
                 allowClear
                 placeholder="Search title/type/description"
                 onSearch={(v) => handleFilterChange('q', v || undefined)}
-                style={{ width: 260 }}
+                style={{ width: 300 }}
               />
               <Select
                 allowClear
@@ -229,12 +239,7 @@ export default function VesselDocumentsPage() {
                   { label: 'Pending Review', value: 'PENDING_REVIEW' },
                 ]}
               />
-              <Input
-                allowClear
-                placeholder="Vessel ID"
-                style={{ width: 200 }}
-                onChange={(e) => handleFilterChange('vesselId', e.target.value || undefined)}
-              />
+              <Tag color="blue" icon={<SafetyCertificateOutlined />}>AI EXTRACTION ENABLED</Tag>
             </Space>
 
             <Table
@@ -242,55 +247,108 @@ export default function VesselDocumentsPage() {
               columns={columns}
               dataSource={data}
               loading={loading}
-              pagination={{ current: page, pageSize, total, showSizeChanger: true }}
+              pagination={{ 
+                current: page, 
+                pageSize, 
+                total, 
+                showSizeChanger: true,
+                showTotal: (total) => `Total ${total} documents` 
+              }}
               onChange={handleTableChange}
+              className="maritime-table"
             />
           </Card>
+
+          <style jsx global>{`
+            .maritime-table .ant-table {
+              background: transparent !important;
+              color: #e6f7ff !important;
+            }
+            .maritime-table .ant-table-thead > tr > th {
+              background: rgba(255, 255, 255, 0.05) !important;
+              color: rgba(255, 255, 255, 0.85) !important;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+            }
+            .maritime-table .ant-table-tbody > tr > td {
+              border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            }
+            .maritime-table .ant-table-tbody > tr:hover > td {
+              background: rgba(255, 255, 255, 0.02) !important;
+            }
+            .ant-input-search .ant-input, .ant-select-selector {
+              background: rgba(255, 255, 255, 0.05) !important;
+              border: 1px solid rgba(255, 255, 255, 0.1) !important;
+              color: #fff !important;
+            }
+            .ant-input {
+               background: transparent !important;
+               color: #fff !important;
+            }
+          `}</style>
         </Content>
       </Layout>
 
       <Modal
-        title="Upload vessel document"
+        title="Upload Vessel Document"
         open={uploadOpen}
         onCancel={() => setUploadOpen(false)}
         onOk={submitUpload}
         confirmLoading={uploading}
-        okText="Upload"
+        okText="Upload to Cloud"
+        width={600}
+        styles={{
+          body: { background: '#0c2f4a', color: '#fff' },
+          mask: { backdropFilter: 'blur(4px)' },
+        }}
       >
         <Form layout="vertical" form={form} initialValues={{ documentType: undefined }}>
           <Form.Item
             name="name"
-            label="Document name"
+            label={<Text style={{ color: '#e6f7ff' }}>Document Name</Text>}
             rules={[{ required: true, message: 'Enter a document name' }]}
           >
             <Input placeholder="e.g., Safe Manning Certificate" />
           </Form.Item>
-          <Form.Item
-            name="vesselId"
-            label="Vessel ID"
-            rules={[{ required: true, message: 'Enter vessel id' }]}
-          >
-            <Input placeholder="UUID" />
-          </Form.Item>
-          <Form.Item name="documentType" label="Document type">
-            <Input placeholder="Optional type override" />
-          </Form.Item>
-          <Form.Item name="expiryDate" label="Expiry date">
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="metadata" label="Metadata (JSON object)">
-            <Input.TextArea
-              placeholder='{"comment":"optional"}'
-              autoSize={{ minRows: 2, maxRows: 4 }}
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="vesselId"
+                label={<Text style={{ color: '#e6f7ff' }}>Vessel ID</Text>}
+                rules={[{ required: true, message: 'Enter vessel id' }]}
+              >
+                <Input placeholder="Vessel UUID" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+               <Form.Item name="expiryDate" label={<Text style={{ color: '#e6f7ff' }}>Expiry Date</Text>}>
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item name="documentType" label={<Text style={{ color: '#e6f7ff' }}>Document Type</Text>}>
+            <Select 
+               placeholder="Select category"
+               options={[
+                  { label: 'Registry Certificate (R102)', value: 'R102' },
+                  { label: 'Safe Manning (R106)', value: 'R106' },
+                  { label: 'Radio License', value: 'RADIO_LICENSE' },
+                  { label: 'Classification Certificate', value: 'CLASS_CERT' },
+                  { label: 'Other Regulatory', value: 'OTHER' },
+               ]}
             />
           </Form.Item>
-          <Form.Item label="File" required>
-            <Dragger {...uploadProps} accept="application/pdf">
+
+          <Form.Item label={<Text style={{ color: '#e6f7ff' }}>Document File (PDF)</Text>} required>
+            <Dragger {...uploadProps} accept="application/pdf" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.2)' }}>
               <p className="ant-upload-drag-icon">
-                <UploadOutlined />
+                <UploadOutlined style={{ color: '#1890ff' }} />
               </p>
-              <p className="ant-upload-text">Drop a PDF or click to browse</p>
-              <p className="ant-upload-hint">Server will extract metadata and audit the upload.</p>
+              <p className="ant-upload-text" style={{ color: '#fff' }}>Drop PDF or Click to Browse</p>
+              <p className="ant-upload-hint" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                AI will automatically extract dates and document numbers for verification.
+              </p>
             </Dragger>
           </Form.Item>
         </Form>

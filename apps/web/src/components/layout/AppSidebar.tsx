@@ -47,6 +47,7 @@ const FEATURE_MAP: Record<string, string> = {
   '/vessels': 'vessels.view',
   '/compliance/exports': 'compliance.export',
   '/compliance/reports': 'compliance.reports',
+  '/compliance/fleet': 'compliance.dashboard',
   '/compliance/inspections': 'inspections.manage',
   '/audit': 'audit.view',
   '/settings': 'settings.view',
@@ -93,6 +94,7 @@ const menuItems: MenuItem[] = [
     icon: <SafetyCertificateOutlined />,
     label: 'Inspections & Audit',
     children: [
+      { key: '/compliance/fleet', label: 'Fleet Performance' },
       { key: '/compliance/reports', label: 'Compliance Reports' },
       { key: '/compliance/inspections', label: 'Inspection Readiness' },
       { key: '/audit', label: 'Audit Log' },
@@ -154,7 +156,7 @@ function findOpenKeys(pathname: string): string[] {
       key: 'fleet-management',
       matchers: ['/vessels', '/vessels/documents', '/compliance/exports'],
     },
-    { key: 'regulatory', matchers: ['/compliance/reports', '/compliance/inspections', '/audit'] },
+    { key: 'regulatory', matchers: ['/compliance/fleet', '/compliance/reports', '/compliance/inspections', '/audit'] },
     { key: 'system-management', matchers: ['/settings'] },
   ];
 

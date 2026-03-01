@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuditModule } from '../audit/audit.module';
 import { DatabaseModule } from '../database/database.module';
 import { ACE_GATEWAY } from './ace-gateway.interface';
+import { CbpTransformer } from './cbp-transformer.service';
 import { CBPController } from './cbp.controller';
 import { CBPService } from './cbp.service';
 import { EnoAdGateway } from './enoad.gateway';
@@ -13,6 +14,7 @@ import { MockACEGateway } from './mock-ace.gateway';
   controllers: [CBPController],
   providers: [
     CBPService,
+    CbpTransformer,
     {
       provide: ACE_GATEWAY,
       useFactory: (configService: ConfigService) => {

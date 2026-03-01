@@ -20,6 +20,7 @@ const ALLOWED_PATHS: RegExp[] = [
   /^crew(\/.*)?$/,
   /^vessels(\/.*)?$/,
   /^compliance(\/.*)?$/,
+  /^fleet-analytics(\/.*)?$/,
   /^cbp(\/.*)?$/,
   /^audit(\/.*)?$/,
 ];
@@ -39,9 +40,14 @@ const ACCESS_RULES: AccessRule[] = [
   { path: /^health$/, methods: ['GET'] },
 
   // CBP / Regulatory Submissions
-  { path: /^cbp\/submit\/[^/]+$/, methods: ['POST'], feature: 'cbp.submit' },
+  { path: /^cbp\/vessel\/[^/]+\/submit-crew-list$/, methods: ['POST'], feature: 'cbp.submit' },
   { path: /^cbp\/submissions$/, methods: ['GET'], feature: 'cbp.view' },
   { path: /^cbp\/submissions\/[^/]+$/, methods: ['GET'], feature: 'cbp.view' },
+
+  // Fleet Analytics
+  { path: /^fleet-analytics\/trends$/, methods: ['GET'], feature: 'compliance.dashboard' },
+  { path: /^fleet-analytics\/vessel-scores$/, methods: ['GET'], feature: 'compliance.dashboard' },
+  { path: /^fleet-analytics\/forecast$/, methods: ['GET'], feature: 'compliance.dashboard' },
 
   // Crew
   { path: /^crew$/, methods: ['GET'], feature: 'crew.view' },

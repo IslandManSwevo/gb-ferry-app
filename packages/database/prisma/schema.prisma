@@ -660,3 +660,24 @@ model ExportHistory {
   @@index([exportedAt])
   @@map("export_history")
 }
+
+// ============================================
+// PLATFORM SETTINGS
+// ============================================
+
+// Typed key/value configuration store.
+// group + key is unique — one row per config slot.
+// value is stored as Json to support strings, numbers, booleans, and arrays.
+model PlatformSetting {
+  id          String   @id @default(uuid())
+  group       String   // 'org' | 'compliance' | 'cbp' | 'notifications'
+  key         String
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?  // userId who last changed this
+
+  @@unique([group, key])
+  @@index([group])
+  @@map("platform_settings")
+}

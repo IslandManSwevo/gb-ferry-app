@@ -4,12 +4,14 @@ import { HealthController } from './health.controller';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BridgeSyncModule } from './modules/bridge-sync/bridge-sync.module';
+import { CBPModule } from './modules/cbp/cbp.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
 import { CrewModule } from './modules/crew/crew.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { FleetAnalyticsModule } from './modules/fleet-analytics/fleet-analytics.module';
 import { PscModule } from './modules/psc/psc.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import { VesselsModule } from './modules/vessels/vessels.module';
 
 @Module({
@@ -30,11 +32,13 @@ import { VesselsModule } from './modules/vessels/vessels.module';
     CrewModule,
     VesselsModule,
     ComplianceModule,
+    CBPModule,
     DocumentsModule,
     AuditModule,
     PscModule,
     BridgeSyncModule,
     FleetAnalyticsModule,
+    SettingsModule,
   ],
   controllers: [HealthController],
   providers: [],
