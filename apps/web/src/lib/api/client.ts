@@ -208,7 +208,7 @@ export const api = {
   audit: {
     list: (params?: {
       page?: number;
-      pageSize?: number;
+      limit?: number;
       entityType?: string;
       action?: string;
       userId?: string;

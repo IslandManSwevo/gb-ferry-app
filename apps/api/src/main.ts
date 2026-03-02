@@ -1,8 +1,11 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as dotenv from 'dotenv';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+
+dotenv.config();
 
 function validateEncryptionKey() {
   const key = process.env.ENCRYPTION_KEY;

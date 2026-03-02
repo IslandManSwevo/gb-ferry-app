@@ -46,20 +46,9 @@ export default function CBPCompliancePage() {
   );
   const vessels = vesselData ?? [];
 
-  const MOCK_SUBMISSIONS = [
-    {
-      id: '1',
-      vessel: { name: 'Grand Bahama Express' },
-      formType: 'I_418',
-      status: 'SUBMITTED',
-      transmissionId: 'ACE-992834-X',
-      submittedAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ];
-
-  const { data: submissions = MOCK_SUBMISSIONS, mutate: mutateSubmissions } = useSWR(
+  const { data: submissions = [], mutate: mutateSubmissions } = useSWR(
     'cbp/submissions',
-    () => api.cbp.submissions().then((r) => r.data || MOCK_SUBMISSIONS)
+    () => api.cbp.submissions().then((r) => r.data || [])
   );
 
   const handleSubmit = async () => {

@@ -68,6 +68,7 @@ export default function DashboardPage() {
   const canManageCrew = useCanAccess('crew.manage');
   const canExportCompliance = useCanAccess('compliance.export');
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Mock next departure for readiness overview
@@ -95,15 +96,40 @@ export default function DashboardPage() {
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
-    const response = await api.compliance.dashboard();
+    const [dashRes, auditRes] = await Promise.all([
+      api.compliance.dashboard(),
+      api.audit.list({ limit: 5 }),
+    ]);
 
-    if (response.error) {
-      message.error(response.error || 'Failed to sync live dashboard data: API Error');
-    } else if (response.data) {
-      setDashboard(response.data);
+    if (dashRes.error) {
+      message.error(dashRes.error || 'Failed to sync live dashboard data: API Error');
+    } else if (dashRes.data) {
+      setDashboard(dashRes.data);
+    }
+
+    if (auditRes.data) {
+      setEvents(auditRes.data.items || []);
     }
     setLoading(false);
   }, []);
+
+  const getEventColor = (action: string) => {
+    if (action.includes('CREATE')) return '#52c41a';
+    if (action.includes('UPDATE')) return '#1890ff';
+    if (action.includes('DELETE') || action.includes('REVOKE')) return '#ff4d4f';
+    if (action.includes('CBP') || action.includes('SUBMIT')) return '#ffa940';
+    return '#1890ff';
+  };
+
+  const formatEventTime = (timestamp: string) => {
+    const diff = Date.now() - new Date(timestamp).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return new Date(timestamp).toLocaleDateString();
+  };
 
   useEffect(() => {
     fetchDashboard();
@@ -429,50 +455,47 @@ export default function DashboardPage() {
                   Compliance Event Stream
                 </Title>
                 <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {[
-                    {
-                      type: 'PSC INSPECTION',
-                      time: '10 min ago',
-                      msg: 'USCG Cleared boarding on Spirit of Freeport, zero deficiencies.',
-                      color: '#52c41a',
-                    },
-                    {
-                      type: 'CERTIFICATION',
-                      time: '45 min ago',
-                      msg: 'Updated Medical Certificate for Captain A. Smith',
-                      color: '#1890ff',
-                    },
-                    {
-                      type: 'CBP SUBMISSION',
-                      time: '1 hr ago',
-                      msg: 'I-418 Crew List successfully sent for Voyage #GR-402',
-                      color: '#ffa940',
-                    },
-                    {
-                      type: 'ALERT',
-                      time: '2 hrs ago',
-                      msg: 'Chief Engineer BMA Endorsement expiring in 5 days',
-                      color: '#ff4d4f',
-                    },
-                  ].map((item, idx) => (
-                    <div key={idx} style={{ marginBottom: '20px', display: 'flex', gap: '12px' }}>
-                      <div style={{ width: '4px', background: item.color, borderRadius: '2px' }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Text
-                            strong
-                            style={{ color: item.color, fontSize: '11px', letterSpacing: '0.5px' }}
-                          >
-                            {item.type}
-                          </Text>
-                          <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: '10px' }}>
-                            {item.time}
+                  {events.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.25)' }}>No recent activity</Text>
+                    </div>
+                  ) : (
+                    events.map((event, idx) => (
+                      <div
+                        key={event.id || idx}
+                        style={{ marginBottom: '20px', display: 'flex', gap: '12px' }}
+                      >
+                        <div
+                          style={{
+                            width: '4px',
+                            background: getEventColor(event.action),
+                            borderRadius: '2px',
+                          }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Text
+                              strong
+                              style={{
+                                color: getEventColor(event.action),
+                                fontSize: '11px',
+                                letterSpacing: '0.5px',
+                              }}
+                            >
+                              {event.action.replace(/_/g, ' ')}
+                            </Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: '10px' }}>
+                              {formatEventTime(event.timestamp)}
+                            </Text>
+                          </div>
+                          <Text style={{ color: '#e6f7ff', fontSize: '13px' }}>
+                            {event.actionDescription ||
+                              `${event.userName} performed ${event.action}`}
                           </Text>
                         </div>
-                        <Text style={{ color: '#e6f7ff', fontSize: '13px' }}>{item.msg}</Text>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
                 <Button
                   block

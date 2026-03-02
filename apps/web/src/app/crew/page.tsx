@@ -18,11 +18,14 @@ import {
   Avatar,
   Button,
   Col,
+  DatePicker,
+  Form,
   Input,
   Layout,
   Modal,
   Progress,
   Row,
+  Select,
   Space,
   Table,
   Tag,
@@ -37,17 +40,22 @@ const { Title, Text } = Typography;
 export default function CrewPage() {
   const canAccessPage = useCanAccess('crew.view');
   const [crew, setCrew] = useState<any[]>([]);
+  const [vessels, setVessels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [selectedCrew, setSelectedCrew] = useState<any | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [dashboard, setDashboard] = useState<any | null>(null);
+  const [form] = Form.useForm();
 
   const fetchCrew = useCallback(async () => {
     setLoading(true);
-    const [crewResult, dashResult] = await Promise.all([
+    const [crewResult, dashResult, vesselResult] = await Promise.all([
       api.crew.list(),
       api.compliance.dashboard(),
+      api.vessels.list({ pageSize: 100 }),
     ]);
     if (crewResult.error) {
       message.error('Failed to load crew registry');
@@ -57,12 +65,42 @@ export default function CrewPage() {
     if (dashResult.data) {
       setDashboard(dashResult.data);
     }
+    if (vesselResult.data) {
+      setVessels(vesselResult.data.items || []);
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => {
     fetchCrew();
   }, [fetchCrew]);
+
+  const handleOnboard = async () => {
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      
+      const payload = {
+        ...values,
+        dateOfBirth: values.dateOfBirth.format('YYYY-MM-DD'),
+        passportExpiryDate: values.passportExpiryDate.format('YYYY-MM-DD'),
+      };
+
+      const { error } = await api.crew.create(payload);
+      if (error) {
+        message.error(error || 'Failed to onboard crew member');
+      } else {
+        message.success('Crew member onboarded successfully');
+        setIsOnboardModalOpen(false);
+        form.resetFields();
+        fetchCrew();
+      }
+    } catch (err) {
+      // Validation error
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (!canAccessPage) {
     return (
@@ -251,7 +289,12 @@ export default function CrewPage() {
               </Text>
             </Col>
             <Col>
-              <Button type="primary" icon={<PlusOutlined />} size="large">
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                size="large"
+                onClick={() => setIsOnboardModalOpen(true)}
+              >
                 Onboard New Crew
               </Button>
             </Col>
@@ -377,6 +420,166 @@ export default function CrewPage() {
           </GlassCard>
         </Content>
       </Layout>
+
+      {/* Onboard Modal */}
+      <Modal
+        title="Onboard New Crew Member"
+        open={isOnboardModalOpen}
+        onOk={handleOnboard}
+        onCancel={() => setIsOnboardModalOpen(false)}
+        confirmLoading={submitting}
+        width={800}
+        styles={{
+          body: { background: '#0c2f4a', color: '#fff', padding: '24px' },
+          mask: { backdropFilter: 'blur(4px)' },
+        }}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{
+            gender: 'MALE',
+            role: 'DECK_OFFICER',
+            nationality: 'Bahamian',
+            passportIssuingCountry: 'BHS',
+          }}
+        >
+          <Row gutter={24}>
+            <Col span={12}>
+              <Form.Item
+                name="givenNames"
+                label={<Text style={{ color: '#e6f7ff' }}>Given Names</Text>}
+                rules={[{ required: true, message: 'First names are required' }]}
+              >
+                <Input placeholder="e.g. John Albert" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="familyName"
+                label={<Text style={{ color: '#e6f7ff' }}>Family Name</Text>}
+                rules={[{ required: true, message: 'Last name is required' }]}
+              >
+                <Input placeholder="e.g. Smith" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={24}>
+            <Col span={8}>
+              <Form.Item
+                name="dateOfBirth"
+                label={<Text style={{ color: '#e6f7ff' }}>Date of Birth</Text>}
+                rules={[{ required: true }]}
+              >
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="nationality"
+                label={<Text style={{ color: '#e6f7ff' }}>Nationality</Text>}
+                rules={[{ required: true }]}
+              >
+                <Input placeholder="e.g. Bahamian" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="gender"
+                label={<Text style={{ color: '#e6f7ff' }}>Gender</Text>}
+                rules={[{ required: true }]}
+              >
+                <Select
+                  options={[
+                    { label: 'Male', value: 'MALE' },
+                    { label: 'Female', value: 'FEMALE' },
+                    { label: 'Other', value: 'OTHER' },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider style={{ borderColor: 'rgba(255,255,255,0.1)' }}>TRAVEL DOCUMENTS</Divider>
+
+          <Row gutter={24}>
+            <Col span={12}>
+              <Form.Item
+                name="passportNumber"
+                label={<Text style={{ color: '#e6f7ff' }}>Passport Number</Text>}
+                rules={[{ required: true }]}
+              >
+                <Input placeholder="e.g. P1234567" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="passportExpiryDate"
+                label={<Text style={{ color: '#e6f7ff' }}>Passport Expiry</Text>}
+                rules={[{ required: true }]}
+              >
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={24}>
+            <Col span={12}>
+              <Form.Item
+                name="seamanBookNumber"
+                label={<Text style={{ color: '#e6f7ff' }}>Seaman Book No.</Text>}
+              >
+                <Input placeholder="e.g. SB998877" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="passportIssuingCountry"
+                label={<Text style={{ color: '#e6f7ff' }}>Issuing Country (ISO)</Text>}
+              >
+                <Input placeholder="BHS" maxLength={3} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider style={{ borderColor: 'rgba(255,255,255,0.1)' }}>ASSIGNMENT</Divider>
+
+          <Row gutter={24}>
+            <Col span={12}>
+              <Form.Item
+                name="role"
+                label={<Text style={{ color: '#e6f7ff' }}>Rank / Role</Text>}
+                rules={[{ required: true }]}
+              >
+                <Select
+                  options={[
+                    { label: 'Master / Captain', value: 'MASTER' },
+                    { label: 'Chief Officer', value: 'CHIEF_OFFICER' },
+                    { label: 'Deck Officer', value: 'DECK_OFFICER' },
+                    { label: 'Chief Engineer', value: 'CHIEF_ENGINEER' },
+                    { label: 'Engineer Officer', value: 'ENGINEER_OFFICER' },
+                    { label: 'Rating', value: 'RATING' },
+                    { label: 'Cook / Steward', value: 'COOK_STEWARD' },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="vesselId"
+                label={<Text style={{ color: '#e6f7ff' }}>Assign to Vessel</Text>}
+              >
+                <Select
+                  placeholder="Select vessel"
+                  allowClear
+                  options={vessels.map((v) => ({ label: v.name, value: v.id }))}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
 
       {/* Contact Modal */}
       <Modal

@@ -1,0 +1,26 @@
+﻿[32m[Nest] 22436  - [39m03/01/2026, 5:09:46 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDatabaseModule dependencies initialized[39m[38;5;3m +30ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mHttpModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBridgeSyncModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mFleetAnalyticsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuditModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mEventEmitterModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +6ms[39m
+[33m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [33m   WARN[39m [38;5;3m[KeycloakConnectModule] [39m[33mOption 'logLevels' will be deprecated in the future. It is recommended to override or extend NestJS logger instead.[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[VerificationService] [39m[32mVerificationService initialized with 1 gateway(s)[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mVesselsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mKeycloakConnectModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPscModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCBPModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mComplianceModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSettingsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCrewModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 22436  - [39m03/01/2026, 5:09:47 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDocumentsModule dependencies initialized[39m[38;5;3m +0ms[39m
