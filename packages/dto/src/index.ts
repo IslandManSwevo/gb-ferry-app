@@ -3,6 +3,7 @@ export * from './cbp-crew';
 export * from './certification';
 export * from './common';
 export * from './compliance';
-export * from './crew';
 export * from './document';
+export * from './stcw-hierarchy';
 export * from './vessel';
+export * from './vessel-msmd';

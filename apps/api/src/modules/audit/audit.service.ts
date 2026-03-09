@@ -1,5 +1,5 @@
 import { PrismaService } from '@gbferry/database';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 interface AuditLogFilters {
   entityType?: string;
@@ -12,20 +12,10 @@ interface AuditLogFilters {
   limit: number;
 }
 
-/**
- * Audit Service
- *
- * Provides immutable, append-only audit logging for regulatory compliance.
- * All sensitive operations (data access, modifications, exports) are logged.
- *
- * Key features:
- * - Append-only storage (records cannot be modified or deleted)
- * - Captures: who, what, when, where (IP), and why (if provided)
- * - Special tracking for data exports (regulator visibility)
- * - Retention policy alignment with Bahamas Data Protection Act
- */
 @Injectable()
 export class AuditService {
+  private readonly logger = new Logger(AuditService.name);
+
   constructor(private prisma: PrismaService) {}
 
   private getPrimaryRole(roles?: string[]): string {
@@ -33,10 +23,6 @@ export class AuditService {
     return roles[0] || 'user';
   }
 
-  /**
-   * Resolve or create an internal User record based on Keycloak subject.
-   * This enables audit log persistence even when users are not pre-seeded.
-   */
   async resolveOrCreateUserFromKeycloak(params: {
     keycloakId: string;
     email?: string;
@@ -59,7 +45,6 @@ export class AuditService {
         const updated = await this.prisma.user.update({
           where: { keycloakId: params.keycloakId },
           data: {
-            // Only overwrite email when we have a real email claim.
             ...(params.email ? { email: params.email } : {}),
             ...(params.firstName ? { firstName: params.firstName } : {}),
             ...(params.lastName ? { lastName: params.lastName } : {}),
@@ -72,8 +57,6 @@ export class AuditService {
         return updated;
       }
 
-      // If the Keycloak subject changed but email stayed the same, re-link.
-      // Only do this when we have a real email claim.
       if (params.email) {
         const existingByEmail = await this.prisma.user.findUnique({
           where: { email: params.email },
@@ -111,8 +94,7 @@ export class AuditService {
 
       return created;
     } catch (error) {
-      // Never fail the main request due to audit mapping.
-      console.error('User mapping from Keycloak failed:', error);
+      this.logger.error('User mapping from Keycloak failed:', error);
       return null;
     }
   }
@@ -135,21 +117,15 @@ export class AuditService {
     reason?: string;
     compliance?: string;
   }): Promise<any> {
-    /**
-     * Append-only audit log creation
-     * IMPORTANT: This table should have no UPDATE or DELETE permissions
-     * All records are immutable after creation
-     *
-     * If no user is found, we resolve or create a SYSTEM user to ensure
-     * every audit entry is persisted to the database (ISO 27001 A.8.15).
-     */
     try {
       const metadata = {
         ...(entry.details || {}),
         ...(entry.compliance ? { compliance: entry.compliance } : {}),
       };
 
-      // Resolve the user for this audit entry
+      // FIX-05: Recursive redaction to prevent PII leakage in deep objects
+      this.redactSensitiveData(metadata);
+
       let resolvedUserId: string;
       let resolvedUserName: string;
       let resolvedUserRole: string;
@@ -164,14 +140,12 @@ export class AuditService {
           resolvedUserName = entry.userName || user.email || 'Unknown';
           resolvedUserRole = entry.userRole || user.role || 'user';
         } else {
-          // User ID provided but not found — use SYSTEM user as fallback
-          const systemUser = await this.resolveSystemUser();
-          resolvedUserId = systemUser.id;
-          resolvedUserName = entry.userName || 'System';
-          resolvedUserRole = entry.userRole || 'system';
+          const unmappedUser = await this.resolveUnmappedUser();
+          resolvedUserId = unmappedUser.id;
+          resolvedUserName = entry.userName || 'Unmapped User';
+          resolvedUserRole = entry.userRole || 'unmapped';
         }
       } else {
-        // No user context — use SYSTEM user
         const systemUser = await this.resolveSystemUser();
         resolvedUserId = systemUser.id;
         resolvedUserName = entry.userName || 'System';
@@ -188,37 +162,81 @@ export class AuditService {
           userId: resolvedUserId,
           userName: resolvedUserName,
           userRole: resolvedUserRole,
-          ipAddress: entry.ipAddress,
-          userAgent: entry.userAgent,
+          ipAddress: entry.ipAddress || 'unknown',
+          userAgent: entry.userAgent || 'unknown',
           previousValue: entry.previousValue,
           newValue: entry.newValue,
           changedFields: entry.changedFields || [],
           reason: entry.reason,
-          metadata,
+          metadata: this.safeMetadata(metadata),
           timestamp: new Date(),
-        } as any,
+        },
       });
       return auditEntry;
     } catch (error) {
-      // Log error but don't fail the main operation
-      console.error('Audit log creation failed:', error);
+      // Audit should not crash the main transaction
+      this.logger.error('Audit log persistence failed:', error);
       return null;
     }
   }
 
   /**
-   * Resolves or creates a deterministic SYSTEM user for audit entries
-   * that originate from background processes, system operations, or
-   * requests where the user context is unavailable.
-   *
-   * Uses a fixed keycloakId to ensure idempotency across restarts.
+   * Returns a sanitized, circular-safe version of the metadata object.
+   * Handles BigInt serialization and prevents Infinite recursion.
    */
+  private safeMetadata(obj: any): any {
+    try {
+      const seen = new WeakSet();
+      const stringified = JSON.stringify(obj, (key, value) => {
+        if (typeof value === 'object' && value !== null) {
+          if (seen.has(value)) return '[Circular]';
+          seen.add(value);
+        }
+        if (typeof value === 'bigint') return value.toString();
+        return value;
+      });
+      return JSON.parse(stringified);
+    } catch (err) {
+      this.logger.warn('Failed to safely stringify metadata, using fallback', err);
+      return { _error: 'Unserializable metadata', _raw: String(obj).slice(0, 500) };
+    }
+  }
+
   private async resolveSystemUser(): Promise<{ id: string; email: string; role: string }> {
     const SYSTEM_KEYCLOAK_ID = 'SYSTEM_AUDIT_USER';
     const SYSTEM_EMAIL = 'system@gbferry.internal';
 
+    return this.findOrCreateAuditUser(
+      SYSTEM_KEYCLOAK_ID,
+      SYSTEM_EMAIL,
+      'System',
+      'Audit',
+      'system'
+    );
+  }
+
+  private async resolveUnmappedUser(): Promise<{ id: string; email: string; role: string }> {
+    const UNMAPPED_KEYCLOAK_ID = 'UNMAPPED_AUDIT_USER';
+    const UNMAPPED_EMAIL = 'unmapped@gbferry.internal';
+
+    return this.findOrCreateAuditUser(
+      UNMAPPED_KEYCLOAK_ID,
+      UNMAPPED_EMAIL,
+      'Unmapped',
+      'User',
+      'unmapped'
+    );
+  }
+
+  private async findOrCreateAuditUser(
+    keycloakId: string,
+    email: string,
+    firstName: string,
+    lastName: string,
+    role: string
+  ): Promise<{ id: string; email: string; role: string }> {
     const existing = await this.prisma.user.findUnique({
-      where: { keycloakId: SYSTEM_KEYCLOAK_ID },
+      where: { keycloakId },
       select: { id: true, email: true, role: true },
     });
 
@@ -226,14 +244,47 @@ export class AuditService {
 
     return this.prisma.user.create({
       data: {
-        keycloakId: SYSTEM_KEYCLOAK_ID,
-        email: SYSTEM_EMAIL,
-        firstName: 'System',
-        lastName: 'Audit',
-        role: 'system',
+        keycloakId,
+        email,
+        firstName,
+        lastName,
+        role,
         isActive: true,
       },
       select: { id: true, email: true, role: true },
+    });
+  }
+
+  /**
+   * Recursively redacts sensitive keys from an object.
+   * Protects against circular references via WeakSet.
+   * Only iterates own properties using Object.keys.
+   */
+  private redactSensitiveData(obj: any, visited = new WeakSet()): void {
+    if (!obj || typeof obj !== 'object') return;
+    if (visited.has(obj)) return;
+
+    visited.add(obj);
+
+    const sensitiveKeys = [
+      'passportNumber',
+      'visaNumber',
+      'alienRegistrationNumber',
+      'password',
+      'token',
+      'secret',
+      'ssn',
+      'dob',
+      'dateOfBirth',
+    ];
+
+    Object.keys(obj).forEach((key) => {
+      const val = obj[key];
+      if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))) {
+        obj[key] = '***REDACTED***';
+      } else if (val && typeof val === 'object') {
+        this.redactSensitiveData(val, visited);
+      }
     });
   }
 
@@ -244,25 +295,15 @@ export class AuditService {
     userAgent?: string;
     reason?: string;
   }): Promise<any> {
-    /**
-     * Logs failed authentication attempts for security monitoring and detection.
-     * Delegates to this.log to persist the audit entry.
-     * @param params.userId Optional internal user id associated with the failure.
-     * @param params.userName Optional user name or identifier from the auth provider.
-     * @param params.ipAddress Source IP address of the request.
-     * @param params.userAgent User agent string from the client.
-     * @param params.reason Reason or error message describing the failure.
-     * @returns Promise resolving to the created audit record (or null on failure).
-     */
     return this.log({
       action: 'FAILED_LOGIN',
       entityType: 'auth',
       userId: params.userId,
       userName: params.userName,
-      ipAddress: params.ipAddress,
-      userAgent: params.userAgent,
+      ipAddress: params.ipAddress || 'unknown',
+      userAgent: params.userAgent || 'unknown',
       reason: params.reason,
-      compliance: 'Authentication failure logged for security monitoring',
+      compliance: 'Authentication failure logged for security monitoring (Audit-Ready)',
     });
   }
 
@@ -276,19 +317,6 @@ export class AuditService {
     reason?: string;
     details?: any;
   }): Promise<any> {
-    /**
-     * Records data export events for regulator visibility and audit traceability.
-     * Delegates to this.log to persist the audit entry.
-     * @param params.entityType The domain entity being exported (e.g., Manifest).
-     * @param params.entityId Optional identifier of the exported entity.
-     * @param params.userId Optional internal user id performing the export.
-     * @param params.userName Optional user name from the auth context.
-     * @param params.ipAddress Source IP address of the export request.
-     * @param params.userAgent User agent string from the client.
-     * @param params.reason Optional reason or context for the export.
-     * @param params.details Optional additional metadata describing the export.
-     * @returns Promise resolving to the created audit record (or null on failure).
-     */
     return this.log({
       action: 'DATA_EXPORT',
       entityType: params.entityType,
@@ -352,10 +380,6 @@ export class AuditService {
   }
 
   async getExportHistory(): Promise<any> {
-    /**
-     * Shows all data exports (manifests, crew packs, etc.)
-     * Critical for regulator review
-     */
     const exports = await this.prisma.auditLog.findMany({
       where: {
         action: {
@@ -373,10 +397,6 @@ export class AuditService {
   }
 
   async getEntityHistory(entityType: string, entityId: string): Promise<any> {
-    /**
-     * Returns complete audit trail for a specific entity
-     * Shows all modifications, accesses, and related actions
-     */
     const history = await this.prisma.auditLog.findMany({
       where: {
         entityType,

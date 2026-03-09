@@ -9,6 +9,8 @@ import { DocumentsController } from './documents.controller';
 import { OpenRouterService } from './openrouter.service';
 import { S3StorageService } from './s3-storage.service';
 
+import { DocumentViewerService } from './document-viewer.service';
+
 @Module({
   imports: [DatabaseModule, AuditModule, HttpModule],
   controllers: [DocumentsController],
@@ -16,6 +18,7 @@ import { S3StorageService } from './s3-storage.service';
     DocumentUploadService,
     DocumentQueryService,
     AIExtractionService,
+    DocumentViewerService,
     S3StorageService,
     OpenRouterService,
     { provide: STORAGE_SERVICE, useExisting: S3StorageService },
@@ -24,6 +27,7 @@ import { S3StorageService } from './s3-storage.service';
     DocumentUploadService,
     DocumentQueryService,
     AIExtractionService,
+    DocumentViewerService,
     S3StorageService,
     STORAGE_SERVICE,
     OpenRouterService,

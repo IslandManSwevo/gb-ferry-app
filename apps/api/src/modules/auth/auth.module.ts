@@ -32,9 +32,6 @@ import { LoggingAuthGuard } from './logging-auth.guard';
 
         // Token validation
         tokenValidation: TokenValidation.ONLINE,
-
-        // Log level
-        logLevels: ['verbose', 'warn', 'error'],
       }),
     }),
   ],

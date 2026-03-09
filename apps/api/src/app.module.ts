@@ -14,6 +14,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { FleetAnalyticsModule } from './modules/fleet-analytics/fleet-analytics.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PscModule } from './modules/psc/psc.module';
+import { SecurityModule } from './modules/security/security.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { UsersModule } from './modules/users/users.module';
 import { VesselsModule } from './modules/vessels/vessels.module';
@@ -37,6 +38,7 @@ import { VesselsModule } from './modules/vessels/vessels.module';
     DatabaseModule,
 
     // Feature modules
+    SecurityModule,
     CrewModule,
     VesselsModule,
     ComplianceModule,

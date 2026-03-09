@@ -6,6 +6,8 @@ import {
   Controller,
   DefaultValuePipe,
   Get,
+  NotFoundException,
+  Param,
   ParseIntPipe,
   Post,
   Query,
@@ -23,11 +25,14 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
+import { Roles } from 'nest-keycloak-connect';
 import { extname } from 'path';
 import { AuditService } from '../audit/audit.service';
 import { CurrentUser, type KeycloakUser } from '../auth/current-user.decorator';
+import { CertificationsService } from '../crew/certifications.service';
 import { DocumentQueryService } from './document-query.service';
 import { DocumentUploadService } from './document-upload.service';
+import { DocumentViewerService } from './document-viewer.service';
 
 interface UploadBody {
   name?: string;
@@ -45,7 +50,9 @@ export class DocumentsController {
   constructor(
     private readonly documentUploadService: DocumentUploadService,
     private readonly auditService: AuditService,
-    private readonly documentQueryService: DocumentQueryService
+    private readonly documentQueryService: DocumentQueryService,
+    private readonly documentViewerService: DocumentViewerService,
+    private readonly certificationsService: CertificationsService
   ) {}
 
   @Post('upload')
@@ -157,6 +164,26 @@ export class DocumentsController {
     );
   }
 
+  @Get('certifications/:id/view')
+  @ApiOperation({ summary: 'Generate a secure, short-lived URL to view a certification document' })
+  @Roles({ roles: ['COMPLIANCE_OFFICER', 'ADMIN', 'SUPERADMIN'] })
+  async viewCertification(
+    @Param('id') certId: string,
+    @CurrentUser() user: KeycloakUser
+  ): Promise<{ url: string; expiresAt: string }> {
+    const cert = await this.certificationsService.findOne(certId);
+    if (!cert) {
+      throw new NotFoundException('Certification not found');
+    }
+
+    const mappedUser = await this.mapUser(user);
+
+    return this.documentViewerService.getSignedViewUrl(cert.documentUrl, mappedUser.id, {
+      entityType: 'certification',
+      entityId: certId,
+    });
+  }
+
   private async mapUser(user?: KeycloakUser) {
     if (!user?.sub) {
       throw new UnauthorizedException('Authenticated user is required');
@@ -201,7 +228,6 @@ export class DocumentsController {
       metadata: this.parseMetadata(body.metadata),
     };
   }
-
 
   private parseMetadata(raw: UploadBody['metadata']): Record<string, any> | undefined {
     if (!raw) return undefined;

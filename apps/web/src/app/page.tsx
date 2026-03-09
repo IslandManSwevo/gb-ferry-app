@@ -1,87 +1,65 @@
 'use client';
 
+import { PriorityStatCard } from '@/components/compliance/PriorityStatCard';
+import { VesselReadinessList } from '@/components/compliance/VesselReadinessList';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { api } from '@/lib/api';
-import { useCanAccess } from '@/lib/auth/roles';
 import {
-  AlertOutlined,
-  CompassOutlined,
   DashboardOutlined,
-  FileProtectOutlined,
   GlobalOutlined,
   ReloadOutlined,
-  SafetyCertificateOutlined,
-  TeamOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
-import {
-  Alert,
-  Button,
-  Col,
-  Divider,
-  Grid,
-  Layout,
-  Progress,
-  Row,
-  Space,
-  Statistic,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { Alert, Button, Col, Grid, Layout, Row, Space, Tag, Typography, message } from 'antd';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
-import { CrewManningIndicator } from '../components/ui/CrewManningIndicator';
-import { DepartureCountdown } from '../components/ui/DepartureCountdown';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GlassCard } from '../components/ui/GlassCard';
-import { StatusBadge } from '../components/ui/StatusBadge';
 import { WeatherWidget } from '../components/ui/WeatherWidget';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
+import { VesselReadiness } from '@/components/compliance/VesselReadinessList';
+
+interface Event {
+  id: string;
+  action: string;
+  timestamp: string;
+  actionDescription?: string;
+  userName?: string;
+}
+
 interface DashboardData {
   summary: {
     totalVessels: number;
     compliantVessels: number;
-    expiringCertifications: number;
     totalCrew: number;
-    upcomingInspections: number;
-    nonCompliantAlertsCount: number;
+    expiringCertifications: number;
+    blockingIssues: number;
+    criticalIssues: number;
   };
+  vessels: VesselReadiness[];
+  alerts: Array<{
+    id: string;
+    severity: 'blocking' | 'critical' | 'warning' | 'info';
+    type: string;
+    title: string;
+    description: string;
+  }>;
   metrics: {
     safeManningCompliance: number;
     certificateValidityRate: number;
     auditTrailCoverage: number;
   };
-  alerts: Array<{
-    id: string;
-    severity: 'critical' | 'warning' | 'info';
-    message: string;
-  }>;
 }
 
 export default function DashboardPage() {
   const router = useRouter();
   const screens = Grid.useBreakpoint();
-  const canManageCrew = useCanAccess('crew.manage');
-  const canExportCompliance = useCanAccess('compliance.export');
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Mock next departure for readiness overview
-  const nextDeparture = {
-    vesselId: '1',
-    departureTime: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
-    route: 'Nassau → Freeport',
-    vesselName: 'Grand Bahama Express',
-    assignedCrew: 22,
-    requiredCrew: 22,
-    complianceStatus: 'ready',
-    weatherStatus: 'clear',
-  };
 
   const weatherSnapshot = {
     location: 'Nassau Harbor',
@@ -96,49 +74,81 @@ export default function DashboardPage() {
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
-    const [dashRes, auditRes] = await Promise.all([
-      api.compliance.dashboard(),
-      api.audit.list({ limit: 5 }),
-    ]);
+    try {
+      const [dashRes, auditRes] = await Promise.all([
+        api.compliance.dashboard(),
+        api.audit.list({ limit: 5 }),
+      ]);
 
-    if (dashRes.error) {
-      message.error(dashRes.error || 'Failed to sync live dashboard data: API Error');
-    } else if (dashRes.data) {
-      setDashboard(dashRes.data);
-    }
+      // FIX-06: Handle dashboard API errors
+      if (dashRes.error) {
+        message.error(dashRes.error || 'Failed to sync live dashboard data');
+      } else if (dashRes.data) {
+        setDashboard(dashRes.data);
+      }
 
-    if (auditRes.data) {
-      setEvents(auditRes.data.items || []);
+      // FIX-06: Handle audit API errors
+      if (auditRes.error) {
+        message.error('Failed to sync recent activity stream');
+      } else if (auditRes.data) {
+        setEvents(auditRes.data.items || []);
+      }
+    } catch (error: any) {
+      // Catch network or unhandled errors
+      message.error('System error occurred while synchronizing data');
+      console.error('Fetch dashboard error:', error);
+    } finally {
+      // FIX-06: Guarantee setLoading(false) runs
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
-  const getEventColor = (action: string) => {
-    if (action.includes('CREATE')) return '#52c41a';
-    if (action.includes('UPDATE')) return '#1890ff';
-    if (action.includes('DELETE') || action.includes('REVOKE')) return '#ff4d4f';
-    if (action.includes('CBP') || action.includes('SUBMIT')) return '#ffa940';
-    return '#1890ff';
-  };
+  // FIX-06: Robust date validation for event time formatting
+  const formatEventTime = (timestamp: string | null | undefined) => {
+    if (!timestamp) return 'Unknown time';
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return 'Unknown time';
 
-  const formatEventTime = (timestamp: string) => {
-    const diff = Date.now() - new Date(timestamp).getTime();
+    const diff = Date.now() - date.getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'Just now';
     if (mins < 60) return `${mins}m ago`;
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return `${hrs}h ago`;
-    return new Date(timestamp).toLocaleDateString();
+    return date.toLocaleDateString();
   };
+
+  const getEventColor = useCallback((action: string = '') => {
+    if (action.includes('CREATE')) return '#52c41a';
+    if (action.includes('UPDATE')) return '#1890ff';
+    if (action.includes('DELETE') || action.includes('REVOKE')) return '#ff4d4f';
+    if (action.includes('CBP') || action.includes('SUBMIT')) return '#ffa940';
+    return '#1890ff';
+  }, []);
+
+  const getComplianceColor = useCallback((severity: string) => {
+    switch (severity) {
+      case 'blocking':
+        return '#ff4d4f';
+      case 'critical':
+        return '#ff7a45';
+      case 'warning':
+        return '#faad14';
+      default:
+        return '#1890ff';
+    }
+  }, []);
+
+  const criticalCertExpiry = useMemo(
+    () => dashboard?.alerts?.filter((a) => a.severity === 'critical').length ?? 0,
+    [dashboard?.alerts]
+  );
+
+  const dashboardVessels = useMemo(() => dashboard?.vessels || [], [dashboard?.vessels]);
 
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
-
-  const criticalAlerts = dashboard?.alerts?.filter((a) => a.severity === 'critical') || [];
-  const expiringCerts = dashboard?.summary?.expiringCertifications ?? 0;
-  const currentCrewCount = dashboard?.summary?.totalCrew ?? 0;
-  const crewReadyPct = dashboard?.metrics?.safeManningCompliance ?? 0;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -195,247 +205,57 @@ export default function DashboardPage() {
             </Col>
           </Row>
 
-          {criticalAlerts.length > 0 && (
-            <Alert
-              message="URGENT: FLEET COMPLIANCE ALERT"
-              description={
-                <ul style={{ margin: 0, paddingLeft: 20 }}>
-                  {criticalAlerts.map((alert) => (
-                    <li key={alert.id}>{alert.message}</li>
-                  ))}
-                </ul>
-              }
-              type="error"
-              icon={<WarningOutlined />}
-              showIcon
-              style={{
-                marginBottom: 24,
-                background: 'rgba(255, 77, 79, 0.1)',
-                border: '1px solid #ff4d4f',
-              }}
-            />
-          )}
+          {dashboard?.alerts
+            ?.filter((a) => ['blocking', 'critical'].includes(a.severity))
+            .map((alert) => (
+              <Alert
+                key={alert.id}
+                message={alert.title}
+                description={alert.description}
+                type={alert.severity === 'blocking' ? 'error' : 'warning'}
+                icon={<WarningOutlined />}
+                showIcon
+                style={{
+                  marginBottom: 16,
+                  background: `${getComplianceColor(alert.severity)}1a`,
+                  border: `1px solid ${getComplianceColor(alert.severity)}`,
+                }}
+              />
+            ))}
 
           <Row gutter={[24, 24]}>
-            <Col xs={24} xl={16}>
-              {/* Next Departure Readiness Hero Section */}
-              <GlassCard
-                style={{
-                  background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
-                  marginBottom: 24,
-                  boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.4)',
-                }}
-              >
-                <Row gutter={[24, 24]} align="middle">
-                  <Col xs={24} md={12}>
-                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                      <Text
-                        style={{
-                          color: 'rgba(255,255,255,0.85)',
-                          fontSize: 13,
-                          fontWeight: 700,
-                          letterSpacing: '1px',
-                        }}
-                      >
-                        NEXT DEPARTURE READINESS
-                      </Text>
-                      <DepartureCountdown
-                        departureTime={nextDeparture.departureTime}
-                        sailingLabel={nextDeparture.route}
-                      />
-                      <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '16px 0' }} />
-                      <Space direction="vertical" size={2}>
-                        <Text style={{ color: '#e6f7ff', fontSize: '16px', fontWeight: 500 }}>
-                          <CompassOutlined style={{ marginRight: 8 }} />
-                          Vessel: {nextDeparture.vesselName}
-                        </Text>
-                        <Space size={12} style={{ marginTop: 8 }}>
-                          <StatusBadge status="ok" label="Crew Validated" compact />
-                          <StatusBadge status="ok" label="Weather Clear" compact />
-                        </Space>
-                      </Space>
-                    </Space>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <div
-                      style={{
-                        background: 'rgba(0,0,0,0.2)',
-                        padding: '20px',
-                        borderRadius: '12px',
-                      }}
-                    >
-                      <CrewManningIndicator
-                        current={nextDeparture.assignedCrew}
-                        required={nextDeparture.requiredCrew}
-                        label="SAFE MANNING"
-                      />
-                    </div>
-                    <Space
-                      style={{ width: '100%', marginTop: '20px' }}
-                      direction="horizontal"
-                      size={12}
-                    >
-                      <Button
-                        type="primary"
-                        size="large"
-                        icon={<SafetyCertificateOutlined />}
-                        style={{
-                          flex: 1,
-                          background: '#fff',
-                          color: '#2563eb',
-                          border: 'none',
-                          fontWeight: 600,
-                        }}
-                        onClick={() => router.push('/crew/certifications')}
-                        disabled={!canManageCrew}
-                      >
-                        Verify Certs
-                      </Button>
-                      <Button
-                        ghost
-                        size="large"
-                        icon={<FileProtectOutlined />}
-                        style={{ flex: 1, fontWeight: 600 }}
-                        onClick={() => router.push('/compliance/cbp')}
-                        disabled={!canExportCompliance}
-                      >
-                        CBP Form I-418
-                      </Button>
-                    </Space>
-                  </Col>
-                </Row>
-              </GlassCard>
-
-              {/* Operational Metrics */}
+            <Col xs={24} lg={16}>
               <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={24} md={8}>
-                  <GlassCard
-                    style={{ background: 'linear-gradient(135deg, #003f5c 0%, #0077be 70%)' }}
-                  >
-                    <Statistic
-                      title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>ACTIVE CREW</Text>}
-                      value={currentCrewCount}
-                      prefix={<TeamOutlined style={{ color: '#00ffff' }} />}
-                      valueStyle={{ color: '#fff', fontWeight: 700 }}
-                    />
-                    <Progress percent={100} size="small" strokeColor="#00ffff" showInfo={false} />
-                    <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>
-                      Registered STCW Active Mariners
-                    </Text>
-                  </GlassCard>
+                  <PriorityStatCard
+                    title="BLOCKING ISSUES"
+                    value={dashboard?.summary?.blockingIssues ?? 0}
+                    priority="BLOCKING"
+                    description="Immediate action required. Fleet operations restricted."
+                  />
                 </Col>
                 <Col xs={24} md={8}>
-                  <GlassCard
-                    style={{ background: 'linear-gradient(135deg, #312e81 0%, #4338ca 100%)' }}
-                  >
-                    <Statistic
-                      title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>EXPIRING CERTS</Text>}
-                      value={expiringCerts}
-                      suffix="/ 30 Days"
-                      prefix={<WarningOutlined style={{ color: '#ffa940' }} />}
-                      valueStyle={{ color: '#fff', fontWeight: 700 }}
-                    />
-                    <Text style={{ color: '#ffa940', fontSize: '11px' }}>
-                      {expiringCerts} expiring or missing documents
-                    </Text>
-                  </GlassCard>
+                  <PriorityStatCard
+                    title="CRITICAL DEFICIENCIES"
+                    value={criticalCertExpiry || (dashboard?.summary?.criticalIssues ?? 0)}
+                    priority="CRITICAL"
+                    description="Compliance gap detected. High risk of PSC detention."
+                  />
                 </Col>
                 <Col xs={24} md={8}>
-                  <GlassCard
-                    style={{ background: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)' }}
-                  >
-                    <Statistic
-                      title={
-                        <Text style={{ color: 'rgba(255,255,255,0.7)' }}>FLEET MANNING (R106)</Text>
-                      }
-                      value={crewReadyPct}
-                      suffix="%"
-                      prefix={<SafetyCertificateOutlined style={{ color: '#6ee7b7' }} />}
-                      valueStyle={{ color: '#fff', fontWeight: 700 }}
-                    />
-                    <Text style={{ color: '#6ee7b7', fontSize: '11px' }}>
-                      Compliance rate across all vessels
-                    </Text>
-                  </GlassCard>
+                  <PriorityStatCard
+                    title="EXPIRING DOCUMENTS"
+                    value={dashboard?.summary?.expiringCertifications ?? 0}
+                    priority="WARNING"
+                    description="Certifications requiring renewal within 30 days."
+                  />
                 </Col>
               </Row>
 
-              <div style={{ marginBottom: 24 }}>
-                <GlassCard>
-                  <Title level={4} style={{ color: '#e6f7ff', marginBottom: 20 }}>
-                    <AlertOutlined style={{ marginRight: 8 }} />
-                    Port State Control Readiness
-                  </Title>
-                  <Row gutter={[24, 24]}>
-                    <Col xs={24} md={12}>
-                      <Space direction="vertical" style={{ width: '100%' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                            Fleet Safe Manning Coverage
-                          </Text>
-                          <Text style={{ color: '#e6f7ff' }}>{crewReadyPct}%</Text>
-                        </div>
-                        <Progress percent={crewReadyPct} strokeColor="#52c41a" />
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            marginTop: '12px',
-                          }}
-                        >
-                          <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                            STCW Certificate Validity
-                          </Text>
-                          <Text style={{ color: '#e6f7ff' }}>
-                            {dashboard?.metrics?.certificateValidityRate ?? 98}%
-                          </Text>
-                        </div>
-                        <Progress
-                          percent={dashboard?.metrics?.certificateValidityRate ?? 98}
-                          strokeColor="#1890ff"
-                        />
-                      </Space>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <div
-                        style={{
-                          background: 'rgba(255,255,255,0.03)',
-                          padding: '16px',
-                          borderRadius: '12px',
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: 'rgba(255,255,255,0.45)',
-                            display: 'block',
-                            marginBottom: '8px',
-                          }}
-                        >
-                          CBP EXPORT STATUS
-                        </Text>
-                        <Space size={16} align="center">
-                          <div style={{ textAlign: 'center' }}>
-                            <Title level={3} style={{ color: '#fff', margin: 0 }}>
-                              ALL OK
-                            </Title>
-                            <Text style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)' }}>
-                              ACE FILINGS
-                            </Text>
-                          </div>
-                          <Divider
-                            type="vertical"
-                            style={{ height: '40px', borderColor: 'rgba(255,255,255,0.1)' }}
-                          />
-                          <StatusBadge status="ok" label="I-418 Transmitted" />
-                        </Space>
-                      </div>
-                    </Col>
-                  </Row>
-                </GlassCard>
-              </div>
+              {dashboardVessels.length > 0 && <VesselReadinessList vessels={dashboardVessels} />}
             </Col>
 
-            <Col xs={24} xl={8}>
+            <Col xs={24} lg={8}>
               <WeatherWidget
                 loading={loading}
                 location={weatherSnapshot.location}
@@ -482,15 +302,17 @@ export default function DashboardPage() {
                                 letterSpacing: '0.5px',
                               }}
                             >
-                              {event.action.replace(/_/g, ' ')}
+                              {/* FIX-06: Guard against undefined action */}
+                              {(event.action || '').replace(/_/g, ' ')}
                             </Text>
                             <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: '10px' }}>
+                              {/* FIX-06: Guard against undefined timestamp */}
                               {formatEventTime(event.timestamp)}
                             </Text>
                           </div>
                           <Text style={{ color: '#e6f7ff', fontSize: '13px' }}>
                             {event.actionDescription ||
-                              `${event.userName} performed ${event.action}`}
+                              `${event.userName || 'System'} performed ${event.action || 'activity'}`}
                           </Text>
                         </div>
                       </div>

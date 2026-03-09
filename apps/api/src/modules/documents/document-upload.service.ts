@@ -1,4 +1,10 @@
-import { DocumentStatus, PrismaService, VesselDocument, Certification, MedicalCertificate } from '@gbferry/database';
+import {
+  Certification,
+  DocumentStatus,
+  MedicalCertificate,
+  PrismaService,
+  VesselDocument,
+} from '@gbferry/database';
 import { DocumentMetadata, DocumentUploadDto } from '@gbferry/dto';
 import { BadRequestException, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
@@ -36,10 +42,10 @@ export class DocumentUploadService {
     }
 
     const entityId = this.validateAndNormalizeEntityId(uploadDto.entityId);
-    
+
     // AI-Powered Metadata Extraction
     const metadata = await this.aiExtractionService.extractMetadata(file);
-    
+
     const bucket =
       process.env.NODE_ENV === 'production'
         ? process.env.AWS_S3_BUCKET || ''
@@ -167,19 +173,51 @@ export class DocumentUploadService {
     expiryDate: Date | null,
     userId: string
   ): Promise<Certification> {
+    // Check for existing cert of same type on this crew member (renewal detection)
+    const existingCert = await this.prisma.certification.findFirst({
+      where: {
+        crewId: uploadDto.entityId,
+        type: (metadata.detectedType as any) || uploadDto.documentType || 'STCW_COC',
+        status: { in: ['VALID', 'EXPIRING', 'PENDING_VERIFICATION'] },
+        replacedById: null, // Not already superseded
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Confidence warnings for the verifier
+    const aiWarnings: string[] = [];
+    if (metadata.confidence < 0.5) {
+      aiWarnings.push('Low confidence extraction — verify all fields carefully.');
+    }
+    if (!metadata.extractedExpiryDate) {
+      aiWarnings.push('Expiry date was not found in the document — manual entry required.');
+    }
+    if (!metadata.certificateNumber) {
+      aiWarnings.push('Certificate number was not found — verify against original document.');
+    }
+
+    // Always create as PENDING_VERIFICATION — never bypass the human check
     const cert = await this.prisma.certification.create({
       data: {
         crewId: uploadDto.entityId,
-        type: (metadata.detectedType as any) || 'STCW_COP',
+        type: (metadata.detectedType as any) || uploadDto.documentType || 'STCW_COC',
         certificateNumber: metadata.certificateNumber || 'PENDING',
         issuingAuthority: metadata.issuingAuthority || 'Unknown',
         issuingCountry: 'BS',
         issueDate: new Date(),
         expiryDate: expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         documentUrl: storageKey,
-        status: 'VALID',
+        status: 'PENDING_VERIFICATION', // ← NEVER set to VALID here
         createdById: userId,
-        notes: `AI Extracted: ${JSON.stringify(metadata)}`,
+        documentVerified: false,
+        aiExtractedData: metadata as any,
+        aiConfidenceScore: metadata.confidence,
+        aiExtractionWarnings: aiWarnings,
+        // Link to previous cert if renewal detected
+        replacesId: existingCert?.id ?? null,
+        notes: existingCert
+          ? `Renewal of cert ${existingCert.id} (${existingCert.certificateNumber})`
+          : `AI Extracted: ${JSON.stringify(metadata)}`,
       },
     });
 
@@ -188,8 +226,14 @@ export class DocumentUploadService {
       entityId: cert.id,
       entityType: 'certification',
       userId,
-      details: { confidence: metadata.confidence, certNumber: metadata.certificateNumber },
-      compliance: 'AI-Enhanced STCW Certification Upload',
+      details: {
+        confidence: metadata.confidence,
+        certNumber: metadata.certificateNumber,
+        pendingVerification: true,
+        isRenewal: !!existingCert,
+        replacesId: existingCert?.id,
+      },
+      compliance: 'AI-Enhanced STCW Certification Upload (Pending Verification)',
     });
 
     return cert;
@@ -204,7 +248,7 @@ export class DocumentUploadService {
     const safeFileName = this.sanitizePathComponent(file.originalname || 'document');
     const safeEntityId = this.sanitizePathComponent(entityId);
     const key = `documents/${entityType}/${safeEntityId}/${Date.now()}-${safeFileName}`;
-    
+
     if (!this.storageService) {
       return key;
     }
@@ -228,7 +272,11 @@ export class DocumentUploadService {
   }
 
   private sanitizePathComponent(value: string): string {
-    return value.replace(/[\\/]+/g, '').replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 128) || 'file';
+    return (
+      value
+        .replace(/[\\/]+/g, '')
+        .replace(/[^a-zA-Z0-9._-]/g, '-')
+        .slice(0, 128) || 'file'
+    );
   }
 }
-

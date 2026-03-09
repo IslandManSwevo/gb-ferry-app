@@ -4,10 +4,12 @@ import { Observable, fromEvent, map } from 'rxjs';
 
 export interface AlertMessage {
   id: string;
-  type: 'EXPIRY_WARNING' | 'MANNING_ALERT' | 'SYSTEM_INFO';
+  type: string;
   message: string;
   timestamp: string;
   severity: 'info' | 'warning' | 'error';
+  entityId?: string;
+  entityType?: string;
 }
 
 @Controller('notifications')

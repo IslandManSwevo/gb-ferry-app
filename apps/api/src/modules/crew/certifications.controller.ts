@@ -1,41 +1,60 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Certification } from '@gbferry/database';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CrewService } from './crew.service';
+import { Roles } from 'nest-keycloak-connect';
+import { CurrentUser, KeycloakUser } from '../auth/current-user.decorator';
+import { CertificationsService } from './certifications.service';
 
 @ApiTags('crew-certifications')
 @ApiBearerAuth()
 @Controller('crew/certifications')
 export class CertificationsController {
-  constructor(private readonly crewService: CrewService) {}
+  constructor(private readonly certificationsService: CertificationsService) {}
 
   @Get()
   @ApiOperation({ summary: 'List certifications across crew members' })
   @ApiQuery({ name: 'crewId', required: false })
   @ApiResponse({ status: 200, description: 'List of certifications' })
   async findAll(@Query('crewId') crewId?: string): Promise<any[]> {
-    // We can reuse the CrewService findAll and extract certifications to match the frontend shape
-    const { data: crewMembers } = await this.crewService.findAll({} as any, 'system');
+    const { data } = await this.certificationsService.findAll({ crewId });
+    return data.map((cert: any) => ({
+      id: cert.id,
+      crewName: `${cert.crew?.familyName || 'Unknown'} ${cert.crew?.givenNames || ''}`,
+      type: cert.type,
+      certificateNumber: cert.certificateNumber,
+      issuingAuthority: cert.issuingAuthority,
+      issueDate: cert.issueDate,
+      expiryDate: cert.expiryDate,
+      status: cert.status,
+    }));
+  }
 
-    const allCerts: any[] = [];
-    crewMembers.forEach((crew) => {
-      if (crewId && crew.id !== crewId) return;
+  @Get('verification-queue')
+  @Roles({ roles: ['COMPLIANCE_OFFICER', 'ADMIN', 'SUPERADMIN'] })
+  @ApiOperation({ summary: 'Get certifications awaiting verification' })
+  async getVerificationQueue() {
+    return this.certificationsService.getPendingVerificationQueue();
+  }
 
-      if (crew.certifications && Array.isArray(crew.certifications)) {
-        crew.certifications.forEach((cert: any) => {
-          allCerts.push({
-            id: cert.id,
-            crewName: `${crew.familyName} ${crew.givenNames}`,
-            type: cert.type,
-            certificateNumber: cert.certificateNumber,
-            issuingAuthority: cert.issuingAuthority,
-            issueDate: cert.issueDate,
-            expiryDate: cert.expiryDate,
-            status: cert.status,
-          });
-        });
-      }
-    });
+  @Post(':id/verify')
+  @Roles({ roles: ['COMPLIANCE_OFFICER', 'ADMIN', 'SUPERADMIN'] })
+  @ApiOperation({ summary: 'Verify a certification' })
+  async verifyCertification(
+    @Param('id') certId: string,
+    @Body() body: any,
+    @CurrentUser() user: KeycloakUser
+  ): Promise<Certification> {
+    return this.certificationsService.verifyCertification(certId, user.sub, body.corrections);
+  }
 
-    return allCerts;
+  @Post(':id/reject')
+  @Roles({ roles: ['COMPLIANCE_OFFICER', 'ADMIN', 'SUPERADMIN'] })
+  @ApiOperation({ summary: 'Reject a certification' })
+  async rejectCertification(
+    @Param('id') certId: string,
+    @Body() body: any,
+    @CurrentUser() user: KeycloakUser
+  ): Promise<void> {
+    return this.certificationsService.rejectCertification(certId, user.sub, body.reason);
   }
 }

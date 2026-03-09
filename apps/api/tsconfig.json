@@ -24,10 +24,10 @@
     "resolveJsonModule": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@gbferry/dto": ["../../packages/dto/dist/index.d.ts"],
-      "@gbferry/dto/*": ["../../packages/dto/dist/*"],
-      "@gbferry/database": ["../../packages/database/dist/src/index.d.ts"],
-      "@gbferry/database/*": ["../../packages/database/dist/src/*"]
+      "@gbferry/dto": ["../../packages/dto/src/index.ts"],
+      "@gbferry/dto/*": ["../../packages/dto/src/*"],
+      "@gbferry/database": ["../../packages/database/src/index.ts"],
+      "@gbferry/database/*": ["../../packages/database/src/*"]
     }
   },
   "include": ["src/**/*"],

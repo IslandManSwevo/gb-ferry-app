@@ -5,11 +5,23 @@ import { DatabaseModule } from '../database/database.module';
 import { ComplianceAdapterService } from './compliance-adapter.service';
 import { ComplianceController } from './compliance.controller';
 import { ComplianceService } from './compliance.service';
+import { SafeManningEngine } from './safe-manning.engine';
+import { STCWSubstitutionService } from './stcw-substitution.service';
 
 @Module({
   imports: [DatabaseModule, AuditModule, CBPModule],
   controllers: [ComplianceController],
-  providers: [ComplianceService, ComplianceAdapterService],
-  exports: [ComplianceService, ComplianceAdapterService],
+  providers: [
+    ComplianceService,
+    ComplianceAdapterService,
+    SafeManningEngine,
+    STCWSubstitutionService,
+  ],
+  exports: [
+    ComplianceService,
+    ComplianceAdapterService,
+    SafeManningEngine,
+    STCWSubstitutionService,
+  ],
 })
 export class ComplianceModule {}

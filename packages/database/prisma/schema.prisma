@@ -20,8 +20,12 @@ enum Gender {
   X
 }
 
-
-
+enum IdentityDocType {
+  PASSPORT
+  ID_CARD
+  SEAMANS_BOOK
+  OTHER
+}
 
 enum CrewRole {
   MASTER
@@ -41,6 +45,13 @@ enum CrewRole {
   CHIEF_STEWARD
   STEWARD
   COOK
+  CHIEF_COOK
+  PURSER
+  SAFETY_OFFICER
+  SHIP_SECURITY_OFFICER
+  SECURITY_OFFICER
+  RADIO_OPERATOR
+  CROWD_CONTROL
   OTHER
 }
 
@@ -121,17 +132,43 @@ enum AuditAction {
   APPROVE
   REJECT
   SUBMIT
-  
+
+  CBP_APIS_SUBMITTED
+  USCG_NOTIFICATION_SENT
+
   // Authentication
   LOGIN
   LOGOUT
   FAILED_LOGIN
   PERMISSION_CHANGE
-  
-  // US Compliance
-  CBP_APIS_SUBMITTED
-  USCG_NOTIFICATION_SENT
-  
+
+  // New compliance actions (FIX-01, FIX-03, FIX-05)
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  MFA_CHALLENGE_PASSED
+  MFA_CHALLENGE_FAILED
+  ROLE_ASSIGNED
+  ROLE_REVOKED
+  PERMISSION_ESCALATION
+  DATA_EXPORT_INITIATED
+  DATA_EXPORT_COMPLETED
+  REPORT_DOWNLOADED
+  CREW_PII_ACCESSED
+  MSMD_UPLOADED
+  MSMD_VALIDATED
+  MSMD_DEFICIENCY_DETECTED
+  VESSEL_CERTIFICATE_UPLOADED
+  VESSEL_CERTIFICATE_EXPIRED
+  I418_SUBMITTED
+  I418_ACCEPTED
+  I418_REJECTED
+  I418_DEPARTURE_SUBMITTED
+  ENOAD_SUBMITTED
+  ENOAD_NOTICE_ID_RECEIVED
+  SYSTEM_CONFIG_CHANGED
+  CBPSUBMISSION_TOGGLE
+  EMERGENCY_FLEET_SUSPENDED
+  EMERGENCY_FLEET_RESUMED
 
   // Crew operations
   CREW_CREATE
@@ -141,7 +178,7 @@ enum AuditAction {
   CREW_DELETE
   CREW_ASSIGN_VESSEL
   CREW_ROSTER_READ
-  
+
   // Certification operations
   CERTIFICATION_CREATE
   CERTIFICATION_LIST_READ
@@ -151,7 +188,7 @@ enum AuditAction {
   CERTIFICATION_REVOKE
   CERTIFICATION_EXPIRY_WARNING
   CERTIFICATIONS_EXPIRY_CHECK
-  
+
   // Compliance operations
   COMPLIANCE_DASHBOARD_VIEW
   COMPLIANCE_REPORT_GENERATED
@@ -159,13 +196,37 @@ enum AuditAction {
   INSPECTION_RECORD
 }
 
-
-
 enum CbpSubmissionStatus {
   DRAFT
-  SUBMITTED
+  SUBMITTED_ACE
   ACCEPTED
   REJECTED
+  DEPARTURE_PENDING
+  DEPARTURE_SUBMITTED
+  FALLBACK_PAPER
+}
+
+enum VesselCertificateType {
+  SMC
+  DOC
+  PASSENGER_SHIP_SAFETY
+  LOAD_LINE
+  RADIO_LICENSE
+  TONNAGE
+  CONTINUOUS_SYNOPSIS_RECORD
+  ISSC
+  MSMD
+  OTHER
+}
+
+enum VesselCertificateStatus {
+  VALID
+  EXPIRING_SOON
+  CRITICAL
+  EXPIRED
+  PENDING_RENEWAL
+  NOT_HELD
+  VERIFICATION_OVERDUE
 }
 
 // ============================================
@@ -173,92 +234,93 @@ enum CbpSubmissionStatus {
 // ============================================
 
 model User {
-  id            String   @id @default(uuid())
-  keycloakId    String   @unique // Synced from Keycloak
-  email         String   @unique
-  firstName     String?
-  lastName      String?
-  role          String   // Role from Keycloak
-  isActive      Boolean  @default(true)
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  lastLoginAt   DateTime?
+  id         String  @id @default(uuid())
+  keycloakId String  @unique // Synced from Keycloak
+  email      String  @unique
+  firstName  String?
+  lastName   String?
+  role       String // Role from Keycloak
+  isActive   Boolean @default(true)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
 
   // Relations
-  crewCreated          CrewMember[]   @relation("CrewCreatedBy")
-  certificationsCreated Certification[] @relation("CertificationCreatedBy")
-  certificationsVerified Certification[] @relation("CertificationVerifiedBy")
-  documentsUploaded    VesselDocument[] @relation("DocumentUploadedBy")
-  documentsVerified    VesselDocument[] @relation("DocumentVerifiedBy")
-  inspectionsCreated   Inspection[]   @relation("InspectionCreatedBy")
-  auditLogs            AuditLog[]
+  crewCreated            CrewMember[]     @relation("CrewCreatedBy")
+  certificationsCreated  Certification[]  @relation("CertificationCreatedBy")
+  certificationsVerified Certification[]  @relation("CertificationVerifiedBy")
+  documentsUploaded      VesselDocument[] @relation("DocumentUploadedBy")
+  documentsVerified      VesselDocument[] @relation("DocumentVerifiedBy")
+  inspectionsCreated     Inspection[]     @relation("InspectionCreatedBy")
+  auditLogs              AuditLog[]
+  passengersCreated      Passenger[]      @relation("PassengerCreatedBy")
 
   @@map("users")
 }
-
 
 // ============================================
 // CREW & CERTIFICATIONS (BMA Seafarer Docs)
 // ============================================
 
 model CrewMember {
-  id                    String      @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Personal Details (BMA Seafarer Application)
-  familyName            String
-  givenNames            String
-  dateOfBirth           DateTime
-  placeOfBirth          String?
-  nationality           String      // ISO 3166-1 alpha-3
-  gender                Gender
-  
+  familyName   String
+  givenNames   String
+  dateOfBirth  DateTime
+  placeOfBirth String?
+  nationality  String // ISO 3166-1 alpha-3
+  gender       Gender
+
   // Photograph
-  photographUrl         String?
-  
+  photographUrl String?
+
   // Passport
-  passportNumber        String      // ENCRYPTED at application level
-  passportCountry       String
-  passportExpiry        DateTime
-  
+  passportNumber  String // ENCRYPTED at application level
+  passportCountry String
+  passportExpiry  DateTime
+
   // Seaman's Book (optional)
-  seamanBookNumber      String?
-  seamanBookAuthority   String?
-  
+  seamanBookNumber    String?
+  seamanBookAuthority String?
+
   // STCW Reference
-  seafarerIdentificationDocumentNumber  String?
-  identificationNumber                  String?
+  seafarerIdentificationDocumentNumber String?
+  identificationNumber                 String?
 
   // US Customs and Border Protection (CBP)
   alienRegistrationNumber String?
-  usVisaType            String?
-  usVisaExpiry          DateTime?
-  
+  usVisaType              String?
+  usVisaExpiry            DateTime?
+
   // Assignment
-  role                  CrewRole
-  vesselId              String?
-  vessel                Vessel?     @relation(fields: [vesselId], references: [id])
-  
+  role     CrewRole
+  vesselId String?
+  vessel   Vessel?  @relation(fields: [vesselId], references: [id])
+
   // Employment
-  employmentStartDate   DateTime?
-  contractType          String?     // permanent, contract, temporary
-  
+  employmentStartDate DateTime?
+  contractType        String? // permanent, contract, temporary
+
   // Status
-  status                CrewStatus  @default(ACTIVE)
-  
+  status CrewStatus @default(ACTIVE)
+
   // Soft delete
-  deletedAt             DateTime?
-  
+  deletedAt DateTime?
+
   // Audit
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
-  createdById           String
-  createdBy             User        @relation("CrewCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  createdBy   User     @relation("CrewCreatedBy", fields: [createdById], references: [id])
 
   // Relations
-  certifications        Certification[]
-  medicalCertificate    MedicalCertificate?
-  bmaComplianceRecords  BmaComplianceRecord[]
+  certifications       Certification[]
+  medicalCertificate   MedicalCertificate?
+  bmaComplianceRecords BmaComplianceRecord[]
+  I418CrewEntry        I418CrewEntry[]
 
   @@index([vesselId])
   @@index([familyName, givenNames])
@@ -266,63 +328,79 @@ model CrewMember {
 }
 
 model MedicalCertificate {
-  id                String      @id @default(uuid())
-  crewId            String      @unique
-  crew              CrewMember  @relation(fields: [crewId], references: [id], onDelete: Cascade)
-  
-  type              String      // ENG_1, PEME, ILO_MLC, OTHER
-  issuingAuthority  String
-  issueDate         DateTime
-  expiryDate        DateTime
-  documentUrl       String?
-  
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id     String     @id @default(uuid())
+  crewId String     @unique
+  crew   CrewMember @relation(fields: [crewId], references: [id], onDelete: Cascade)
+
+  type             String // ENG_1, PEME, ILO_MLC, OTHER
+  issuingAuthority String
+  issueDate        DateTime
+  expiryDate       DateTime
+  documentUrl      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("medical_certificates")
 }
 
 model Certification {
-  id                  String              @id @default(uuid())
-  crewId              String
-  crew                CrewMember          @relation(fields: [crewId], references: [id], onDelete: Cascade)
-  
-  // Certificate Details (STCW/BMA)
-  type                CertificationType
-  certificateNumber   String
-  issuingAuthority    String
-  issuingCountry      String
-  
-  // Dates
-  issueDate           DateTime
-  expiryDate          DateTime
-  
-  // Status
-  status              CertificationStatus @default(VALID)
-  
-  // Revocation details
-  revokedAt           DateTime?
-  revocationReason    String?
-  
-  // Document
-  documentUrl         String?
-  documentVerified    Boolean             @default(false)
-  bmaEndorsementVerified Boolean          @default(false)
-  
-  // Notes
-  notes               String?
-  
-  // Audit
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  createdById         String
-  createdBy           User                @relation("CertificationCreatedBy", fields: [createdById], references: [id])
-  verifiedAt          DateTime?
-  verifiedById        String?
-  verifiedBy          User?               @relation("CertificationVerifiedBy", fields: [verifiedById], references: [id])
+  id     String     @id @default(uuid())
+  crewId String
+  crew   CrewMember @relation(fields: [crewId], references: [id], onDelete: Cascade)
 
-  @@index([crewId])
-  @@index([type])
+  // Certificate Details (STCW/BMA)
+  type              CertificationType
+  certificateNumber String
+  issuingAuthority  String
+  issuingCountry    String
+
+  // Dates
+  issueDate  DateTime
+  expiryDate DateTime
+
+  // Status
+  status CertificationStatus @default(VALID)
+
+  // Revocation details
+  revokedAt        DateTime?
+  revocationReason String?
+
+  // Document
+  documentUrl            String?
+  documentVerified       Boolean @default(false)
+  bmaEndorsementVerified Boolean @default(false)
+
+  // AI Extraction Metadata
+  aiExtractedData      Json?
+  aiConfidenceScore    Decimal?
+  aiExtractionWarnings String[]
+
+  // Renewal chain
+  replacedById String?        @unique
+  replacesId   String?
+  replacedBy   Certification? @relation("CertRenewal", fields: [replacedById], references: [id])
+  replaces     Certification? @relation("CertRenewal")
+
+  // Rejection tracking
+  rejectedAt      DateTime?
+  rejectedById    String?
+  rejectionReason String?
+
+  // Notes
+  notes String?
+
+  // Audit
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdById  String
+  createdBy    User      @relation("CertificationCreatedBy", fields: [createdById], references: [id])
+  verifiedAt   DateTime?
+  verifiedById String?
+  verifiedBy   User?     @relation("CertificationVerifiedBy", fields: [verifiedById], references: [id])
+
+  @@index([crewId, type])
+  @@index([status])
   @@index([expiryDate])
   @@map("certifications")
 }
@@ -332,62 +410,200 @@ model Certification {
 // ============================================
 
 model Vessel {
-  id                  String        @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Basic Identification
-  name                String
-  imoNumber           String        @unique
-  officialNumber      String?
-  callSign            String?
-  mmsi                String?       // Maritime Mobile Service Identity
-  
+  name           String
+  imoNumber      String  @unique
+  officialNumber String?
+  callSign       String?
+  mmsi           String? // Maritime Mobile Service Identity
+
   // Flag & Registry
-  flagState           String        @default("BHS")
-  portOfRegistry      String        @default("Nassau")
-  
+  flagState      String @default("BHS")
+  portOfRegistry String @default("Nassau")
+
   // Type & Class
-  type                VesselType
+  type                  VesselType
   classificationSociety String?
-  classNotation       String?
-  
+  classNotation         String?
+
   // Dimensions
-  grossTonnage        Decimal
-  netTonnage          Decimal
-  lengthOverall       Decimal
-  breadth             Decimal?
-  depth               Decimal?
-  
+  grossTonnage  Decimal
+  netTonnage    Decimal
+  lengthOverall Decimal
+  breadth       Decimal?
+  depth         Decimal?
+
   // Capacity
-  passengerCapacity   Int?
-  crewCapacity        Int?
-  vehicleCapacity     Int?
-  
+  passengerCapacity Int?
+  crewCapacity      Int?
+  vehicleCapacity   Int?
+
   // Propulsion
-  engineType          String?
-  engineCount         Int?
-  propulsionPower     Decimal?      // kW
-  
+  engineType      String?
+  engineCount     Int?
+  propulsionPower Decimal? // kW
+
   // Build
-  yearBuilt           Int
-  builder             String?
-  buildCountry        String?
-  
+  yearBuilt    Int
+  builder      String?
+  buildCountry String?
+
   // Status
-  status              VesselStatus  @default(ACTIVE)
-  
+  status VesselStatus @default(ACTIVE)
+
   // Audit
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  owners              VesselOwner[]
-  documents           VesselDocument[]
-  safeManningReqs     SafeManningRequirement[]
-  crewMembers         CrewMember[]
-  inspections         Inspection[]
-  cbpSubmissions      CbpSubmission[]
+  owners          VesselOwner[]
+  documents       VesselDocument[]
+  safeManningReqs SafeManningRequirement[]
+  msmd            VesselMSMD?
+  certificates    VesselCertificate[]
+  crewMembers     CrewMember[]
+  inspections     Inspection[]
+  cbpSubmissions  CbpSubmission[]
+  i418Submissions I418Submission[]
+  enoadSegments   ENoadSegment[]
+  sailings        Sailing[]
 
   @@map("vessels")
+}
+
+model VesselMSMD {
+  id       String @id @default(cuid())
+  vesselId String @unique
+  vessel   Vessel @relation(fields: [vesselId], references: [id])
+
+  msmdReferenceNumber String
+  issueDate           DateTime
+  expiryDate          DateTime
+  issuingAuthority    String   @default("Bahamas Maritime Authority")
+
+  masterRequired          Int @default(1)
+  chiefOfficerRequired    Int @default(0)
+  deckOfficerRequired     Int @default(0)
+  chiefEngineerRequired   Int @default(1)
+  engineerOfficerRequired Int @default(0)
+  ratingsDeckRequired     Int @default(0)
+  ratingsEngineRequired   Int @default(0)
+  securityOfficerRequired Int @default(0)
+  radioOperatorRequired   Int @default(0)
+  cookRequired            Int @default(0)
+  crowdControlRequired    Int @default(0)
+
+  maxPassengersForManning Int?
+  operationalArea         String?
+  documentS3Key           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("vessel_msmd")
+}
+
+model VesselCertificate {
+  id                    String                  @id @default(cuid())
+  vesselId              String
+  vessel                Vessel                  @relation(fields: [vesselId], references: [id])
+  type                  VesselCertificateType
+  referenceNumber       String
+  issuingAuthority      String
+  issuedBy              String?
+  issueDate             DateTime
+  expiryDate            DateTime?
+  isPermanent           Boolean                 @default(false)
+  status                VesselCertificateStatus @default(VALID)
+  lastVerificationDate  DateTime?
+  nextVerificationDue   DateTime?
+  docVesselTypesCovered String?
+  mmsiNumber            String?
+  documentS3Key         String?
+  notes                 String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([vesselId, type])
+  @@map("vessel_certificates")
+}
+
+model I418Submission {
+  id                     String              @id @default(cuid())
+  vesselId               String
+  vessel                 Vessel              @relation(fields: [vesselId], references: [id])
+  cbpReceiptNumber       String?
+  portOfEntry            String
+  arrivalDate            DateTime
+  departureDate          DateTime?
+  voyageNumber           String
+  lastForeignPort        String
+  nextForeignPort        String?
+  status                 CbpSubmissionStatus @default(DRAFT)
+  rejectionReason        String?
+  longshoreWorkDeclared  Boolean             @default(false)
+  longshoreWorkException String?
+  crewEntries            I418CrewEntry[]
+  eNoadSegmentId         String?             @unique
+  eNoadSegment           ENoadSegment?       @relation(fields: [eNoadSegmentId], references: [id])
+  submittedByUserId      String?
+  submittedAt            DateTime?
+  lastUpdatedAt          DateTime            @updatedAt
+  createdAt              DateTime            @default(now())
+
+  @@index([vesselId])
+  @@map("i418_submissions")
+}
+
+model I418CrewEntry {
+  id                       String         @id @default(cuid())
+  submissionId             String
+  submission               I418Submission @relation(fields: [submissionId], references: [id])
+  crewMemberId             String
+  crewMember               CrewMember     @relation(fields: [crewMemberId], references: [id])
+  rank                     String
+  nationality              String
+  dateOfBirth              DateTime
+  placeOfBirth             String
+  passportNumber           String // ENCRYPTED at application level
+  passportCountry          String
+  passportExpiry           DateTime
+  visaType                 String?
+  visaNumber               String? // ENCRYPTED at application level
+  visaExpiry               DateTime?
+  alienRegistrationNumber  String? // ENCRYPTED at application level
+  joinedAfterArrival       Boolean        @default(false)
+  separatedBeforeDeparture Boolean        @default(false)
+  separationPortCity       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([submissionId])
+  @@map("i418_crew_entries")
+}
+
+model ENoadSegment {
+  id             String          @id @default(cuid())
+  uscgNoticeId   String?         @unique
+  vesselId       String
+  vessel         Vessel          @relation(fields: [vesselId], references: [id])
+  segmentType    String
+  portOfCall     String
+  eta            DateTime
+  etd            DateTime?
+  actualArrival  DateTime?
+  status         String          @default("PENDING")
+  i418Submission I418Submission?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vesselId])
+  @@map("enoad_segments")
 }
 
 // ============================================
@@ -395,94 +611,94 @@ model Vessel {
 // ============================================
 
 model BmaComplianceRecord {
-  id                        String      @id @default(uuid())
-  crewId                    String
-  crew                      CrewMember  @relation(fields: [crewId], references: [id], onDelete: Cascade)
-  
-  recordOfEmploymentNumber  String?
-  seamansRecordBookNumber   String?
-  mlcExemptions             String?
-  
-  createdAt                 DateTime    @default(now())
-  updatedAt                 DateTime    @updatedAt
+  id     String     @id @default(uuid())
+  crewId String
+  crew   CrewMember @relation(fields: [crewId], references: [id], onDelete: Cascade)
+
+  recordOfEmploymentNumber String?
+  seamansRecordBookNumber  String?
+  mlcExemptions            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([crewId])
   @@map("bma_compliance_records")
 }
 
 model CbpSubmission {
-  id                        String              @id @default(uuid())
-  vesselId                  String
-  vessel                    Vessel              @relation(fields: [vesselId], references: [id], onDelete: Cascade)
-  
-  transmissionId            String?
-  formType                  String              // I_418, 1304, eNOAD
-  status                    CbpSubmissionStatus @default(DRAFT)
-  
-  submittedAt               DateTime?
-  createdAt                 DateTime            @default(now())
-  updatedAt                 DateTime            @updatedAt
+  id       String @id @default(uuid())
+  vesselId String
+  vessel   Vessel @relation(fields: [vesselId], references: [id], onDelete: Cascade)
+
+  transmissionId String?
+  formType       String // I_418, 1304, eNOAD
+  status         CbpSubmissionStatus @default(DRAFT)
+
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([vesselId])
   @@map("cbp_submissions")
 }
 
 model VesselOwner {
-  id                String    @id @default(uuid())
-  vesselId          String
-  vessel            Vessel    @relation(fields: [vesselId], references: [id], onDelete: Cascade)
-  
-  type              String    // registered_owner, managing_owner, beneficial_owner
-  
+  id       String @id @default(uuid())
+  vesselId String
+  vessel   Vessel @relation(fields: [vesselId], references: [id], onDelete: Cascade)
+
+  type String // registered_owner, managing_owner, beneficial_owner
+
   // Owner Details
-  name              String
-  ownerType         String    // individual, company
-  addressStreet     String
-  addressCity       String
-  addressState      String?
-  addressPostalCode String?
-  addressCountry    String
-  contactEmail      String
-  contactPhone      String
-  registrationNumber String?  // Company registration
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  name               String
+  ownerType          String // individual, company
+  addressStreet      String
+  addressCity        String
+  addressState       String?
+  addressPostalCode  String?
+  addressCountry     String
+  contactEmail       String
+  contactPhone       String
+  registrationNumber String? // Company registration
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("vessel_owners")
 }
 
 model VesselDocument {
-  id                String          @id @default(uuid())
-  vesselId          String
-  vessel            Vessel          @relation(fields: [vesselId], references: [id], onDelete: Cascade)
-  
+  id       String @id @default(uuid())
+  vesselId String
+  vessel   Vessel @relation(fields: [vesselId], references: [id], onDelete: Cascade)
+
   // Document Info
-  type              String          // VesselDocumentType enum value
-  title             String
-  description       String?
-  
+  type        String // VesselDocumentType enum value
+  title       String
+  description String?
+
   // File
-  fileName          String
-  fileSize          Int
-  mimeType          String
-  s3Key             String          // S3 object key
-  
+  fileName String
+  fileSize Int
+  mimeType String
+  s3Key    String // S3 object key
+
   // Validity
-  issueDate         DateTime?
-  expiryDate        DateTime?
-  
+  issueDate  DateTime?
+  expiryDate DateTime?
+
   // Status
-  status            DocumentStatus  @default(VALID)
-  verified          Boolean         @default(false)
-  
+  status   DocumentStatus @default(VALID)
+  verified Boolean        @default(false)
+
   // Audit
-  uploadedAt        DateTime        @default(now())
-  uploadedById      String
-  uploadedBy        User            @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
-  verifiedAt        DateTime?
-  verifiedById      String?
-  verifiedBy        User?           @relation("DocumentVerifiedBy", fields: [verifiedById], references: [id])
+  uploadedAt   DateTime  @default(now())
+  uploadedById String
+  uploadedBy   User      @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
+  verifiedAt   DateTime?
+  verifiedById String?
+  verifiedBy   User?     @relation("DocumentVerifiedBy", fields: [verifiedById], references: [id])
 
   @@index([vesselId])
   @@index([type])
@@ -490,30 +706,30 @@ model VesselDocument {
 }
 
 model SafeManningRequirement {
-  id                  String    @id @default(uuid())
-  vesselId            String
-  vessel              Vessel    @relation(fields: [vesselId], references: [id], onDelete: Cascade)
-  
+  id       String @id @default(uuid())
+  vesselId String
+  vessel   Vessel @relation(fields: [vesselId], references: [id], onDelete: Cascade)
+
   // Document Reference (R106)
-  documentNumber      String
-  issueDate           DateTime
-  expiryDate          DateTime?
-  issuingAuthority    String    @default("Bahamas Maritime Authority")
-  
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  documentNumber   String
+  issueDate        DateTime
+  expiryDate       DateTime?
+  issuingAuthority String    @default("Bahamas Maritime Authority")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  requirements        SafeManningRole[]
+  requirements SafeManningRole[]
 
   @@map("safe_manning_requirements")
 }
 
 model SafeManningRole {
-  id                  String                @id @default(uuid())
-  safeManningId       String
-  safeManning         SafeManningRequirement @relation(fields: [safeManningId], references: [id], onDelete: Cascade)
-  
+  id            String                 @id @default(uuid())
+  safeManningId String
+  safeManning   SafeManningRequirement @relation(fields: [safeManningId], references: [id], onDelete: Cascade)
+
   role                CrewRole
   minimumCount        Int
   certificateRequired String?
@@ -527,35 +743,35 @@ model SafeManningRole {
 // ============================================
 
 model Inspection {
-  id                  String            @id @default(uuid())
-  vesselId            String
-  vessel              Vessel            @relation(fields: [vesselId], references: [id])
-  
+  id       String @id @default(uuid())
+  vesselId String
+  vessel   Vessel @relation(fields: [vesselId], references: [id])
+
   // Inspection Details
   type                InspectionType
   inspectingAuthority String
   inspectorName       String?
-  
+
   // Timing
-  scheduledDate       DateTime
-  completedDate       DateTime?
-  
+  scheduledDate DateTime
+  completedDate DateTime?
+
   // Results
-  status              InspectionStatus  @default(SCHEDULED)
-  result              InspectionResult?
-  
+  status InspectionStatus  @default(SCHEDULED)
+  result InspectionResult?
+
   // Report
-  reportUrl           String?
-  notes               String?
-  
+  reportUrl String?
+  notes     String?
+
   // Audit
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-  createdById         String
-  createdBy           User              @relation("InspectionCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  createdBy   User     @relation("InspectionCreatedBy", fields: [createdById], references: [id])
 
   // Relations
-  deficiencies        InspectionDeficiency[]
+  deficiencies InspectionDeficiency[]
 
   @@index([vesselId])
   @@index([scheduledDate])
@@ -563,17 +779,17 @@ model Inspection {
 }
 
 model InspectionDeficiency {
-  id              String      @id @default(uuid())
-  inspectionId    String
-  inspection      Inspection  @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
-  
-  code            String
-  description     String
-  severity        String      // major, minor, observation
-  deadline        DateTime?
-  resolved        Boolean     @default(false)
-  resolvedDate    DateTime?
-  resolvedNotes   String?
+  id           String     @id @default(uuid())
+  inspectionId String
+  inspection   Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  code          String
+  description   String
+  severity      String // major, minor, observation
+  deadline      DateTime?
+  resolved      Boolean   @default(false)
+  resolvedDate  DateTime?
+  resolvedNotes String?
 
   @@map("inspection_deficiencies")
 }
@@ -582,42 +798,48 @@ model InspectionDeficiency {
 // AUDIT LOG (Append-Only)
 // ============================================
 
+/// AuditLog model stores all critical system actions for regulatory compliance.
+/// [SECURITY] This table is designed to be insert-only. 
+/// To enforce immutability at the database level, apply the following PostgreSQL trigger:
+///
+/// CREATE OR REPLACE FUNCTION forbid_audit_modification() RETURNS TRIGGER AS $$
+/// BEGIN
+///   RAISE EXCEPTION 'AuditLog entries are immutable and cannot be modified or deleted.';
+/// END;
+/// $$ LANGUAGE plpgsql;
+///
+/// CREATE TRIGGER audit_log_immutability_tg 
+/// BEFORE UPDATE OR DELETE ON "audit_logs"
+/// FOR EACH ROW EXECUTE FUNCTION forbid_audit_modification();
 model AuditLog {
-  id                String      @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // What was affected
-  entityType        String
-  entityId          String
-  entityName        String?
-  
+  entityType String
+  entityId   String
+  entityName String?
+
   // What happened
   action            AuditAction
   actionDescription String?
-  
+
   // Who did it
-  userId            String
-  user              User        @relation(fields: [userId], references: [id])
-  userName          String
-  userRole          String
-  
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  userName String
+  userRole String
+
   // When
-  timestamp         DateTime    @default(now())
-  
+  timestamp DateTime @default(now())
+
   // Where
-  ipAddress         String?
-  userAgent         String?
-  sessionId         String?
-  
-  // Change details
-  previousValue     Json?
-  newValue          Json?
-  changedFields     String[]
-  
-  // Why
-  reason            String?
-  
-  // Metadata
-  metadata          Json?
+  ipAddress String?
+  userAgent String?
+  sessionId String?
+
+  // Metadata & Details
+  details  String? // Expanded details as JSON string
+  metadata Json?
 
   @@index([entityType, entityId])
   @@index([userId])
@@ -628,33 +850,33 @@ model AuditLog {
 
 // Export tracking (special audit for compliance)
 model ExportHistory {
-  id                String    @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // What was exported
-  exportType        String
-  format            String
-  
+  exportType String
+  format     String
+
   // Scope
-  entityType        String
-  entityIds         String[]
-  recordCount       Int
-  
+  entityType  String
+  entityIds   String[]
+  recordCount Int
+
   // Context
-  jurisdiction      String?
-  purpose           String?
-  
+  jurisdiction String?
+  purpose      String?
+
   // Who & When
-  exportedById      String
-  exportedByName    String
-  exportedAt        DateTime  @default(now())
-  
+  exportedById   String
+  exportedByName String
+  exportedAt     DateTime @default(now())
+
   // File
-  fileName          String
-  fileSize          Int
-  checksum          String    // SHA-256
-  
+  fileName String
+  fileSize Int
+  checksum String // SHA-256
+
   // Retention
-  retainUntil       DateTime
+  retainUntil DateTime
 
   @@index([exportedById])
   @@index([exportedAt])
@@ -670,14 +892,66 @@ model ExportHistory {
 // value is stored as Json to support strings, numbers, booleans, and arrays.
 model PlatformSetting {
   id          String   @id @default(uuid())
-  group       String   // 'org' | 'compliance' | 'cbp' | 'notifications'
+  group       String // 'org' | 'compliance' | 'cbp' | 'notifications'
   key         String
   value       Json
   description String?
   updatedAt   DateTime @updatedAt
-  updatedBy   String?  // userId who last changed this
+  updatedBy   String? // userId who last changed this
 
   @@unique([group, key])
   @@index([group])
   @@map("platform_settings")
+}
+
+model Sailing {
+  id            String   @id @default(uuid())
+  vesselId      String
+  vessel        Vessel   @relation(fields: [vesselId], references: [id], onDelete: Cascade)
+  departurePort String
+  arrivalPort   String
+  departureTime DateTime
+  arrivalTime   DateTime
+  status        String   @default("scheduled")
+
+  // Relations
+  passengers Passenger[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sailings")
+}
+
+model Passenger {
+  id        String  @id @default(uuid())
+  sailingId String
+  sailing   Sailing @relation(fields: [sailingId], references: [id], onDelete: Cascade)
+
+  // Identity
+  familyName     String
+  givenNames     String
+  dateOfBirth    DateTime
+  nationality    String
+  gender         Gender
+  identityDocType IdentityDocType
+  identityDocNumber String
+  identityDocCountry String
+  identityDocExpiry  DateTime
+
+  // Voyage context
+  portOfEmbarkation    String
+  portOfDisembarkation String
+
+  // Compliance
+  consentGiven     Boolean  @default(false)
+  consentTimestamp DateTime?
+
+  // Audit
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdById  String
+  createdBy    User     @relation("PassengerCreatedBy", fields: [createdById], references: [id])
+
+  @@map("passengers")
 }

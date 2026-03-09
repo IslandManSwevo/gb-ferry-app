@@ -6,7 +6,9 @@ import { ACE_GATEWAY } from './ace-gateway.interface';
 import { CbpTransformer } from './cbp-transformer.service';
 import { CBPController } from './cbp.controller';
 import { CBPService } from './cbp.service';
+import { EnoAdSegmentService } from './enoad-segment.service';
 import { EnoAdGateway } from './enoad.gateway';
+import { I418Service } from './i418.service';
 import { MockACEGateway } from './mock-ace.gateway';
 
 @Module({
@@ -15,6 +17,8 @@ import { MockACEGateway } from './mock-ace.gateway';
   providers: [
     CBPService,
     CbpTransformer,
+    I418Service,
+    EnoAdSegmentService,
     {
       provide: ACE_GATEWAY,
       useFactory: (configService: ConfigService) => {
@@ -27,6 +31,6 @@ import { MockACEGateway } from './mock-ace.gateway';
       inject: [ConfigService],
     },
   ],
-  exports: [CBPService, ACE_GATEWAY],
+  exports: [CBPService, ACE_GATEWAY, I418Service, EnoAdSegmentService],
 })
 export class CBPModule {}

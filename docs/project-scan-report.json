@@ -1,0 +1,134 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2026-03-09T14:30:00Z",
+    "last_updated": "2026-03-09T14:30:00Z"
+  },
+  "mode": "initial_scan",
+  "scan_level": "deep",
+  "project_root": "C:/Users/green/GB Ferry App",
+  "project_knowledge": "C:/Users/green/GB Ferry App/docs",
+  "completed_steps": [
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2026-03-09T14:35:00Z",
+      "summary": "Classified as monorepo with 4 parts: apps/api (backend), apps/web (web), packages/database (backend), packages/dto (library)"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2026-03-09T14:40:00Z",
+      "summary": "Found 18 existing docs in docs/ and root README.md"
+    },
+    {
+      "step": "step_3",
+      "status": "completed",
+      "timestamp": "2026-03-09T14:45:00Z",
+      "summary": "Analyzed tech stack: NestJS (API), Next.js (Web), Prisma (DB), TypeScript"
+    },
+    {
+      "step": "step_4",
+      "status": "completed",
+      "timestamp": "2026-03-09T14:55:00Z",
+      "summary": "Performed deep scan: API endpoints, Data models, UI components documented"
+    },
+    {
+      "step": "step_5",
+      "status": "completed",
+      "timestamp": "2026-03-09T14:58:00Z",
+      "summary": "Generated annotated source tree analysis"
+    },
+    {
+      "step": "step_6",
+      "status": "completed",
+      "timestamp": "2026-03-09T15:05:00Z",
+      "summary": "Extracted dev/operational info and generated guides"
+    },
+    {
+      "step": "step_7",
+      "status": "completed",
+      "timestamp": "2026-03-09T15:10:00Z",
+      "summary": "Analyzed integration architecture"
+    },
+    {
+      "step": "step_8",
+      "status": "completed",
+      "timestamp": "2026-03-09T15:15:00Z",
+      "summary": "Generated detailed architecture for all parts"
+    },
+    {
+      "step": "step_9",
+      "status": "completed",
+      "timestamp": "2026-03-09T15:20:00Z",
+      "summary": "Generated supporting documentation and project-parts.json"
+    },
+    {
+      "step": "step_10",
+      "status": "completed",
+      "timestamp": "2026-03-09T15:25:00Z",
+      "summary": "Generated master index"
+    }
+  ],
+  "current_step": "completed",
+  "findings": {
+    "project_classification": "Monorepo with 4 parts: backend (api), web (web), backend (database), library (dto)",
+    "existing_docs_count": 18,
+    "user_context": "none",
+    "technology_stack": {
+      "api": "NestJS (v10), TypeScript, Keycloak, Tesseract.js, AWS SDK",
+      "web": "Next.js (v14), Ant Design, NextAuth, SWR, Zod",
+      "database": "Prisma (v5.8), PostgreSQL (inferred from docker-compose), NestJS Common",
+      "dto": "TypeScript, Zod (Shared types)"
+    },
+    "architecture_patterns": {
+      "overall": "Monorepo (Turborepo, pnpm workspaces)",
+      "api": "Modular (NestJS), REST API, Layered Architecture",
+      "web": "Component-based (Next.js App Router), Client-side fetching (SWR)"
+    },
+    "project_types": [
+      {
+        "part_id": "api",
+        "project_type_id": "backend",
+        "display_name": "apps/api",
+        "root_path": "apps/api"
+      },
+      {
+        "part_id": "web",
+        "project_type_id": "web",
+        "display_name": "apps/web",
+        "root_path": "apps/web"
+      },
+      {
+        "part_id": "database",
+        "project_type_id": "backend",
+        "display_name": "packages/database",
+        "root_path": "packages/database"
+      },
+      {
+        "part_id": "dto",
+        "project_type_id": "library",
+        "display_name": "packages/dto",
+        "root_path": "packages/dto"
+      }
+    ]
+  },
+  "outputs_generated": [
+    "project-scan-report.json",
+    "api-contracts-api.md",
+    "data-models-database.md",
+    "ui-component-inventory-web.md",
+    "source-tree-analysis.md",
+    "development-guide.md",
+    "deployment-guide.md",
+    "integration-architecture.md",
+    "architecture-api.md",
+    "architecture-web.md",
+    "architecture-database.md",
+    "architecture-dto.md",
+    "project-overview.md",
+    "project-parts.json",
+    "index.md"
+  ],
+  "resume_instructions": "Workflow completed successfully"
+}

@@ -1,4 +1,12 @@
-import { CrewRole, Gender, IdentityDocType, PrismaClient, VesselType } from '@prisma/client';
+import {
+  CertificationStatus,
+  CertificationType,
+  CrewRole,
+  Gender,
+  IdentityDocType,
+  PrismaClient,
+  VesselType,
+} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -37,7 +45,7 @@ async function main() {
       flagState: 'BHS',
       portOfRegistry: 'Freeport',
       type: VesselType.PASSENGER_FERRY,
-      classificationSociety: 'Lloyd\'s Register',
+      classificationSociety: "Lloyd's Register",
       classNotation: '100A1',
       grossTonnage: 8500,
       netTonnage: 4200,
@@ -95,9 +103,17 @@ async function main() {
   const roles = [
     { role: CrewRole.MASTER, minimumCount: 1, certificateRequired: 'MASTER' },
     { role: CrewRole.CHIEF_OFFICER, minimumCount: 1, certificateRequired: 'CHIEF_MATE' },
-    { role: CrewRole.DECK_OFFICER, minimumCount: 2, certificateRequired: 'OFFICER_OF_THE_WATCH_DECK' },
+    {
+      role: CrewRole.DECK_OFFICER,
+      minimumCount: 2,
+      certificateRequired: 'OFFICER_OF_THE_WATCH_DECK',
+    },
     { role: CrewRole.CHIEF_ENGINEER, minimumCount: 1, certificateRequired: 'CHIEF_ENGINEER' },
-    { role: CrewRole.ENGINE_OFFICER, minimumCount: 2, certificateRequired: 'OFFICER_OF_THE_WATCH_ENGINE' },
+    {
+      role: CrewRole.ENGINE_OFFICER,
+      minimumCount: 2,
+      certificateRequired: 'OFFICER_OF_THE_WATCH_ENGINE',
+    },
     { role: CrewRole.ABLE_SEAMAN, minimumCount: 6, certificateRequired: 'ABLE_SEAFARER_DECK' },
     { role: CrewRole.RATING, minimumCount: 8, certificateRequired: 'BASIC_SAFETY_TRAINING' },
   ];
@@ -153,10 +169,34 @@ async function main() {
 
   // Add certifications
   const certifications = [
-    { type: 'MASTER', certificateNumber: 'MAS-BHS-2020-001', expiryDate: new Date('2025-12-31') },
-    { type: 'GMDSS_GOC', certificateNumber: 'GOC-BHS-2019-045', expiryDate: new Date('2024-12-31') },
-    { type: 'BASIC_SAFETY_TRAINING', certificateNumber: 'BST-BHS-2023-189', expiryDate: new Date('2028-03-15') },
-    { type: 'PASSENGER_SHIP_CROWD_MANAGEMENT', certificateNumber: 'PSCM-BHS-2022-067', expiryDate: new Date('2027-08-20') },
+    {
+      type: CertificationType.STCW_COC,
+      certificateNumber: 'MAS-BHS-2020-001',
+      expiryDate: new Date('2025-12-31'),
+      status: CertificationStatus.VALID,
+      notes: 'Master Certificate',
+    },
+    {
+      type: CertificationType.STCW_COC,
+      certificateNumber: 'GOC-BHS-2019-045',
+      expiryDate: new Date('2024-12-31'),
+      status: CertificationStatus.VALID,
+      notes: 'GMDSS GOC',
+    },
+    {
+      type: CertificationType.STCW_COP,
+      certificateNumber: 'BST-BHS-2023-189',
+      expiryDate: new Date('2028-03-15'),
+      status: CertificationStatus.VALID,
+      notes: 'Basic Safety Training',
+    },
+    {
+      type: CertificationType.STCW_COP,
+      certificateNumber: 'PSCM-BHS-2022-067',
+      expiryDate: new Date('2027-08-20'),
+      status: CertificationStatus.PENDING_VERIFICATION,
+      notes: 'Crowd Management - Awaiting Review',
+    },
   ];
 
   for (const cert of certifications) {
@@ -164,12 +204,23 @@ async function main() {
       data: {
         crewId: crewMember.id,
         type: cert.type,
+        status: cert.status,
         certificateNumber: cert.certificateNumber,
         issuingAuthority: 'Bahamas Maritime Authority',
         issuingCountry: 'BHS',
         issueDate: new Date('2020-01-15'),
         expiryDate: cert.expiryDate,
         createdById: demoUser.id,
+        notes: cert.notes,
+        // Mock AI data for the pending one
+        ...(cert.status === CertificationStatus.PENDING_VERIFICATION && {
+          aiConfidenceScore: 0.85,
+          aiExtractedData: {
+            certNumber: cert.certificateNumber,
+            expiry: cert.expiryDate.toISOString(),
+          },
+          aiExtractionWarnings: ['Low lighting in document scan'],
+        }),
       },
     });
   }

@@ -1,0 +1,42 @@
+{
+  "repository_type": "monorepo",
+  "project_name": "GB Ferry App",
+  "parts": [
+    {
+      "id": "api",
+      "path": "apps/api",
+      "type": "backend",
+      "framework": "NestJS",
+      "language": "TypeScript"
+    },
+    {
+      "id": "web",
+      "path": "apps/web",
+      "type": "web",
+      "framework": "Next.js",
+      "language": "TypeScript"
+    },
+    {
+      "id": "database",
+      "path": "packages/database",
+      "type": "backend",
+      "framework": "Prisma",
+      "language": "TypeScript"
+    },
+    {
+      "id": "dto",
+      "path": "packages/dto",
+      "type": "library",
+      "framework": "TypeScript",
+      "language": "TypeScript"
+    }
+  ],
+  "integration_points": [
+    {
+      "from": "web",
+      "to": "api",
+      "type": "REST",
+      "auth": "Bearer JWT"
+    }
+  ]
+}

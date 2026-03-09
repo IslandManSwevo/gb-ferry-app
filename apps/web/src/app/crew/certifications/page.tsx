@@ -3,10 +3,21 @@
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { StatusBadge } from '@/components/ui/StatusBadge';
+import { StatusBadge, StatusKind } from '@/components/ui/StatusBadge';
 import { api } from '@/lib/api';
 import { SafetyCertificateOutlined, WarningOutlined } from '@ant-design/icons';
-import { Alert, Avatar, Button, Layout, Space, Table, Tag, Typography, message } from 'antd';
+import {
+  Alert,
+  Avatar,
+  Button,
+  ConfigProvider,
+  Layout,
+  Space,
+  Table,
+  Tag,
+  Typography,
+  message,
+} from 'antd';
 import { useEffect, useState } from 'react';
 
 const { Content } = Layout;
@@ -50,12 +61,18 @@ export default function CertificationsPage() {
       title: 'Crew Member',
       dataIndex: 'crewMember',
       key: 'crewName',
-      render: (crew: any) => (
-        <Space>
-          <Avatar src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${crew?.familyName}`} />
-          <Text strong style={{ color: '#e6f7ff' }}>{crew?.givenNames} {crew?.familyName}</Text>
-        </Space>
-      ),
+      render: (crew: any) => {
+        const familyName = crew?.familyName ?? 'Unknown';
+        const givenNames = crew?.givenNames ?? '';
+        return (
+          <Space>
+            <Avatar src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${familyName}`} />
+            <Text strong style={{ color: '#e6f7ff' }}>
+              {givenNames} {familyName}
+            </Text>
+          </Space>
+        );
+      },
     },
     {
       title: 'Document Type',
@@ -81,22 +98,32 @@ export default function CertificationsPage() {
       dataIndex: 'expiryDate',
       key: 'expiryDate',
       render: (date: string) => {
+        if (!date) return <Text style={{ color: 'rgba(255,255,255,0.25)' }}>N/A</Text>;
         const d = new Date(date);
+        if (isNaN(d.getTime())) return <Text style={{ color: '#ff4d4f' }}>Invalid Date</Text>;
+
         const isExpiring = d.getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000;
-        return <Text style={{ color: isExpiring ? '#ff4d4f' : '#fff' }}>{d.toLocaleDateString()}</Text>;
+        return (
+          <Text style={{ color: isExpiring ? '#ff4d4f' : '#fff' }}>{d.toLocaleDateString()}</Text>
+        );
       },
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (s: string, record: any) => {
+      render: (_: string, record: any) => {
+        if (!record.expiryDate) return <StatusBadge status="ok" label="VALID" compact />;
         const d = new Date(record.expiryDate);
+        if (isNaN(d.getTime())) return <StatusBadge status="warning" label="ERROR" compact />;
+
         const isExpired = d.getTime() < Date.now();
         const isExpiring = d.getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000;
-        const status = isExpired ? 'critical' : isExpiring ? 'warning' : 'ok';
+
+        const badgeKind: StatusKind = isExpired ? 'critical' : isExpiring ? 'warning' : 'ok';
         const label = isExpired ? 'EXPIRED' : isExpiring ? 'EXPIRING' : 'VALID';
-        return <StatusBadge status={status} label={label} compact />;
+
+        return <StatusBadge status={badgeKind} label={label} compact />;
       },
     },
     {
@@ -147,33 +174,30 @@ export default function CertificationsPage() {
               <SafetyCertificateOutlined style={{ marginRight: 12, color: '#1890ff' }} />
               Crew Certifications
             </Title>
-            <Table
-              columns={columns}
-              dataSource={data}
-              loading={loading}
-              scroll={{ x: 'max-content' }}
-              className="maritime-table"
-              rowKey="id"
-            />
+            <ConfigProvider
+              theme={{
+                components: {
+                  Table: {
+                    headerBg: 'rgba(255, 255, 255, 0.05)',
+                    headerColor: 'rgba(255, 255, 255, 0.85)',
+                    headerBorderRadius: 8,
+                    colorBgContainer: 'transparent',
+                    colorText: '#e6f7ff',
+                    colorBorderSecondary: 'rgba(255, 255, 255, 0.05)',
+                    rowHoverBg: 'rgba(255, 255, 255, 0.02)',
+                  },
+                },
+              }}
+            >
+              <Table
+                columns={columns}
+                dataSource={data}
+                loading={loading}
+                scroll={{ x: 'max-content' }}
+                rowKey="id"
+              />
+            </ConfigProvider>
           </GlassCard>
-
-          <style jsx global>{`
-            .maritime-table .ant-table {
-              background: transparent !important;
-              color: #e6f7ff !important;
-            }
-            .maritime-table .ant-table-thead > tr > th {
-              background: rgba(255, 255, 255, 0.05) !important;
-              color: rgba(255, 255, 255, 0.85) !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-            }
-            .maritime-table .ant-table-tbody > tr > td {
-              border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-            }
-            .maritime-table .ant-table-tbody > tr:hover > td {
-              background: rgba(255, 255, 255, 0.02) !important;
-            }
-          `}</style>
         </Content>
       </Layout>
     </Layout>

@@ -54,6 +54,8 @@ export {
   InspectionResult,
   InspectionStatus,
   InspectionType,
+  VesselCertificateStatus,
+  VesselCertificateType,
   VesselStatus,
   VesselType,
 } from '@prisma/client';
@@ -66,6 +68,8 @@ export type {
   Certification,
   CrewMember,
   ExportHistory,
+  I418CrewEntry,
+  I418Submission,
   Inspection,
   InspectionDeficiency,
   MedicalCertificate,
@@ -74,6 +78,7 @@ export type {
   SafeManningRole,
   User,
   Vessel,
+  VesselCertificate,
   VesselDocument,
   VesselOwner,
 } from '@prisma/client';

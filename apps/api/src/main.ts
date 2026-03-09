@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { AppLogger } from './logger.service';
 
 dotenv.config();
 
@@ -21,7 +22,9 @@ function validateEncryptionKey() {
 async function bootstrap() {
   validateEncryptionKey();
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new AppLogger(),
+  });
 
   // Security middleware
   app.use(helmet());

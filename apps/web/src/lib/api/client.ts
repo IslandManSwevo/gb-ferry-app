@@ -138,8 +138,19 @@ export const api = {
     get: (id: string) => fetchWithAuth<any>(`/crew/certifications/${id}`),
     create: (data: any) =>
       fetchWithAuth<any>('/crew/certifications', { method: 'POST', body: JSON.stringify(data) }),
-    verify: (id: string) =>
-      fetchWithAuth<any>(`/crew/certifications/${id}/verify`, { method: 'POST' }),
+    getQueue: () => fetchWithAuth<any[]>('/crew/certifications/verification-queue'),
+    verify: (id: string, corrections?: any) =>
+      fetchWithAuth<any>(`/crew/certifications/${id}/verify`, {
+        method: 'POST',
+        body: JSON.stringify({ corrections }),
+      }),
+    reject: (id: string, reason: string) =>
+      fetchWithAuth<any>(`/crew/certifications/${id}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }),
+    getHistory: (crewId: string, certType: string) =>
+      fetchWithAuth<any>(`/crew/certifications/history`, { params: { crewId, certType } }),
   },
 
   // Vessels
@@ -172,6 +183,8 @@ export const api = {
         method: 'POST',
         body: formData,
       }),
+    getViewUrl: (certId: string) =>
+      fetchWithAuth<{ url: string; expiresAt: string }>(`/documents/certifications/${certId}/view`),
   },
 
   // Compliance

@@ -19,6 +19,7 @@ import {
   Button,
   Col,
   DatePicker,
+  Divider,
   Form,
   Input,
   Layout,
@@ -52,23 +53,35 @@ export default function CrewPage() {
 
   const fetchCrew = useCallback(async () => {
     setLoading(true);
-    const [crewResult, dashResult, vesselResult] = await Promise.all([
-      api.crew.list(),
-      api.compliance.dashboard(),
-      api.vessels.list({ pageSize: 100 }),
-    ]);
-    if (crewResult.error) {
-      message.error('Failed to load crew registry');
-    } else if (crewResult.data) {
-      setCrew(crewResult.data.items || []);
+    try {
+      const [crewResult, dashResult, vesselResult] = await Promise.all([
+        api.crew.list(),
+        api.compliance.dashboard(),
+        api.vessels.list({ pageSize: 100 }),
+      ]);
+
+      if (crewResult.error) {
+        message.error(crewResult.error || 'Failed to load crew registry');
+      } else if (crewResult.data) {
+        setCrew(crewResult.data.items || []);
+      }
+
+      if (dashResult.data) {
+        setDashboard(dashResult.data);
+      }
+
+      // FIX-06: Handle vessel fetch errors and clear stale data
+      if (vesselResult.error) {
+        message.error(vesselResult.error || 'Failed to fetch vessel list');
+        setVessels([]);
+      } else if (vesselResult.data) {
+        setVessels(vesselResult.data.items || []);
+      }
+    } catch (err: any) {
+      message.error('System error occurred while loading crew data');
+    } finally {
+      setLoading(false);
     }
-    if (dashResult.data) {
-      setDashboard(dashResult.data);
-    }
-    if (vesselResult.data) {
-      setVessels(vesselResult.data.items || []);
-    }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -79,7 +92,7 @@ export default function CrewPage() {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
-      
+
       const payload = {
         ...values,
         dateOfBirth: values.dateOfBirth.format('YYYY-MM-DD'),
@@ -88,15 +101,20 @@ export default function CrewPage() {
 
       const { error } = await api.crew.create(payload);
       if (error) {
-        message.error(error || 'Failed to onboard crew member');
+        // FIX-06: Normalize error object to string to prevent [object Object]
+        const errorMsg =
+          typeof error === 'string'
+            ? error
+            : (error as any).message || JSON.stringify(error) || 'Failed to onboard crew member';
+        message.error(errorMsg);
       } else {
         message.success('Crew member onboarded successfully');
         setIsOnboardModalOpen(false);
         form.resetFields();
         fetchCrew();
       }
-    } catch (err) {
-      // Validation error
+    } catch (err: any) {
+      // Form validation errors handled by Ant Design UI
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +181,8 @@ export default function CrewPage() {
   const filteredCrew = crew.filter(
     (c) =>
       c.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
-      c.rank?.toLowerCase().includes(searchText.toLowerCase())
+      c.rank?.toLowerCase().includes(searchText.toLowerCase()) ||
+      c.vesselName?.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const columns = [
@@ -202,9 +221,13 @@ export default function CrewPage() {
       title: 'Compliance',
       key: 'compliance',
       render: (record: any) => {
+        // FIX-06: Robust date check for certification logic
         const expiringCount =
           record.certifications?.filter((c: any) => {
+            if (!c.expirationDate) return false;
             const expirationDate = new Date(c.expirationDate);
+            if (isNaN(expirationDate.getTime())) return false;
+
             const thirtyDaysFromNow = new Date();
             thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
             return expirationDate < thirtyDaysFromNow;
@@ -260,9 +283,10 @@ export default function CrewPage() {
   ];
 
   const expiringTotal = crew.filter((c) =>
-    c.certifications?.some(
-      (cert: any) => new Date(cert.expirationDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    )
+    c.certifications?.some((cert: any) => {
+      const d = new Date(cert.expirationDate);
+      return !isNaN(d.getTime()) && d < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    })
   ).length;
 
   return (
@@ -289,9 +313,9 @@ export default function CrewPage() {
               </Text>
             </Col>
             <Col>
-              <Button 
-                type="primary" 
-                icon={<PlusOutlined />} 
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
                 size="large"
                 onClick={() => setIsOnboardModalOpen(true)}
               >
@@ -421,12 +445,14 @@ export default function CrewPage() {
         </Content>
       </Layout>
 
-      {/* Onboard Modal */}
       <Modal
         title="Onboard New Crew Member"
         open={isOnboardModalOpen}
         onOk={handleOnboard}
-        onCancel={() => setIsOnboardModalOpen(false)}
+        onCancel={() => {
+          setIsOnboardModalOpen(false);
+          form.resetFields();
+        }}
         confirmLoading={submitting}
         width={800}
         styles={{
@@ -581,7 +607,6 @@ export default function CrewPage() {
         </Form>
       </Modal>
 
-      {/* Contact Modal */}
       <Modal
         title="Establishing Secure Link"
         open={isContactModalOpen}
