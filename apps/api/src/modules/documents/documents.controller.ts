@@ -178,6 +178,10 @@ export class DocumentsController {
 
     const mappedUser = await this.mapUser(user);
 
+    if (!cert.documentUrl) {
+      throw new BadRequestException('No document URL found for this certification');
+    }
+
     return this.documentViewerService.getSignedViewUrl(cert.documentUrl, mappedUser.id, {
       entityType: 'certification',
       entityId: certId,

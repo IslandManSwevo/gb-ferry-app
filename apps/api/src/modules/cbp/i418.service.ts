@@ -8,6 +8,11 @@ export interface DepartureReconciliation {
   stayed: CrewMember[];
 }
 
+export interface I418ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
 export interface I418Payload {
   vesselInfo: {
     name: string;
@@ -128,6 +133,41 @@ export class I418Service {
       vesselInfo,
       voyageInfo,
       crewList,
+    };
+  }
+
+  /**
+   * Validates if a submission is ready for CBP transmission.
+   * Checks for mandatory IMO numbers and visa requirements for non-US crew.
+   */
+  async validateI418Completeness(submissionId: string): Promise<I418ValidationResult> {
+    const submission = await this.prisma.i418Submission.findUniqueOrThrow({
+      where: { id: submissionId },
+      include: {
+        vessel: true,
+        crewEntries: true,
+      },
+    });
+
+    const errors: string[] = [];
+
+    if (!submission.vessel.imoNumber) {
+      errors.push('Vessel IMO number is required for I-418 submission.');
+    }
+
+    for (const entry of submission.crewEntries) {
+      // US-specific rule: non-US/non-resident crew must have valid clearing docs
+      // Nationality 'USA' is exempt. 'BSH' (Bahamas) and others require visa/alien reg.
+      if (entry.nationality !== 'USA' && !entry.visaType && !entry.alienRegistrationNumber) {
+        errors.push(
+          `${entry.rank} (${entry.nationality}): non-US crew must have visa type or alien registration number.`
+        );
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
     };
   }
 

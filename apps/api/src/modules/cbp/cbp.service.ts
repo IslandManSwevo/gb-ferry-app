@@ -62,7 +62,7 @@ export class CBPService {
       data: {
         vessel: { connect: { id: vesselId } },
         formType,
-        status: result.status === 'ACCEPTED' ? 'SUBMITTED' : 'REJECTED',
+        status: result.status === 'ACCEPTED' ? 'ACCEPTED' : 'REJECTED',
         transmissionId: result.submissionId,
         submittedAt:
           result.timestamp instanceof Date ? result.timestamp.toISOString() : result.timestamp,

@@ -27,6 +27,13 @@ export const CrewRoleEnum = z.enum([
   'CHIEF_STEWARD',
   'STEWARD',
   'COOK',
+  'CHIEF_COOK',
+  'PURSER',
+  'SAFETY_OFFICER',
+  'SHIP_SECURITY_OFFICER',
+  'SECURITY_OFFICER',
+  'RADIO_OPERATOR',
+  'CROWD_CONTROL',
   'OTHER',
 ]);
 export type CrewRole = z.infer<typeof CrewRoleEnum>;

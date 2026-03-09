@@ -1,12 +1,15 @@
 import {
   CrewMember,
+  CrewRole,
+  CrewStatus,
   decryptField,
   encryptField,
+  Gender,
   maskField,
   Prisma,
   PrismaService,
 } from '@gbferry/database';
-import { CreateCrewMember, CrewRole } from '@gbferry/dto';
+import { CreateCrewMember } from '@gbferry/dto';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { validateCrewCompliance, validateSafeManningRequirement } from '../../lib/crew-validators';
 import { AuditService } from '../audit/audit.service';
@@ -65,24 +68,29 @@ export class CrewService {
      * ISO 27001 A.8.23: PII Protection
      * Sensitive fields (Passport, ID) are encrypted at rest.
      */
+    const createData: Prisma.CrewMemberCreateInput = {
+      familyName: createDto.familyName,
+      givenNames: createDto.givenNames,
+      dateOfBirth: new Date(createDto.dateOfBirth),
+      nationality: createDto.nationality,
+      gender: createDto.gender as Gender,
+      passportNumber: encryptField(createDto.passportNumber),
+      passportCountry: createDto.passportIssuingCountry,
+      passportExpiry: new Date(createDto.passportExpiryDate),
+      identificationNumber: this.encryptValue(
+        createDto.seamanBookNumber || createDto.passportNumber
+      ),
+      role: createDto.role as CrewRole,
+      status: 'ACTIVE' as CrewStatus,
+      createdBy: { connect: { id: userId } },
+    };
+
+    if (createDto.vesselId) {
+      createData.vessel = { connect: { id: createDto.vesselId } };
+    }
+
     const crew = await this.prisma.crewMember.create({
-      data: {
-        familyName: createDto.familyName,
-        givenNames: createDto.givenNames,
-        dateOfBirth: new Date(createDto.dateOfBirth),
-        nationality: createDto.nationality,
-        gender: createDto.gender as any,
-        passportNumber: this.encryptValue(createDto.passportNumber) as any,
-        passportCountry: createDto.passportIssuingCountry,
-        passportExpiry: new Date(createDto.passportExpiryDate),
-        identificationNumber: this.encryptValue(
-          createDto.seamanBookNumber || createDto.passportNumber
-        ),
-        role: createDto.role as any,
-        ...(createDto.vesselId && { vessel: { connect: { id: createDto.vesselId } } }),
-        status: 'ACTIVE' as any,
-        createdById: userId,
-      } as any,
+      data: createData,
     });
 
     await this.auditService.log({
@@ -101,8 +109,8 @@ export class CrewService {
     const crewMembers = (await this.prisma.crewMember.findMany({
       where: {
         ...(filters.vesselId && { vesselId: filters.vesselId }),
-        ...(filters.role && { role: filters.role as any }),
-        status: (filters.status || 'ACTIVE') as any,
+        ...(filters.role && { role: filters.role }),
+        status: (filters.status as CrewStatus) || 'ACTIVE',
         deletedAt: null,
       },
       include: {

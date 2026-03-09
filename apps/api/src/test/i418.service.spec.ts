@@ -1,7 +1,7 @@
+import { PrismaService } from '@gbferry/database';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditService } from '../modules/audit/audit.service';
 import { I418Service } from '../modules/cbp/i418.service';
-import { PrismaService } from '../modules/prisma/prisma.service';
 import { EncryptionService } from '../modules/security/encryption.service';
 
 describe('I418Service', () => {
@@ -10,11 +10,15 @@ describe('I418Service', () => {
   const mockPrisma = {
     i418Submission: {
       findUniqueOrThrow: jest.fn(),
+      findFirst: jest.fn(),
+    },
+    crewMember: {
+      findMany: jest.fn(),
     },
   };
 
   const mockEncryption = {
-    decrypt: jest.fn((val) => Promise.resolve(val.replace('ENC_', ''))),
+    decrypt: jest.fn((val) => val.replace('ENC_', '')),
   };
 
   const mockAudit = {
@@ -85,29 +89,28 @@ describe('I418Service', () => {
   });
 
   describe('departure reconciliation', () => {
-    it('should include joinedAfterArrival crew in additions', async () => {
-      mockPrisma.i418Submission.findUniqueOrThrow.mockResolvedValue({
-        portOfEntry: 'FLL',
-        cbpReceiptNumber: 'REC123',
-        departureDate: new Date(),
-        nextForeignPort: 'NAS',
-        crewEntries: [
-          {
-            joinedAfterArrival: true,
-            rank: 'MASTER',
-            crewMember: { firstName: 'John', lastName: 'Doe' },
-          },
-          {
-            joinedAfterArrival: false,
-            rank: 'CHIEF_OFFICER',
-            crewMember: { firstName: 'Jane', lastName: 'Smith' },
-          },
-        ],
+    it('should identify newly joined crew members', async () => {
+      // Mock latest arrival submission with 1 crew (ID: 101)
+      mockPrisma.i418Submission.findFirst.mockResolvedValue({
+        id: 'sub_old',
+        crewEntries: [{ crewMemberId: '101' }],
       });
 
-      const result = await service.buildDepartureReconciliation('sub_123');
-      expect(result.crewAdditions).toHaveLength(1);
-      expect(result.crewAdditions[0].lastName).toBe('Doe');
+      // Mock current active crew on vessel (IDs: 101 and 102)
+      mockPrisma.crewMember.findMany.mockResolvedValue([
+        { id: '101', familyName: 'Smith' },
+        { id: '102', familyName: 'Doe' },
+      ]);
+
+      const result = await service.getDepartureReconciliation('vessel_123');
+
+      expect(result).not.toBeNull();
+      if (result) {
+        expect(result.joined).toHaveLength(1);
+        expect(result.joined[0].id).toBe('102');
+        expect(result.stayed).toHaveLength(1);
+        expect(result.stayed[0].id).toBe('101');
+      }
     });
   });
 });

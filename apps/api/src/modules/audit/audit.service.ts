@@ -121,6 +121,10 @@ export class AuditService {
       const metadata = {
         ...(entry.details || {}),
         ...(entry.compliance ? { compliance: entry.compliance } : {}),
+        previousValue: entry.previousValue,
+        newValue: entry.newValue,
+        changedFields: entry.changedFields || [],
+        reason: entry.reason,
       };
 
       // FIX-05: Recursive redaction to prevent PII leakage in deep objects
@@ -164,10 +168,6 @@ export class AuditService {
           userRole: resolvedUserRole,
           ipAddress: entry.ipAddress || 'unknown',
           userAgent: entry.userAgent || 'unknown',
-          previousValue: entry.previousValue,
-          newValue: entry.newValue,
-          changedFields: entry.changedFields || [],
-          reason: entry.reason,
           metadata: this.safeMetadata(metadata),
           timestamp: new Date(),
         },

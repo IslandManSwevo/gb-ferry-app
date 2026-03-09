@@ -121,7 +121,14 @@ export function roleMatches(actualRole: CrewRole, requiredRole: string): boolean
 
     CHIEF_STEWARD: ['CHIEF_STEWARD'],
     STEWARD: ['STEWARD', 'CHIEF_STEWARD'],
-    COOK: ['COOK', 'STEWARD', 'CHIEF_STEWARD'],
+    COOK: ['COOK', 'CHIEF_COOK', 'STEWARD', 'CHIEF_STEWARD'],
+    CHIEF_COOK: ['CHIEF_COOK'],
+    PURSER: ['PURSER'],
+    SAFETY_OFFICER: ['SAFETY_OFFICER'],
+    SHIP_SECURITY_OFFICER: ['SHIP_SECURITY_OFFICER'],
+    SECURITY_OFFICER: ['SECURITY_OFFICER', 'SHIP_SECURITY_OFFICER'],
+    RADIO_OPERATOR: ['RADIO_OPERATOR'],
+    CROWD_CONTROL: ['CROWD_CONTROL'],
   };
 
   return (roleMap[requiredRole] || []).includes(actualRole);

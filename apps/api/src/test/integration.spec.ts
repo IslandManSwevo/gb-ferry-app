@@ -281,12 +281,9 @@ describe.skip('Grand Bahama Ferry - Crew Compliance Integration (Requires local 
 
   describe('Advanced Reporting', () => {
     it('should generate fleet compliance snapshot', async () => {
-      const report = await complianceService.getReports(
-        {
-          type: 'fleet_compliance_snapshot',
-        },
-        testUserId
-      );
+      const report = await complianceService.getReports({
+        type: 'fleet_compliance_snapshot',
+      });
 
       expect(report.reportType).toBe('Fleet Compliance Snapshot');
       expect(report.vessels).toBeDefined();

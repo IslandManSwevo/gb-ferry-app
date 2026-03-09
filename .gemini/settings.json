@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "jcodemunch": {
+      "command": "C:\\Users\\green\\AppData\\Roaming\\Python\\Python313\\Scripts\\jcodemunch-mcp.exe",
+      "args": []
+    }
+  }
+}

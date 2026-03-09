@@ -226,4 +226,66 @@ export class ComplianceService {
       },
     };
   }
+
+  async findAllInspections(filters: { vesselId?: string; status?: string }): Promise<any[]> {
+    return this.prisma.inspection.findMany({
+      where: {
+        ...(filters.vesselId && { vesselId: filters.vesselId }),
+        ...(filters.status && { status: filters.status as any }),
+      },
+      include: {
+        deficiencies: true,
+        vessel: true,
+      },
+      orderBy: { scheduledDate: 'desc' },
+    });
+  }
+
+  async getReports(filters: { type?: string; dateFrom?: string; dateTo?: string }): Promise<any> {
+    if (filters.type === 'fleet_compliance_snapshot') {
+      const dashboard = await this.getDashboard();
+      return {
+        reportType: 'Fleet Compliance Snapshot',
+        generatedAt: new Date(),
+        vessels: dashboard.vessels,
+        summary: dashboard.summary,
+      };
+    }
+    return [];
+  }
+
+  async recordInspection(inspectionDto: any, userId: string): Promise<any> {
+    const inspection = await this.prisma.inspection.create({
+      data: {
+        vesselId: inspectionDto.vesselId,
+        type: inspectionDto.type,
+        status: inspectionDto.status || 'COMPLETED',
+        scheduledDate: new Date(inspectionDto.scheduledDate),
+        completedDate: inspectionDto.completedDate ? new Date(inspectionDto.completedDate) : null,
+        result: inspectionDto.result,
+        inspectorName: inspectionDto.inspectorName,
+        inspectorOrganization: inspectionDto.inspectorOrganization,
+        notes: inspectionDto.notes,
+        createdById: userId,
+        deficiencies: {
+          create: (inspectionDto.deficiencies || []).map((d: any) => ({
+            code: d.code,
+            description: d.description,
+            severity: d.severity,
+            deadline: d.deadline ? new Date(d.deadline) : null,
+          })),
+        },
+      } as any,
+    });
+
+    await this.auditService.log({
+      action: 'INSPECTION_RECORDED',
+      entityId: inspection.id,
+      entityType: 'inspection',
+      userId,
+      details: inspectionDto,
+    });
+
+    return inspection;
+  }
 }
