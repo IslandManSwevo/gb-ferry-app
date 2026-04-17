@@ -186,7 +186,7 @@ export class DocumentUploadService {
 
     // Confidence warnings for the verifier
     const aiWarnings: string[] = [];
-    if (metadata.confidence < 0.5) {
+    if (metadata.confidence !== undefined && metadata.confidence < 0.5) {
       aiWarnings.push('Low confidence extraction — verify all fields carefully.');
     }
     if (!metadata.extractedExpiryDate) {
