@@ -108,6 +108,44 @@ services:
       - '1025:1025' # SMTP
       - '8025:8025' # Web UI
 
+  # ===========================================
+  # Backend API (NestJS)
+  # ===========================================
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: gbferry-api
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    ports:
+      - '3001:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  # ===========================================
+  # Frontend Web (Next.js)
+  # ===========================================
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: gbferry-web
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    ports:
+      - '3000:3000'
+    depends_on:
+      api:
+        condition: service_started
+
 volumes:
   postgres_data:
     driver: local
