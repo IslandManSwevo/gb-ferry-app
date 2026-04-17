@@ -75,7 +75,7 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "authorizationServicesEnabled": false,
-      "secret": "dev-web-secret-change-in-production",
+      "secret": "GBFerry2026!WebSecret#Rotated",
       "redirectUris": [
         "http://localhost:3000/*",
         "http://127.0.0.1:3000/*",
@@ -104,7 +104,7 @@
       "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": true,
       "protocol": "openid-connect",
-      "secret": "dev-api-secret-change-in-production",
+      "secret": "GBFerry2026!ApiSecret#Rotated",
       "defaultClientScopes": ["roles", "profile", "email"]
     }
   ],
