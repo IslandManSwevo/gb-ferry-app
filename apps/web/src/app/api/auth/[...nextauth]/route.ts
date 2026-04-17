@@ -6,8 +6,9 @@ import KeycloakProvider from 'next-auth/providers/keycloak';
  * Refresh the Keycloak access token
  */
 async function refreshAccessToken(token: JWT): Promise<JWT> {
+  const keycloakServerUrl = process.env.KEYCLOAK_INTERNAL_URL || process.env.KEYCLOAK_URL;
   try {
-    const url = `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/token`;
+    const url = `${keycloakServerUrl}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/token`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -45,7 +46,8 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
 
 // Test OIDC discovery at startup (only when env vars are available, skip during build)
 if (process.env.KEYCLOAK_URL && process.env.KEYCLOAK_REALM) {
-  const oidcUrl = `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/.well-known/openid-configuration`;
+  const keycloakServerUrl = process.env.KEYCLOAK_INTERNAL_URL || process.env.KEYCLOAK_URL;
+  const oidcUrl = `${keycloakServerUrl}/realms/${process.env.KEYCLOAK_REALM}/.well-known/openid-configuration`;
   fetch(oidcUrl)
     .then((res) => res.json())
     .then((config) => {
@@ -56,12 +58,13 @@ if (process.env.KEYCLOAK_URL && process.env.KEYCLOAK_REALM) {
       });
     })
     .catch((err) => {
-      console.error('[NextAuth] OIDC Discovery FAILED:', err.message);
+      console.error('[NextAuth] OIDC Discovery FAILED:', err.message, `(URL: ${oidcUrl})`);
     });
 
   // Log provider configuration at startup
   console.log('[NextAuth] Keycloak provider configuration:', {
     issuer: `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}`,
+    internalUrl: keycloakServerUrl,
     clientId: process.env.KEYCLOAK_CLIENT_ID,
     hasSecret: !!process.env.KEYCLOAK_CLIENT_SECRET,
   });
@@ -86,8 +89,10 @@ const authOptions: NextAuthOptions = {
       clientId: process.env.KEYCLOAK_CLIENT_ID!,
       clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || '',
       issuer: `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}`,
-      // Explicit wellKnown URL for OIDC discovery
-      wellKnown: `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/.well-known/openid-configuration`,
+      // Use internal URL for discovery (server-to-server)
+      wellKnown: `${
+        process.env.KEYCLOAK_INTERNAL_URL || process.env.KEYCLOAK_URL
+      }/realms/${process.env.KEYCLOAK_REALM}/.well-known/openid-configuration`,
       authorization: {
         params: {
           scope: 'openid email profile',
@@ -183,7 +188,8 @@ const authOptions: NextAuthOptions = {
       // Logout from Keycloak as well
       if (token.refreshToken) {
         try {
-          const url = `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/logout`;
+          const keycloakServerUrl = process.env.KEYCLOAK_INTERNAL_URL || process.env.KEYCLOAK_URL;
+          const url = `${keycloakServerUrl}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/logout`;
           await fetch(url, {
             method: 'POST',
             headers: {

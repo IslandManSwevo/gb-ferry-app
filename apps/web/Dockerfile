@@ -1,7 +1,11 @@
 FROM node:20-alpine AS base
 
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9
 
 WORKDIR /app
 
@@ -14,13 +18,17 @@ COPY packages/dto ./packages/dto
 # Copy web app
 COPY apps/web ./apps/web
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies and build web app
+RUN pnpm install --frozen-lockfile && \
+    pnpm --filter @gbferry/web build
 
-# Build the web app
-# We skip type checking in the docker build for speed if needed, but let's do a full build
-RUN pnpm --filter @gbferry/web build
+# Change ownership and switch to non-root user
+RUN chown -R nextjs:nodejs /app
+USER nextjs
 
 EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
 
 CMD ["pnpm", "--filter", "@gbferry/web", "start"]

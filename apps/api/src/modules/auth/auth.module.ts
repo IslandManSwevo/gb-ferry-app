@@ -19,7 +19,9 @@ import { LoggingAuthGuard } from './logging-auth.guard';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        authServerUrl: configService.get<string>('KEYCLOAK_URL', 'http://localhost:8080'),
+        authServerUrl:
+          configService.get<string>('KEYCLOAK_INTERNAL_URL') ||
+          configService.get<string>('KEYCLOAK_URL', 'http://localhost:8080'),
         realm: configService.get<string>('KEYCLOAK_REALM', 'gbferry'),
         clientId: configService.get<string>('KEYCLOAK_API_CLIENT_ID', 'gbferry-api'),
         secret: configService.get<string>(

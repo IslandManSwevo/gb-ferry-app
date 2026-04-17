@@ -7,7 +7,7 @@ const nextConfig = {
   },
   // `standalone` uses filesystem links that can fail on Windows without Developer Mode.
   // Enable explicitly for container/CI builds with: NEXT_STANDALONE=true
-  output: process.env.NEXT_STANDALONE === 'true' ? 'standalone' : undefined,
+  output: 'standalone',
 };
 
 module.exports = nextConfig;

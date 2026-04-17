@@ -142,9 +142,13 @@ pnpm format           # Format with Prettier
 pnpm clean            # Clean build artifacts
 ```
 
-## 🌍 Environment Variables
+### Environment File Usage
 
-Copy `.env.example` to `.env` and configure:
+- `.env.example`: Template for local development. Copy this to `.env`.
+- `.env.docker`: **Complete** environment configuration for containerized runs within the Docker Compose network. Uses internal service hostnames (e.g., `postgres`, `web`, `api`).
+- `.env.local`: Local overrides (not committed).
+
+Copy `.env.example` to `.env` for standard host-based development:
 
 ```env
 DATABASE_URL="postgresql://gbferry:gbferry_dev@localhost:5433/gbferry_db"
