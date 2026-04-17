@@ -76,8 +76,16 @@
       "serviceAccountsEnabled": false,
       "authorizationServicesEnabled": false,
       "secret": "dev-web-secret-change-in-production",
-      "redirectUris": ["http://localhost:3000/*", "http://127.0.0.1:3000/*"],
-      "webOrigins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*",
+        "https://gbferryweb-production.up.railway.app/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://gbferryweb-production.up.railway.app"
+      ],
       "protocol": "openid-connect",
       "attributes": {
         "pkce.code.challenge.method": "S256"
