@@ -14,6 +14,9 @@ COPY realm-export.json /opt/keycloak/data/import/realm-export.json
 ENV KC_HTTP_ENABLED=true
 ENV KC_PROXY=edge
 ENV KC_HEALTH_ENABLED=true
+# Allow healthcheck probes that don't match KC_HOSTNAME
+ENV KC_HOSTNAME_STRICT=false
+ENV KC_HOSTNAME_STRICT_HTTPS=false
 
 EXPOSE 8080
 
