@@ -165,6 +165,14 @@ export const ROLE_CERTIFICATION_REQUIREMENTS: Record<string, STCWCertType[]> = {
     'ADVANCED_FIREFIGHTING',
     'MEDICAL_FIRST_AID',
   ],
+  SECOND_ENGINEER: [
+    'SECOND_ENGINEER',
+    'BASIC_SAFETY_TRAINING',
+    'ADVANCED_FIREFIGHTING',
+    'MEDICAL_FIRST_AID',
+  ],
+  THIRD_ENGINEER: ['OFFICER_OF_THE_WATCH_ENGINE', 'BASIC_SAFETY_TRAINING', 'ADVANCED_FIREFIGHTING'],
+  // Alias kept for backwards-compat; prefer THIRD_ENGINEER for new records
   ENGINE_OFFICER: ['OFFICER_OF_THE_WATCH_ENGINE', 'BASIC_SAFETY_TRAINING', 'ADVANCED_FIREFIGHTING'],
   ABLE_SEAMAN: [
     'ABLE_SEAFARER_DECK',
@@ -175,6 +183,13 @@ export const ROLE_CERTIFICATION_REQUIREMENTS: Record<string, STCWCertType[]> = {
   RATING: ['BASIC_SAFETY_TRAINING', 'PASSENGER_SHIP_SAFETY', 'SECURITY_AWARENESS'],
 };
 
+/** Normalise a Date to UTC midnight so local-timezone offsets don't shift the boundary day. */
+const toUtcDay = (d: Date): number => {
+  const copy = new Date(d);
+  copy.setUTCHours(0, 0, 0, 0);
+  return copy.getTime();
+};
+
 // Validate crew certifications against role requirements
 export const validateCrewCertifications = (
   role: string,
@@ -182,12 +197,16 @@ export const validateCrewCertifications = (
   sailingDate: Date
 ): { valid: boolean; missing: string[]; expired: string[] } => {
   const required = ROLE_CERTIFICATION_REQUIREMENTS[role] || [];
-  const validCerts = certifications.filter((c) => new Date(c.expiryDate) >= sailingDate);
-  const validCertTypes = new Set<STCWCertType>(validCerts.map((c) => c.type));
+  const sailingDay = toUtcDay(sailingDate);
+
+  const validCertTypes = new Set<STCWCertType>(
+    certifications.filter((c) => toUtcDay(new Date(c.expiryDate)) >= sailingDay).map((c) => c.type)
+  );
 
   const missing = required.filter((r) => !validCertTypes.has(r));
+  // Only report expired certs that are actually required for this role
   const expired = certifications
-    .filter((c) => new Date(c.expiryDate) < sailingDate)
+    .filter((c) => required.includes(c.type) && toUtcDay(new Date(c.expiryDate)) < sailingDay)
     .map((c) => c.type);
 
   return {

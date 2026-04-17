@@ -3,12 +3,12 @@ import * as crypto from 'crypto';
 /**
  * Field-level encryption utilities for sensitive data
  * (passport numbers, identity documents)
- * 
+ *
  * Uses AES-256-GCM for authenticated encryption
  */
 
 const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 16;
+const IV_LENGTH = 12; // 96-bit IV is recommended for AES-GCM (NIST SP 800-38D)
 const AUTH_TAG_LENGTH = 16;
 
 /**
@@ -19,7 +19,7 @@ const AUTH_TAG_LENGTH = 16;
  */
 export function encryptField(value: string, key?: string): string {
   const encryptionKey = key || process.env.ENCRYPTION_KEY;
-  
+
   if (!encryptionKey) {
     throw new Error('ENCRYPTION_KEY environment variable is required');
   }
@@ -32,24 +32,19 @@ export function encryptField(value: string, key?: string): string {
 
   // Generate random IV
   const iv = crypto.randomBytes(IV_LENGTH);
-  
+
   // Create cipher
   const cipher = crypto.createCipheriv(ALGORITHM, keyBuffer, iv);
-  
-  // Encrypt
-  let encrypted = cipher.update(value, 'utf8', 'base64');
-  encrypted += cipher.final('base64');
-  
+
+  // Encrypt — collect output as Buffers to avoid an unnecessary base64 roundtrip
+  const encryptedBuf = Buffer.concat([cipher.update(Buffer.from(value, 'utf8')), cipher.final()]);
+
   // Get auth tag
   const authTag = cipher.getAuthTag();
-  
-  // Combine IV + encrypted + authTag
-  const combined = Buffer.concat([
-    iv,
-    Buffer.from(encrypted, 'base64'),
-    authTag,
-  ]);
-  
+
+  // Combine IV + ciphertext + authTag
+  const combined = Buffer.concat([iv, encryptedBuf, authTag]);
+
   return combined.toString('base64');
 }
 
@@ -61,7 +56,7 @@ export function encryptField(value: string, key?: string): string {
  */
 export function decryptField(encryptedValue: string, key?: string): string {
   const encryptionKey = key || process.env.ENCRYPTION_KEY;
-  
+
   if (!encryptionKey) {
     throw new Error('ENCRYPTION_KEY environment variable is required');
   }
@@ -73,20 +68,27 @@ export function decryptField(encryptedValue: string, key?: string): string {
 
   // Decode combined value
   const combined = Buffer.from(encryptedValue, 'base64');
-  
+
+  const MIN_LENGTH = IV_LENGTH + AUTH_TAG_LENGTH + 1; // iv + at least 1 byte ciphertext + tag
+  if (combined.length < MIN_LENGTH) {
+    throw new Error(
+      `Encrypted value is too short (${combined.length} bytes, expected >= ${MIN_LENGTH})`
+    );
+  }
+
   // Extract IV, encrypted data, and auth tag
   const iv = combined.subarray(0, IV_LENGTH);
   const authTag = combined.subarray(combined.length - AUTH_TAG_LENGTH);
   const encrypted = combined.subarray(IV_LENGTH, combined.length - AUTH_TAG_LENGTH);
-  
+
   // Create decipher
   const decipher = crypto.createDecipheriv(ALGORITHM, keyBuffer, iv);
   decipher.setAuthTag(authTag);
-  
+
   // Decrypt
   let decrypted = decipher.update(encrypted);
   decrypted = Buffer.concat([decrypted, decipher.final()]);
-  
+
   return decrypted.toString('utf8');
 }
 
@@ -100,10 +102,10 @@ export function maskField(value: string, visibleChars: number = 4): string {
   if (!value || value.length <= visibleChars) {
     return '****';
   }
-  
+
   const visible = value.slice(-visibleChars);
   const masked = '*'.repeat(Math.min(value.length - visibleChars, 8));
-  
+
   return masked + visible;
 }
 

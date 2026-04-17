@@ -21,15 +21,24 @@ export type IdentityDocType = z.infer<typeof IdentityDocTypeEnum>;
 export const NationalitySchema = z.string().length(3).toUpperCase();
 
 // Date validation helpers
-export const FutureDateSchema = z.string().refine(
-  (date) => new Date(date) > new Date(),
-  { message: 'Date must be in the future' }
-);
+// Comparisons use UTC midnight so the result is the same regardless of the server's local timezone.
+const utcDay = (d: Date): number => {
+  const c = new Date(d);
+  c.setUTCHours(0, 0, 0, 0);
+  return c.getTime();
+};
 
-export const PastDateSchema = z.string().refine(
-  (date) => new Date(date) < new Date(),
-  { message: 'Date must be in the past' }
-);
+export const FutureDateSchema = z
+  .string()
+  .refine((date) => utcDay(new Date(date)) > utcDay(new Date()), {
+    message: 'Date must be in the future',
+  });
+
+export const PastDateSchema = z
+  .string()
+  .refine((date) => utcDay(new Date(date)) < utcDay(new Date()), {
+    message: 'Date must be in the past',
+  });
 
 // Pagination
 export const PaginationSchema = z.object({

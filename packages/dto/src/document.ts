@@ -7,7 +7,7 @@ export const DocumentUploadDtoSchema = z.object({
   entityId: z.string().uuid(),
   documentType: z.string().optional(),
   expiryDate: z.coerce.date().optional(),
- metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 export const DocumentMetadataSchema = z.object({
@@ -15,7 +15,7 @@ export const DocumentMetadataSchema = z.object({
   extractedExpiryDate: z.coerce.date().optional(),
   certificateNumber: z.string().optional(),
   issuingAuthority: z.string().optional(),
-  confidence: z.number().min(0).max(1),
+  confidence: z.number().min(0).max(1).optional(),
 });
 
 export type DocumentUploadDto = z.infer<typeof DocumentUploadDtoSchema>;

@@ -129,7 +129,9 @@ services:
       keycloak:
         condition: service_healthy
       minio:
-        condition: service_healthy # ===========================================
+        condition: service_healthy
+
+  # ===========================================
   # Frontend Web (Next.js)
   # ===========================================
   web:

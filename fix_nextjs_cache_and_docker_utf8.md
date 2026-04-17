@@ -14,22 +14,18 @@ Next.js handles environment variables differently depending on their prefix:
 ## 2. Standalone Output Mode
 
 To optimize images for production, `apps/web/next.config.js` is configured with:
-```javascript
-output: 'standalone'
-```
-This causes Next.js to automatically trace dependencies and copy only the necessary files into a `.next/standalone` folder. This drastically reduces image size and removes the need to include thousands of `node_modules` in the final layer.
 
 ## 3. Caching and Promotion
 
 - **Build Cache**: Next.js stores cache in `.next/cache`. In CI/CD, this should be persisted across builds to speed up compilation.
-- **Image Promotion**: Since we use runtime environment variables for the API and database, the *same* Docker image produced in a "build" step can be promoted across environments (Staging -> Production) simply by changing the environment variables provided to the container at startup.
+- **Image Promotion**: Since we use runtime environment variables for the API and database, the _same_ Docker image produced in a "build" step can be promoted across environments (Staging -> Production) simply by changing the environment variables provided to the container at startup.
 
 ## 4. Internationalization and UTF-8
 
 To ensure consistent handling of filenames and seafarer data containing special characters (e.g., French or Spanish accents in crew names), the containers should ensure a UTF-8 compatible locale.
 
 In the `Dockerfile`, this is handled by setting the `LANG` environment variable:
-```dockerfile
-ENV LANG=C.UTF-8
-```
-This ensures that the Node.js runtime and underlying filesystem operations correctly interpret non-ASCII characters without data corruption.
+
+To ensure consistent handling of filenames and seafarer data containing special characters (e.g., French or Spanish accents in crew names), the containers should ensure a UTF-8-compatible locale.
+
+In the `Dockerfile`, this is handled by setting the `LANG` environment variable:

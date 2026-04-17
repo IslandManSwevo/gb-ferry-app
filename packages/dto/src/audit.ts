@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 /**
  * Audit DTOs
- * 
+ *
  * Types for immutable audit logging.
  * All sensitive operations are logged for regulatory compliance.
  */
@@ -25,7 +25,7 @@ export type AuditEntityType = z.infer<typeof AuditEntityTypeEnum>;
 // Audit actions
 export const AuditActionEnum = z.enum([
   'create',
-  'read',      // For sensitive data access
+  'read', // For sensitive data access
   'update',
   'delete',
   'export',
@@ -42,39 +42,42 @@ export type AuditAction = z.infer<typeof AuditActionEnum>;
 // Audit log entry
 export const AuditLogEntrySchema = z.object({
   id: z.string().uuid(),
-  
+
   // What was affected
   entityType: AuditEntityTypeEnum,
   entityId: z.string(),
   entityName: z.string().optional(), // Human-readable reference
-  
+
   // What happened
   action: AuditActionEnum,
   actionDescription: z.string().optional(),
-  
+
   // Who did it
   userId: z.string().uuid(),
   userName: z.string(),
   userRole: z.string(),
-  
+
   // When
   timestamp: z.string(),
-  
+
   // Where (security context)
   ipAddress: z.string().optional(),
   userAgent: z.string().optional(),
   sessionId: z.string().optional(),
-  
+
   // Change details (for updates)
-  previousValue: z.any().optional(),
-  newValue: z.any().optional(),
+  /** @remarks May contain PII — narrow the type before reading or serialising. */
+  previousValue: z.unknown().optional(),
+  /** @remarks May contain PII — narrow the type before reading or serialising. */
+  newValue: z.unknown().optional(),
   changedFields: z.array(z.string()).optional(),
-  
+
   // Why (optional justification)
   reason: z.string().optional(),
-  
+
   // Additional metadata
-  metadata: z.record(z.any()).optional(),
+  /** @remarks May contain PII — narrow the type before reading or serialising. */
+  metadata: z.record(z.unknown()).optional(),
 });
 export type AuditLogEntry = z.infer<typeof AuditLogEntrySchema>;
 
@@ -86,7 +89,7 @@ export const AuditLogFiltersSchema = z.object({
   userId: z.string().uuid().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
-  
+
   // Pagination
   page: z.number().min(1).default(1),
   limit: z.number().min(1).max(100).default(50),
@@ -107,7 +110,7 @@ export type AuditLogResponse = z.infer<typeof AuditLogResponseSchema>;
 // Export history entry (special tracking for data exports)
 export const ExportHistoryEntrySchema = z.object({
   id: z.string().uuid(),
-  
+
   // What was exported
   exportType: z.enum([
     'passenger_manifest',
@@ -118,26 +121,26 @@ export const ExportHistoryEntrySchema = z.object({
     'audit_log',
   ]),
   format: z.enum(['csv', 'xlsx', 'pdf', 'xml']),
-  
+
   // Scope
   entityType: AuditEntityTypeEnum,
   entityIds: z.array(z.string()),
   recordCount: z.number(),
-  
+
   // Context
   jurisdiction: z.string().optional(),
   purpose: z.string().optional(),
-  
+
   // Who & When
   exportedBy: z.string().uuid(),
   exportedByName: z.string(),
   exportedAt: z.string(),
-  
+
   // File
   fileName: z.string(),
   fileSize: z.number(),
   checksum: z.string(), // SHA-256 for integrity verification
-  
+
   // Retention
   retainUntil: z.string(), // Based on data protection requirements
 });

@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -5,9 +7,11 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['antd', '@ant-design/icons'],
   },
-  // `standalone` uses filesystem links that can fail on Windows without Developer Mode.
-  // Enable explicitly for container/CI builds with: NEXT_STANDALONE=true
+  // `standalone` optimizes for container deployments by tracing dependencies
+  // and copying only necessary files into .next/standalone
   output: 'standalone',
+  // Required in monorepos so the file tracer resolves symlinked workspace packages
+  outputFileTracingRoot: path.join(__dirname, '../../'),
 };
 
 module.exports = nextConfig;
