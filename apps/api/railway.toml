@@ -1,0 +1,12 @@
+# Railway config for @gbferry/api
+# Service settings: Root Directory = / (repo root), Config Path = apps/api/railway.toml
+
+[build]
+buildCommand = "pnpm install --frozen-lockfile && pnpm --filter @gbferry/database db:generate && pnpm --filter @gbferry/api build"
+
+[deploy]
+startCommand = "node apps/api/dist/main"
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
