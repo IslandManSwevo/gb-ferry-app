@@ -52,3 +52,5 @@ packages/database/prisma/migrations/*.sql.bak
 *.pem
 *.key
 secrets/
+.env.docker
+.env.*.docker
