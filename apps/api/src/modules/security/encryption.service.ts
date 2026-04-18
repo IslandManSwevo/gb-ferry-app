@@ -14,11 +14,16 @@ export class EncryptionService {
       throw new Error('CRITICAL: ENCRYPTION_KEY environment variable is not defined.');
     }
 
-    this.key = Buffer.from(secret, 'utf8');
+    // Support both raw 32-byte strings and 64-char hex-encoded keys
+    if (secret.length === 64 && /^[0-9a-fA-F]{64}$/.test(secret)) {
+      this.key = Buffer.from(secret, 'hex');
+    } else {
+      this.key = Buffer.from(secret, 'utf8');
+    }
 
     if (this.key.length !== 32) {
       throw new Error(
-        `CRITICAL: ENCRYPTION_KEY must be exactly 32 bytes. Current length: ${this.key.length}`
+        `CRITICAL: ENCRYPTION_KEY must be exactly 32 bytes (or 64 hex chars). Current length: ${this.key.length}`
       );
     }
   }
