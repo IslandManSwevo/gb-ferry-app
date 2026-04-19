@@ -1,6 +1,7 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
+import { CrewModule } from '../crew/crew.module';
 import { DatabaseModule } from '../database/database.module';
 import { AIExtractionService } from './ai-extraction.service';
 import { DocumentQueryService } from './document-query.service';
@@ -12,7 +13,7 @@ import { S3StorageService } from './s3-storage.service';
 import { DocumentViewerService } from './document-viewer.service';
 
 @Module({
-  imports: [DatabaseModule, AuditModule, HttpModule],
+  imports: [DatabaseModule, AuditModule, CrewModule, HttpModule],
   controllers: [DocumentsController],
   providers: [
     DocumentUploadService,
