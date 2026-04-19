@@ -1,7 +1,10 @@
 FROM quay.io/keycloak/keycloak:23.0 AS builder
 
-# Build optimized Keycloak for PostgreSQL
-RUN /opt/keycloak/bin/kc.sh build --db=postgres
+# Build optimized Keycloak for PostgreSQL with proxy support
+ENV KC_PROXY=edge
+ENV KC_HEALTH_ENABLED=true
+ENV KC_DB=postgres
+RUN /opt/keycloak/bin/kc.sh build
 
 FROM quay.io/keycloak/keycloak:23.0
 
