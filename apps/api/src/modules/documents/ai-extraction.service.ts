@@ -67,7 +67,9 @@ export class AIExtractionService {
     // PDFs: use pdf-parse
     if (file.mimetype === 'application/pdf') {
       const pdfParseModule = await import('pdf-parse');
-      const parsePdf = pdfParseModule.default as unknown as (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsePdf = ((pdfParseModule as any).default ??
+        pdfParseModule) as unknown as (
         data: Buffer
       ) => Promise<{ text?: string }>;
       const data = await parsePdf(file.buffer);
