@@ -38,6 +38,7 @@ import { LoggingAuthGuard } from './logging-auth.guard';
     }),
   ],
   providers: [
+    LoggingAuthGuard,
     // Global authentication guard
     {
       provide: APP_GUARD,
@@ -54,6 +55,6 @@ import { LoggingAuthGuard } from './logging-auth.guard';
       useClass: ResourceGuard,
     },
   ],
-  exports: [KeycloakConnectModule],
+  exports: [KeycloakConnectModule, LoggingAuthGuard],
 })
 export class AuthModule {}
