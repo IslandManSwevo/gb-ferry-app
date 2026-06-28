@@ -5,7 +5,9 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@gbferry/dto', '@gbferry/ui', 'antd', '@ant-design/icons'],
   experimental: {
-    optimizePackageImports: ['antd', '@ant-design/icons'],
+    /* antd removed from optimizePackageImports — it conflicts with Tailwind JIT.
+       Keep it in transpilePackages above during the Ant Design migration. */
+    optimizePackageImports: ['lucide-react'],
   },
   // `standalone` optimizes for container deployments by tracing dependencies
   // and copying only necessary files into .next/standalone
