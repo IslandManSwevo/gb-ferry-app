@@ -38,8 +38,7 @@ Build order: `@gbferry/dto` → `@gbferry/database` → `@gbferry/api` → `@gbf
 | Layer | Stack |
 |---|---|
 | Frontend | Next.js 14 App Router, React 18 |
-| Current UI | Ant Design 5 (being migrated — see Design System below) |
-| Target UI | shadcn/ui + Tailwind CSS |
+| UI | shadcn/ui + Tailwind CSS v4 (Ant Design fully removed) |
 | Backend | NestJS 10, TypeScript 5 |
 | Database | PostgreSQL 16 via Prisma 5 |
 | Auth | Keycloak 23 + NextAuth 4 |
@@ -49,7 +48,7 @@ Build order: `@gbferry/dto` → `@gbferry/database` → `@gbferry/api` → `@gbf
 
 ---
 
-## Design System — Industrial Brutalist / Tactical Telemetry
+## Design System — Deep Trench Blue / Tactical Command
 
 **This is the target design language for all new UI work.**
 
@@ -57,37 +56,55 @@ Build order: `@gbferry/dto` → `@gbferry/database` → `@gbferry/api` → `@gbf
 
 | Token | Hex | Usage |
 |---|---|---|
-| Terminal Black | `#050505` | Page background, card backgrounds |
-| Phosphor Glow | `#33FF33` | Primary actions, active states, CTAs |
+| Trench Blue | `#0B132B` | Page background (dark mode default) |
+| Navy Surface | `#0D1B3E` | Card backgrounds, sidebar |
+| Navy Raised | `#122046` | Hover states, secondary surfaces |
+| Action Cyan | `#00F2FE` | Primary actions, active states, data values, CTAs |
 | Vermilion | `#FF4B2B` | Alerts, errors, critical warnings |
-| Cyan | `#00FFFF` | Data values, informational content |
 | Amber | `#FFB000` | Secondary warnings, caution states |
-| Border | `1px solid rgba(51,255,51,0.2)` | All module borders |
+| Text Primary | `#E8EDF7` | Main text (dark mode) |
+| Border | `rgba(0,242,254,0.15)` | All card/module borders |
 
-**60/30/10 Rule**: 60% Terminal Black, 30% muted borders/dividers, 10% Phosphor Glow.
+**Light mode**: uses `#F0F4FF` background, `#FFFFFF` surface, `#0066CC` as the accent, `#0B132B` text.
+
+**Theme toggle**: dark mode is default. Users can switch via the Sun/Moon button in AppHeader.
+Theme state stored in `localStorage` key `gbferry-theme`, controlled by `ThemeProvider`.
 
 ### Typography
 
-- **UI labels / navigation**: Geist or Inter, system font stack
-- **Telemetry data / IDs / manifests**: IBM Plex Mono or JetBrains Mono — ALL data values must use monospace
-- **Headers**: Uppercase, tight tracking (`-0.05em`), heavy weight
-- **Micro-labels**: 10–14px monospace, generous tracking (`+0.1em`), all-caps
+- **Page headings / section titles**: Space Grotesk (`font-display` utility class)
+- **Body / navigation / UI labels**: Inter (`font-sans`)
+- **Data values / IDs / timestamps / manifests**: JetBrains Mono (`font-mono`) — ALL data must use monospace
+- **Micro-labels**: 10–11px monospace, uppercase, tracking `0.08em`
 
-### Layout Rules (non-negotiable)
+### Layout Rules
 
-- `border-radius: 0` everywhere — `rounded-none` is the global default. Zero exceptions.
-- 8px grid — all spacing must be divisible by 8px (4px for micro-adjustments)
-- CSS Grid compartmentalization — all modules enclosed in solid 1px borders
-- No gradients, no soft shadows, no glassmorphism, no translucent overlays
-- Icons: Lucide React only, mechanical/utilitarian variants only
+- `rounded-2xl` (1rem / 16px) for all cards and panels — the global default
+- `rounded-lg` for buttons, badges, inputs
+- `rounded-md` for small chips and tags
+- 8px grid — all spacing divisible by 8px (4px for micro-adjustments)
+- Soft card shadows on elevated surfaces (`shadow-card` utility)
+- Subtle translucent overlays for accents are acceptable (`rgba` with low opacity)
+- Icons: Lucide React only
+
+### CSS Variables (runtime, not hardcoded)
+
+Use `var(--foreground)`, `var(--muted-foreground)`, `var(--border)`, `var(--card)`, `var(--background)`, `var(--primary)`, `var(--accent)` in new code.
+Only hardcode `#FF4B2B` (error), `#FFB000` (warning), `#00F2FE` (cyan data) when semantic CSS vars don't apply.
 
 ### Prohibited Style Patterns
 
-- Any `rounded-*` class other than `rounded-none`
-- Soft box-shadows (`shadow-sm`, `shadow-md`, etc.)
-- Warm/creamy colors, pastels, or any palette not listed above
-- Translucent backgrounds (rgba with opacity)
-- Gradient backgrounds or borders
+- Hardcoding `#050505`, `#33FF33`, or any old Industrial Brutalist palette
+- `rounded-none` or `border-radius: 0` — design uses rounded corners everywhere
+- Green-on-black terminal aesthetic
+- IBM Plex Mono as the primary font (JetBrains Mono replaces it for data)
+
+### Key New Files
+
+| File | Purpose |
+|---|---|
+| `apps/web/src/components/providers/ThemeProvider.tsx` | Dark/light mode context + localStorage persistence |
+| `apps/web/src/components/ui/ThemeToggle.tsx` | Sun/Moon toggle button (used in AppHeader) |
 
 ---
 

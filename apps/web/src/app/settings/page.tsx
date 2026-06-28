@@ -2,7 +2,7 @@
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { TerminalModal, Field, SelectField, termInputCls, termLabelCls } from '@/components/ui/TerminalModal';
 import { TerminalTable } from '@/components/ui/TerminalTable';
 import { api } from '@/lib/api';
@@ -55,21 +55,21 @@ const roleColumns: ColumnDef<any, any>[] = [
     accessorKey: 'feature',
     header: 'Feature / Module',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{getValue<string>()}</span>
+      <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">{getValue<string>()}</span>
     ),
   },
   ...['admin', 'operations', 'captain', 'compliance'].map((role) => ({
     accessorKey: role,
     header: role.charAt(0).toUpperCase() + role.slice(1),
     cell: ({ getValue }: any) => {
-      const v = getValue<boolean>();
+      const v = getValue() as boolean;
       return (
         <input
           type="checkbox"
           checked={v}
           readOnly={role === 'admin'}
           onChange={() => {}}
-          className="w-4 h-4 accent-[#33FF33] cursor-pointer"
+          className="w-4 h-4 accent-[#00F2FE] cursor-pointer"
         />
       );
     },
@@ -85,12 +85,12 @@ const userColumns: ColumnDef<any, any>[] = [
       const name = r.firstName ? `${r.firstName} ${r.lastName}` : r.email?.split('@')[0];
       return (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-[rgba(51,255,51,0.1)] border border-[rgba(51,255,51,0.2)] flex items-center justify-center flex-shrink-0">
-            <span className="font-mono text-[10px] text-[#33FF33]">{name?.slice(0, 2).toUpperCase()}</span>
+          <div className="w-8 h-8 bg-[rgba(0,242,254,0.1)] border border-[rgba(0,242,254,0.2)] flex items-center justify-center flex-shrink-0">
+            <span className="font-mono text-[10px] text-[#00F2FE]">{name?.slice(0, 2).toUpperCase()}</span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{name}</span>
-            <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">{r.email}</span>
+            <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">{name}</span>
+            <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)]">{r.email}</span>
           </div>
         </div>
       );
@@ -100,7 +100,7 @@ const userColumns: ColumnDef<any, any>[] = [
     accessorKey: 'role',
     header: 'Role',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest">
+      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] tracking-widest">
         {String(getValue<string>()).toUpperCase()}
       </span>
     ),
@@ -111,7 +111,7 @@ const userColumns: ColumnDef<any, any>[] = [
     cell: ({ getValue }) => {
       const t = getValue<string>();
       return (
-        <span className="font-mono text-[11px] text-[rgba(51,255,51,0.5)]">
+        <span className="font-mono text-[11px] text-[rgba(0,242,254,0.5)]">
           {t ? new Date(t).toLocaleDateString() : 'Never'}
         </span>
       );
@@ -126,7 +126,7 @@ const userColumns: ColumnDef<any, any>[] = [
         <span
           className="font-mono text-[10px] px-2 py-0.5 border tracking-widest"
           style={active
-            ? { color: '#33FF33', borderColor: 'rgba(51,255,51,0.4)', background: 'rgba(51,255,51,0.06)' }
+            ? { color: '#00F2FE', borderColor: 'rgba(0,242,254,0.4)', background: 'rgba(0,242,254,0.06)' }
             : { color: '#FFB000', borderColor: 'rgba(255,176,0,0.4)', background: 'rgba(255,176,0,0.06)' }}
         >
           {active ? 'ACTIVE' : 'INACTIVE'}
@@ -144,15 +144,15 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       onClick={() => onChange(!checked)}
       className="w-10 h-5 relative flex-shrink-0 transition-colors border"
       style={{
-        background: checked ? 'rgba(51,255,51,0.15)' : 'rgba(51,255,51,0.04)',
-        borderColor: checked ? 'rgba(51,255,51,0.5)' : 'rgba(51,255,51,0.2)',
+        background: checked ? 'rgba(0,242,254,0.15)' : 'rgba(0,242,254,0.04)',
+        borderColor: checked ? 'rgba(0,242,254,0.5)' : 'rgba(0,242,254,0.2)',
       }}
       aria-pressed={checked}
     >
       <span
         className="absolute top-0.5 w-4 h-4 transition-transform"
         style={{
-          background: checked ? '#33FF33' : 'rgba(51,255,51,0.3)',
+          background: checked ? '#00F2FE' : 'rgba(0,242,254,0.3)',
           transform: checked ? 'translateX(20px)' : 'translateX(1px)',
         }}
       />
@@ -219,7 +219,7 @@ export default function SettingsPage() {
           <Lock size={13} className="text-[#FF4B2B] mt-0.5" />
           <div>
             <p className="font-mono text-[11px] text-[#FF4B2B]">Access Restricted</p>
-            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)]">
+            <p className="font-mono text-[11px] text-[rgba(0,242,254,0.45)]">
               You do not have the required clearance to view this management module.
             </p>
           </div>
@@ -232,13 +232,13 @@ export default function SettingsPage() {
         return (
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-6">
-              <div className="w-20 h-20 border-2 border-[rgba(51,255,51,0.2)] bg-[rgba(51,255,51,0.04)] flex items-center justify-center flex-shrink-0">
-                <User size={32} className="text-[rgba(51,255,51,0.4)]" />
+              <div className="w-20 h-20 border-2 border-[rgba(0,242,254,0.2)] bg-[rgba(0,242,254,0.04)] flex items-center justify-center flex-shrink-0">
+                <User size={32} className="text-[rgba(0,242,254,0.4)]" />
               </div>
               <div className="flex flex-col gap-1">
-                <p className="font-mono text-[14px] text-[rgba(51,255,51,0.8)]">System Staff</p>
-                <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">staff@gbferry.com</p>
-                <p className="font-mono text-[10px] text-[rgba(51,255,51,0.3)] tracking-widest uppercase">
+                <p className="font-mono text-[14px] text-[rgba(0,242,254,0.8)]">System Staff</p>
+                <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">staff@gbferry.com</p>
+                <p className="font-mono text-[10px] text-[rgba(0,242,254,0.3)] tracking-widest uppercase">
                   {roles.join(' · ').toUpperCase()}
                 </p>
               </div>
@@ -253,8 +253,8 @@ export default function SettingsPage() {
                 <input type="email" className={`${termInputCls} opacity-50 cursor-not-allowed`} value="staff@gbferry.com" readOnly />
               </div>
             </div>
-            <div className="border-t border-[rgba(51,255,51,0.06)] pt-4">
-              <a href="/audit" className="font-mono text-[11px] text-[#00FFFF] hover:text-[rgba(0,255,255,0.7)] transition-colors flex items-center gap-2">
+            <div className="border-t border-[rgba(0,242,254,0.06)] pt-4">
+              <a href="/audit" className="font-mono text-[11px] text-[#00F2FE] hover:text-[rgba(0,242,254,0.7)] transition-colors flex items-center gap-2">
                 <History size={12} />
                 View My Activity Log
               </a>
@@ -286,7 +286,7 @@ export default function SettingsPage() {
                   onChange={(e) => setOrgForm((f) => ({ ...f, tz: e.target.value }))}
                 >
                   {(options?.timezones ?? ['America/Nassau', 'America/New_York', 'UTC']).map((t) => (
-                    <option key={t} value={t} className="bg-[#050505]">{t}</option>
+                    <option key={t} value={t} className="bg-[#0B132B]">{t}</option>
                   ))}
                 </select>
               </div>
@@ -295,8 +295,8 @@ export default function SettingsPage() {
                 value={orgForm.currency}
                 onChange={(e) => setOrgForm((f) => ({ ...f, currency: e.target.value }))}
               >
-                <option value="BSD" className="bg-[#050505]">BSD</option>
-                <option value="USD" className="bg-[#050505]">USD</option>
+                <option value="BSD" className="bg-[#0B132B]">BSD</option>
+                <option value="USD" className="bg-[#0B132B]">USD</option>
               </SelectField>
             </div>
             <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
@@ -308,10 +308,10 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between gap-4">
               <div className="flex flex-col gap-1">
-                <p className="font-mono text-[13px] tracking-[0.08em] uppercase text-[rgba(51,255,51,0.8)]">
+                <p className="font-mono text-[13px] tracking-[0.08em] uppercase text-[rgba(0,242,254,0.8)]">
                   Identity & Access Management
                 </p>
-                <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+                <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
                   Managing access for {users.length} staff members
                 </p>
               </div>
@@ -326,12 +326,12 @@ export default function SettingsPage() {
                 { label: 'ACTIVE LICENSES', value: '4', status: 'info' },
                 { label: 'PENDING APPROVALS', value: '2', status: 'warning' },
               ].map(({ label, value, status }) => (
-                <div key={label} className="border border-[rgba(51,255,51,0.15)] bg-[#050505] p-4 flex flex-col gap-1">
-                  <span className="font-mono text-[10px] tracking-[0.12em] text-[rgba(51,255,51,0.4)]">{label}</span>
+                <div key={label} className="border border-[rgba(0,242,254,0.15)] bg-[#0B132B] p-4 flex flex-col gap-1">
+                  <span className="font-mono text-[10px] tracking-[0.12em] text-[rgba(0,242,254,0.4)]">{label}</span>
                   <span className={`font-mono text-2xl font-bold tabular-nums ${
-                    status === 'ok' ? 'text-[#33FF33]'
+                    status === 'ok' ? 'text-[#00F2FE]'
                     : status === 'warning' ? 'text-[#FFB000]'
-                    : 'text-[#00FFFF]'
+                    : 'text-[#00F2FE]'
                   }`}>{value}</span>
                 </div>
               ))}
@@ -351,10 +351,10 @@ export default function SettingsPage() {
         return (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-1">
-              <p className="font-mono text-[13px] tracking-[0.08em] uppercase text-[rgba(51,255,51,0.8)]">
+              <p className="font-mono text-[13px] tracking-[0.08em] uppercase text-[rgba(0,242,254,0.8)]">
                 RBAC Configuration
               </p>
-              <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+              <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
                 Define feature-level access for platform roles
               </p>
             </div>
@@ -366,9 +366,9 @@ export default function SettingsPage() {
               emptyMessage="NO PERMISSIONS"
             />
 
-            <div className="border border-[rgba(0,255,255,0.2)] bg-[rgba(0,255,255,0.03)] px-4 py-3 flex items-start gap-2">
-              <ShieldCheck size={12} className="text-[#00FFFF] mt-0.5 flex-shrink-0" />
-              <p className="font-mono text-[11px] text-[rgba(0,255,255,0.6)] leading-relaxed">
+            <div className="border border-[rgba(0,242,254,0.2)] bg-[rgba(0,242,254,0.03)] px-4 py-3 flex items-start gap-2">
+              <ShieldCheck size={12} className="text-[#00F2FE] mt-0.5 flex-shrink-0" />
+              <p className="font-mono text-[11px] text-[rgba(0,242,254,0.6)] leading-relaxed">
                 SuperAdmin Override Active — changes take effect across all logged-in sessions immediately.
               </p>
             </div>
@@ -381,10 +381,10 @@ export default function SettingsPage() {
         return (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-1">
-              <p className="font-mono text-[13px] tracking-[0.08em] uppercase text-[rgba(51,255,51,0.8)]">
+              <p className="font-mono text-[13px] tracking-[0.08em] uppercase text-[rgba(0,242,254,0.8)]">
                 Operational Guardrails
               </p>
-              <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+              <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
                 Preventive measures for fleet safety and manual overrides
               </p>
             </div>
@@ -405,8 +405,8 @@ export default function SettingsPage() {
                 ].map(({ key, label, desc }) => (
                   <div key={key} className="flex items-start justify-between gap-4">
                     <div className="flex flex-col gap-0.5">
-                      <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{label}</span>
-                      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">{desc}</span>
+                      <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">{label}</span>
+                      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">{desc}</span>
                     </div>
                     <Toggle
                       checked={opsSettings[key]}
@@ -423,8 +423,8 @@ export default function SettingsPage() {
               </p>
               <div className="border border-[rgba(255,75,43,0.3)] bg-[rgba(255,75,43,0.04)] px-4 py-4 flex items-center justify-between gap-4">
                 <div className="flex flex-col gap-0.5">
-                  <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">Enable Global Lockout</span>
-                  <span className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+                  <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">Enable Global Lockout</span>
+                  <span className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
                     Terminates all user sessions and disables check-in systems.
                   </span>
                 </div>
@@ -442,9 +442,9 @@ export default function SettingsPage() {
 
       default:
         return (
-          <div className="border border-[rgba(0,255,255,0.15)] bg-[rgba(0,255,255,0.03)] px-4 py-4 flex items-start gap-2">
-            <Settings size={13} className="text-[#00FFFF] mt-0.5" />
-            <p className="font-mono text-[11px] text-[rgba(0,255,255,0.6)] leading-relaxed">
+          <div className="border border-[rgba(0,242,254,0.15)] bg-[rgba(0,242,254,0.03)] px-4 py-4 flex items-start gap-2">
+            <Settings size={13} className="text-[#00F2FE] mt-0.5" />
+            <p className="font-mono text-[11px] text-[rgba(0,242,254,0.6)] leading-relaxed">
               This configuration panel is currently being localized for the Bahamian regulatory region.
             </p>
           </div>
@@ -457,7 +457,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <Settings size={16} />
             System Management Hub
           </h1>
@@ -468,11 +468,11 @@ export default function SettingsPage() {
               </span>
             )}
             {roles.includes(ROLES.ADMIN) && !roles.includes(ROLES.SUPERADMIN) && (
-              <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest">
+              <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] tracking-widest">
                 ADMIN PRIVILEGES
               </span>
             )}
-            <span className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+            <span className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
               Roles: {roles.join(', ').toUpperCase()}
             </span>
           </div>
@@ -489,8 +489,8 @@ export default function SettingsPage() {
                   <button
                     className={`w-full flex items-center gap-2 px-3 py-2 font-mono text-[11px] transition-colors text-left ${
                       activeSection === key
-                        ? 'bg-[rgba(51,255,51,0.08)] text-[#33FF33] border-l-2 border-[#33FF33]'
-                        : 'text-[rgba(51,255,51,0.45)] hover:text-[rgba(51,255,51,0.7)] border-l-2 border-transparent'
+                        ? 'bg-[rgba(0,242,254,0.08)] text-[#00F2FE] border-l-2 border-[#00F2FE]'
+                        : 'text-[rgba(0,242,254,0.45)] hover:text-[rgba(0,242,254,0.7)] border-l-2 border-transparent'
                     }`}
                     onClick={() => setActiveSection(key)}
                   >
@@ -545,10 +545,10 @@ export default function SettingsPage() {
             value={inviteForm.role}
             onChange={(e) => setInviteForm((f) => ({ ...f, role: e.target.value }))}
           >
-            <option value="" className="bg-[#050505]">Assign role…</option>
-            <option value="captain" className="bg-[#050505]">Vessel Master</option>
-            <option value="operations" className="bg-[#050505]">Ops Staff</option>
-            <option value="compliance" className="bg-[#050505]">Compliance Officer</option>
+            <option value="" className="bg-[#0B132B]">Assign role…</option>
+            <option value="captain" className="bg-[#0B132B]">Vessel Master</option>
+            <option value="operations" className="bg-[#0B132B]">Ops Staff</option>
+            <option value="compliance" className="bg-[#0B132B]">Compliance Officer</option>
           </SelectField>
         </div>
       </TerminalModal>

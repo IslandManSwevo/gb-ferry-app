@@ -46,11 +46,11 @@ interface DashboardData {
 }
 
 function getEventColor(action: string = ''): string {
-  if (action.includes('CREATE')) return '#33FF33';
-  if (action.includes('UPDATE')) return '#00FFFF';
+  if (action.includes('CREATE')) return '#00F2FE';
+  if (action.includes('UPDATE')) return '#00F2FE';
   if (action.includes('DELETE') || action.includes('REVOKE')) return '#FF4B2B';
   if (action.includes('CBP') || action.includes('SUBMIT')) return '#FFB000';
-  return 'rgba(51,255,51,0.5)';
+  return 'rgba(0,242,254,0.5)';
 }
 
 function getAlertBorderColor(severity: string): string {
@@ -134,15 +134,15 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
-            <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold">
+            <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold">
               Compliance Command Center
             </h1>
-            <span className="font-mono text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)]">
-              <span className="inline-block w-1.5 h-1.5 bg-[#00FFFF] mr-1.5 animate-pulse" aria-hidden />
+            <span className="font-mono text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)]">
+              <span className="inline-block w-1.5 h-1.5 bg-[#00F2FE] mr-1.5 animate-pulse" aria-hidden />
               REGULATORY OVERSIGHT
             </span>
           </div>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             Real-time STCW monitoring · PSC inspection readiness · Certificate expiry tracking
           </p>
         </div>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
             >
               {alert.title}
             </span>
-            <span className="font-mono text-[11px] text-[rgba(51,255,51,0.5)]">
+            <span className="font-mono text-[11px] text-[rgba(0,242,254,0.5)]">
               {alert.description}
             </span>
           </div>
@@ -261,14 +261,14 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="p-0 max-h-[320px] overflow-y-auto">
               {events.length === 0 ? (
-                <p className="font-mono text-[10px] text-[rgba(51,255,51,0.25)] text-center py-10 tracking-widest">
+                <p className="font-mono text-[10px] text-[rgba(0,242,254,0.25)] text-center py-10 tracking-widest">
                   — NO RECENT ACTIVITY —
                 </p>
               ) : (
                 events.map((event, idx) => (
                   <div
                     key={event.id || idx}
-                    className="flex gap-3 px-4 py-3 border-b border-[rgba(51,255,51,0.06)] last:border-b-0"
+                    className="flex gap-3 px-4 py-3 border-b border-[rgba(0,242,254,0.06)] last:border-b-0"
                   >
                     <div
                       className="w-[3px] flex-shrink-0 self-stretch"
@@ -282,11 +282,11 @@ export default function DashboardPage() {
                         >
                           {(event.action || '').replace(/_/g, ' ')}
                         </span>
-                        <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)] flex-shrink-0">
+                        <span className="font-mono text-[10px] text-[rgba(0,242,254,0.3)] flex-shrink-0">
                           {formatEventTime(event.timestamp)}
                         </span>
                       </div>
-                      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.6)]">
+                      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.6)]">
                         {event.actionDescription ||
                           `${event.userName || 'System'} · ${event.action || 'activity'}`}
                       </span>

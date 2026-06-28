@@ -103,11 +103,11 @@ export default function ExportCenterPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <Upload size={16} aria-hidden />
             Export Center
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             Generate regulatory-compliant exports for BMA, CBP, and audit purposes
           </p>
         </div>
@@ -116,9 +116,9 @@ export default function ExportCenterPage() {
       {/* Vessel selector */}
       <Card className="mb-6">
         <CardContent className="py-3 flex items-center gap-4">
-          <span className="font-mono text-[11px] text-[rgba(51,255,51,0.5)] flex-shrink-0">TARGET VESSEL:</span>
+          <span className="font-mono text-[11px] text-[rgba(0,242,254,0.5)] flex-shrink-0">TARGET VESSEL:</span>
           {loadingVessels ? (
-            <div className="w-4 h-4 border border-[#33FF33] border-t-transparent animate-spin" />
+            <div className="w-4 h-4 border border-[#00F2FE] border-t-transparent animate-spin" />
           ) : (
             <select
               className={`${termInputCls} w-72`}
@@ -126,14 +126,14 @@ export default function ExportCenterPage() {
               onChange={(e) => setSelectedVessel(e.target.value)}
             >
               {vessels.map((v) => (
-                <option key={v.id} value={v.id} className="bg-[#050505]">
+                <option key={v.id} value={v.id} className="bg-[#0B132B]">
                   {v.name}{v.imoNumber ? ` (IMO: ${v.imoNumber})` : ''}
                 </option>
               ))}
             </select>
           )}
           {selectedVessel && (
-            <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest">
+            <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] tracking-widest">
               {vessels.find((v) => v.id === selectedVessel)?.name ?? 'SELECTED'}
             </span>
           )}
@@ -145,26 +145,26 @@ export default function ExportCenterPage() {
         {EXPORT_TYPES.map((type) => {
           const Icon = type.icon;
           return (
-            <div key={type.key} className="border border-[rgba(51,255,51,0.15)] bg-[#050505] p-5 flex flex-col gap-4">
+            <div key={type.key} className="border border-[rgba(0,242,254,0.15)] bg-[#0B132B] p-5 flex flex-col gap-4">
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 border border-[rgba(51,255,51,0.2)] bg-[rgba(51,255,51,0.04)] flex items-center justify-center flex-shrink-0">
-                  <Icon size={22} className="text-[rgba(51,255,51,0.5)]" />
+                <div className="w-12 h-12 border border-[rgba(0,242,254,0.2)] bg-[rgba(0,242,254,0.04)] flex items-center justify-center flex-shrink-0">
+                  <Icon size={22} className="text-[rgba(0,242,254,0.5)]" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)] font-semibold">{type.title}</span>
-                  <span className="font-mono text-[10px] px-1.5 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest w-fit">
+                  <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)] font-semibold">{type.title}</span>
+                  <span className="font-mono text-[10px] px-1.5 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] tracking-widest w-fit">
                     {type.regulatory}
                   </span>
                 </div>
               </div>
 
-              <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)] leading-relaxed flex-1">
+              <p className="font-mono text-[11px] text-[rgba(0,242,254,0.45)] leading-relaxed flex-1">
                 {type.description}
               </p>
 
               {type.comingSoon ? (
-                <div className="border border-dashed border-[rgba(51,255,51,0.15)] text-center py-2">
-                  <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)] tracking-widest">
+                <div className="border border-dashed border-[rgba(0,242,254,0.15)] text-center py-2">
+                  <span className="font-mono text-[10px] text-[rgba(0,242,254,0.3)] tracking-widest">
                     COMING IN PHASE 3
                   </span>
                 </div>
@@ -174,7 +174,7 @@ export default function ExportCenterPage() {
                     <Button
                       key={format}
                       size="sm"
-                      variant={format === 'json' ? 'default' : 'ghost'}
+                      variant={format === 'json' ? 'primary' : 'ghost'}
                       icon={
                         exportingFormat === format
                           ? <div className="w-3 h-3 border border-current border-t-transparent animate-spin" />
@@ -205,23 +205,23 @@ export default function ExportCenterPage() {
         </CardHeader>
         <CardContent>
           {recentExports.length === 0 ? (
-            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] text-center py-8 tracking-widest">
+            <p className="font-mono text-[11px] text-[rgba(0,242,254,0.25)] text-center py-8 tracking-widest">
               — NO EXPORTS YET. SELECT A VESSEL ABOVE AND CHOOSE A FORMAT —
             </p>
           ) : (
             <div className="flex flex-col gap-2">
               {recentExports.map((exp, i) => (
-                <div key={i} className="flex items-center justify-between px-3 py-2 border border-[rgba(51,255,51,0.06)] bg-[rgba(51,255,51,0.02)]">
+                <div key={i} className="flex items-center justify-between px-3 py-2 border border-[rgba(0,242,254,0.06)] bg-[rgba(0,242,254,0.02)]">
                   <div className="flex items-center gap-2">
-                    <CheckCircle size={12} className="text-[#33FF33]" />
-                    <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)]">
+                    <CheckCircle size={12} className="text-[#00F2FE]" />
+                    <span className="font-mono text-[11px] text-[rgba(0,242,254,0.7)]">
                       {exp.vesselName} — Crew Compliance Pack
                     </span>
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)]">
+                    <span className="font-mono text-[10px] px-1.5 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)]">
                       {exp.format}
                     </span>
                   </div>
-                  <span className="font-mono text-[10px] text-[rgba(51,255,51,0.35)] tabular-nums">{exp.timestamp}</span>
+                  <span className="font-mono text-[10px] text-[rgba(0,242,254,0.35)] tabular-nums">{exp.timestamp}</span>
                 </div>
               ))}
             </div>

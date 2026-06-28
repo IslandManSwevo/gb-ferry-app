@@ -16,7 +16,7 @@ const columns: ColumnDef<RoleRow, any>[] = [
     accessorKey: 'role',
     header: 'Role',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">
+      <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">
         {getValue<string>().replace(/_/g, ' ')}
       </span>
     ),
@@ -25,21 +25,21 @@ const columns: ColumnDef<RoleRow, any>[] = [
     accessorKey: 'required',
     header: 'Required',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[12px] tabular-nums text-[rgba(51,255,51,0.7)]">{getValue<number>()}</span>
+      <span className="font-mono text-[12px] tabular-nums text-[rgba(0,242,254,0.7)]">{getValue<number>()}</span>
     ),
   },
   {
     accessorKey: 'actual',
     header: 'Actual',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[12px] tabular-nums text-[rgba(51,255,51,0.7)]">{getValue<number>()}</span>
+      <span className="font-mono text-[12px] tabular-nums text-[rgba(0,242,254,0.7)]">{getValue<number>()}</span>
     ),
   },
   {
     accessorKey: 'fulfillable',
     header: 'Fulfillable',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[12px] tabular-nums text-[rgba(51,255,51,0.4)]" title="Qualified crew available but perhaps not assigned">
+      <span className="font-mono text-[12px] tabular-nums text-[rgba(0,242,254,0.4)]" title="Qualified crew available but perhaps not assigned">
         {getValue<number>()}
       </span>
     ),
@@ -53,7 +53,7 @@ const columns: ColumnDef<RoleRow, any>[] = [
         <span
           className="font-mono text-[10px] px-2 py-0.5 border tracking-widest"
           style={met
-            ? { color: '#33FF33', border: '1px solid rgba(51,255,51,0.4)', background: 'rgba(51,255,51,0.06)' }
+            ? { color: '#00F2FE', border: '1px solid rgba(0,242,254,0.4)', background: 'rgba(0,242,254,0.06)' }
             : { color: '#FF4B2B', border: '1px solid rgba(255,75,43,0.4)', background: 'rgba(255,75,43,0.06)' }}
         >
           {met ? 'MET' : 'SHORTFALL'}
@@ -109,11 +109,11 @@ export default function SafeManningPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <Users size={16} aria-hidden />
             Safe Manning Compliance
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             BMA R106 · Real-time minimum safe manning &amp; STCW competency validation
           </p>
         </div>
@@ -124,19 +124,19 @@ export default function SafeManningPage() {
           onChange={(e) => setSelectedVessel(e.target.value)}
         >
           {vessels.map((v) => (
-            <option key={v.id} value={v.id} className="bg-[#050505]">{v.name}</option>
+            <option key={v.id} value={v.id} className="bg-[#0B132B]">{v.name}</option>
           ))}
         </select>
       </div>
 
       {loadingRoster ? (
         <div className="flex items-center justify-center py-32">
-          <div className="w-8 h-8 border-2 border-[#33FF33] border-t-transparent animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#00F2FE] border-t-transparent animate-spin" />
         </div>
       ) : !rosterStatus ? (
         <Card>
           <CardContent className="py-16 text-center">
-            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] tracking-widest">
+            <p className="font-mono text-[11px] text-[rgba(0,242,254,0.25)] tracking-widest">
               — NO ROSTER DATA FOR THIS VESSEL —
             </p>
           </CardContent>
@@ -148,7 +148,7 @@ export default function SafeManningPage() {
             <CardHeader>
               <span className="flex items-center gap-2">
                 {compliant
-                  ? <CheckCircle size={13} className="text-[#33FF33]" />
+                  ? <CheckCircle size={13} className="text-[#00F2FE]" />
                   : <AlertTriangle size={13} className="text-[#FF4B2B]" />}
                 COMPLIANCE STATUS
               </span>
@@ -157,20 +157,20 @@ export default function SafeManningPage() {
               {/* Gauge substitute */}
               <div
                 className="w-32 h-32 border-4 flex items-center justify-center"
-                style={{ borderColor: compliant ? '#33FF33' : '#FF4B2B' }}
+                style={{ borderColor: compliant ? '#00F2FE' : '#FF4B2B' }}
               >
                 <div className="text-center">
-                  <p className="font-mono text-3xl font-bold" style={{ color: compliant ? '#33FF33' : '#FF4B2B' }}>
+                  <p className="font-mono text-3xl font-bold" style={{ color: compliant ? '#00F2FE' : '#FF4B2B' }}>
                     {compliant ? '100' : '66'}
                   </p>
-                  <p className="font-mono text-[9px] text-[rgba(51,255,51,0.4)] tracking-widest">%</p>
+                  <p className="font-mono text-[9px] text-[rgba(0,242,254,0.4)] tracking-widest">%</p>
                 </div>
               </div>
 
               <span
                 className="font-mono text-[11px] px-4 py-1.5 border tracking-widest"
                 style={compliant
-                  ? { color: '#33FF33', borderColor: 'rgba(51,255,51,0.4)', background: 'rgba(51,255,51,0.06)' }
+                  ? { color: '#00F2FE', borderColor: 'rgba(0,242,254,0.4)', background: 'rgba(0,242,254,0.06)' }
                   : { color: '#FF4B2B', borderColor: 'rgba(255,75,43,0.4)', background: 'rgba(255,75,43,0.06)' }}
               >
                 {compliant ? 'FULLY COMPLIANT' : 'NON-COMPLIANT'}
@@ -178,14 +178,14 @@ export default function SafeManningPage() {
 
               {rosterStatus.discrepancies?.length > 0 && (
                 <div className="w-full">
-                  <p className="font-mono text-[9px] tracking-[0.15em] uppercase text-[rgba(51,255,51,0.3)] mb-3">
+                  <p className="font-mono text-[9px] tracking-[0.15em] uppercase text-[rgba(0,242,254,0.3)] mb-3">
                     IDENTIFIED ISSUES
                   </p>
                   <ul className="flex flex-col gap-2">
                     {rosterStatus.discrepancies.map((item: string, i: number) => (
                       <li key={i} className="flex items-start gap-2">
                         <AlertTriangle size={11} className="text-[#FF4B2B] mt-0.5 flex-shrink-0" />
-                        <span className="font-mono text-[11px] text-[rgba(51,255,51,0.6)]">{item}</span>
+                        <span className="font-mono text-[11px] text-[rgba(0,242,254,0.6)]">{item}</span>
                       </li>
                     ))}
                   </ul>
@@ -208,8 +208,8 @@ export default function SafeManningPage() {
               </CardContent>
             </Card>
 
-            <div className="px-4 py-3 border border-[rgba(0,255,255,0.2)] bg-[rgba(0,255,255,0.03)]">
-              <p className="font-mono text-[11px] text-[rgba(0,255,255,0.6)] leading-relaxed">
+            <div className="px-4 py-3 border border-[rgba(0,242,254,0.2)] bg-[rgba(0,242,254,0.03)]">
+              <p className="font-mono text-[11px] text-[rgba(0,242,254,0.6)] leading-relaxed">
                 Safe Manning validation includes checking for valid STCW Certificates of Competency
                 (CoC), Medical Fitness certificates, and specific BMA endorsements where required.
               </p>

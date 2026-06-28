@@ -77,18 +77,18 @@ function ComplianceBar({ crew }: { crew: CrewMember }) {
   const compliant = expiringCount === 0;
   return (
     <div className="flex flex-col gap-1">
-      <div className="h-1 w-full bg-[rgba(51,255,51,0.08)]">
+      <div className="h-1 w-full bg-[rgba(0,242,254,0.08)]">
         <div
           className="h-full transition-all duration-300"
           style={{
             width: compliant ? '100%' : '80%',
-            background: compliant ? '#33FF33' : '#FF4B2B',
+            background: compliant ? '#00F2FE' : '#FF4B2B',
           }}
         />
       </div>
       <span
         className="font-mono text-[10px]"
-        style={{ color: compliant ? '#33FF33' : '#FF4B2B' }}
+        style={{ color: compliant ? '#00F2FE' : '#FF4B2B' }}
       >
         {compliant ? 'FULLY COMPLIANT' : `${expiringCount} EXPIRING`}
       </span>
@@ -107,12 +107,12 @@ function buildColumns(onContact: (c: CrewMember) => void): ColumnDef<CrewMember,
         const initial = name.charAt(0).toUpperCase();
         return (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[rgba(51,255,51,0.1)] flex items-center justify-center flex-shrink-0">
-              <span className="font-mono text-[11px] text-[#33FF33] font-semibold">{initial}</span>
+            <div className="w-8 h-8 bg-[rgba(0,242,254,0.1)] flex items-center justify-center flex-shrink-0">
+              <span className="font-mono text-[11px] text-[#00F2FE] font-semibold">{initial}</span>
             </div>
             <div className="flex flex-col gap-0.5">
-              <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{name}</span>
-              <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)]">
+              <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">{name}</span>
+              <span className="font-mono text-[10px] text-[rgba(0,242,254,0.3)]">
                 ID:{row.original.id.slice(0, 8)}
               </span>
             </div>
@@ -124,7 +124,7 @@ function buildColumns(onContact: (c: CrewMember) => void): ColumnDef<CrewMember,
       accessorKey: 'rank',
       header: 'Rank / Role',
       cell: ({ getValue }) => (
-        <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.05)] tracking-wider uppercase">
+        <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.05)] tracking-wider uppercase">
           {getValue<string>() ?? '—'}
         </span>
       ),
@@ -133,8 +133,8 @@ function buildColumns(onContact: (c: CrewMember) => void): ColumnDef<CrewMember,
       accessorKey: 'vesselName',
       header: 'Assigned Vessel',
       cell: ({ getValue }) => (
-        <span className="font-mono text-[11px] text-[rgba(51,255,51,0.6)]">
-          {getValue<string>() || <span className="text-[rgba(51,255,51,0.25)]">Unassigned</span>}
+        <span className="font-mono text-[11px] text-[rgba(0,242,254,0.6)]">
+          {getValue<string>() || <span className="text-[rgba(0,242,254,0.25)]">Unassigned</span>}
         </span>
       ),
     },
@@ -269,11 +269,11 @@ export default function CrewPage() {
       <DashboardLayout contentClassName="p-6 flex items-center justify-center">
         <Card className="max-w-lg w-full">
           <CardContent className="py-16 flex flex-col items-center gap-4 text-center">
-            <Lock size={40} className="text-[rgba(51,255,51,0.2)]" />
-            <h2 className="font-mono text-[13px] uppercase tracking-[0.1em] text-[#33FF33]">
+            <Lock size={40} className="text-[rgba(0,242,254,0.2)]" />
+            <h2 className="font-mono text-[13px] uppercase tracking-[0.1em] text-[#00F2FE]">
               Crew Registry Restricted
             </h2>
-            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)] max-w-xs">
+            <p className="font-mono text-[11px] text-[rgba(0,242,254,0.45)] max-w-xs">
               Access to crew documents and duty rosters is restricted to authorized personnel.
               Contact your department head for access clearance.
             </p>
@@ -291,11 +291,11 @@ export default function CrewPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <Users size={16} aria-hidden />
             Crew Operations
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             {crew.length} maritime professionals across Grand Bahama fleet
           </p>
         </div>
@@ -310,9 +310,9 @@ export default function CrewPage() {
       </div>
 
       {submitSuccess && (
-        <div className="mb-6 px-4 py-3 border border-[rgba(51,255,51,0.4)] bg-[rgba(51,255,51,0.06)] flex items-center justify-between">
-          <span className="font-mono text-[11px] text-[#33FF33]">Crew member onboarded successfully.</span>
-          <button className="font-mono text-[10px] text-[rgba(51,255,51,0.4)] hover:text-[#33FF33]" onClick={() => setSubmitSuccess(false)}>DISMISS</button>
+        <div className="mb-6 px-4 py-3 border border-[rgba(0,242,254,0.4)] bg-[rgba(0,242,254,0.06)] flex items-center justify-between">
+          <span className="font-mono text-[11px] text-[#00F2FE]">Crew member onboarded successfully.</span>
+          <button className="font-mono text-[10px] text-[rgba(0,242,254,0.4)] hover:text-[#00F2FE]" onClick={() => setSubmitSuccess(false)}>DISMISS</button>
         </div>
       )}
 
@@ -324,9 +324,9 @@ export default function CrewPage() {
           status="ok"
           sub={
             crew.length > 0 ? (
-              <div className="h-1 w-full bg-[rgba(51,255,51,0.08)] mt-1">
+              <div className="h-1 w-full bg-[rgba(0,242,254,0.08)] mt-1">
                 <div
-                  className="h-full bg-[#33FF33]"
+                  className="h-full bg-[#00F2FE]"
                   style={{ width: `${(activeCount / crew.length) * 100}%` }}
                 />
               </div>
@@ -338,7 +338,7 @@ export default function CrewPage() {
           value={`${expiringTotal} Expiring`}
           status={expiringTotal > 0 ? 'warning' : 'ok'}
           sub={
-            <span className="font-mono text-[10px]" style={{ color: expiringTotal > 0 ? '#FFB000' : 'rgba(51,255,51,0.4)' }}>
+            <span className="font-mono text-[10px]" style={{ color: expiringTotal > 0 ? '#FFB000' : 'rgba(0,242,254,0.4)' }}>
               {expiringTotal > 0 ? 'ACTION REQUIRED WITHIN 30 DAYS' : 'ALL CERTIFICATIONS CURRENT'}
             </span>
           }
@@ -348,7 +348,7 @@ export default function CrewPage() {
           value={`${(dashboard?.metrics?.safeManningCompliance ?? 100).toFixed(0)}%`}
           status={(dashboard?.metrics?.safeManningCompliance ?? 100) >= 100 ? 'ok' : 'warning'}
           sub={
-            <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">
+            <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)]">
               {dashboard?.summary?.compliantVessels ?? '—'}/{dashboard?.summary?.totalVessels ?? '—'} VESSELS · BMA R106
             </span>
           }
@@ -357,7 +357,7 @@ export default function CrewPage() {
 
       {/* Search */}
       <div className="mb-4 relative">
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[rgba(51,255,51,0.3)]" aria-hidden />
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[rgba(0,242,254,0.3)]" aria-hidden />
         <input
           className={`${termInputCls} pl-9 w-full`}
           placeholder="SEARCH BY NAME, RANK OR VESSEL..."
@@ -370,7 +370,7 @@ export default function CrewPage() {
       <Card>
         <CardHeader
           action={
-            <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)] tracking-widest">
+            <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)] tracking-widest">
               {filteredCrew.length} RECORDS
             </span>
           }
@@ -529,22 +529,22 @@ export default function CrewPage() {
         }
       >
         <div className="flex flex-col items-center gap-4 py-8">
-          <div className="w-16 h-16 bg-[rgba(51,255,51,0.1)] flex items-center justify-center">
-            <span className="font-mono text-2xl text-[#33FF33] font-semibold">
+          <div className="w-16 h-16 bg-[rgba(0,242,254,0.1)] flex items-center justify-center">
+            <span className="font-mono text-2xl text-[#00F2FE] font-semibold">
               {(selectedCrew?.fullName ?? '?').charAt(0).toUpperCase()}
             </span>
           </div>
           <div className="text-center">
-            <p className="font-mono text-[14px] text-[#33FF33] font-semibold">
+            <p className="font-mono text-[14px] text-[#00F2FE] font-semibold">
               {selectedCrew?.fullName}
             </p>
-            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)] mt-0.5">
+            <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)] mt-0.5">
               {selectedCrew?.rank}
             </p>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 border border-[rgba(0,255,255,0.3)] bg-[rgba(0,255,255,0.04)]">
-            <ShieldCheck size={12} className="text-[#00FFFF]" />
-            <span className="font-mono text-[10px] text-[#00FFFF] tracking-widest">
+          <div className="flex items-center gap-2 px-4 py-2 border border-[rgba(0,242,254,0.3)] bg-[rgba(0,242,254,0.04)]">
+            <ShieldCheck size={12} className="text-[#00F2FE]" />
+            <span className="font-mono text-[10px] text-[#00F2FE] tracking-widest">
               ENCRYPTED VOICE LINK ACTIVE
             </span>
           </div>

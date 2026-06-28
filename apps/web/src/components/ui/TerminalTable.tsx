@@ -29,18 +29,18 @@ function TerminalPagination({ page, pageSize, total, onChange }: PaginationConfi
   const end = Math.min(page * pageSize, total);
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-t border-[rgba(51,255,51,0.1)]">
-      <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)] tracking-wider">
-        {total === 0 ? 'NO ENTRIES' : `ENTRIES ${start}–${end} OF ${total}`}
+    <div className="flex items-center justify-between px-5 py-3 border-t border-[var(--border)]">
+      <span className="font-mono text-[10px] text-[var(--muted-foreground)] tracking-wide">
+        {total === 0 ? 'No entries' : `${start}–${end} of ${total}`}
       </span>
 
       <div className="flex items-center gap-1">
         <button
           disabled={page <= 1}
           onClick={() => onChange(page - 1, pageSize)}
-          className="px-2 py-1 font-mono text-[10px] border border-[rgba(51,255,51,0.2)] text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] hover:border-[rgba(51,255,51,0.5)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          className="px-2.5 py-1 text-sm rounded-lg border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] disabled:opacity-30 disabled:pointer-events-none transition-all"
         >
-          PREV
+          ‹ Prev
         </button>
 
         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -59,10 +59,10 @@ function TerminalPagination({ page, pageSize, total, onChange }: PaginationConfi
               key={p}
               onClick={() => onChange(p, pageSize)}
               className={cn(
-                'w-7 h-7 font-mono text-[10px] border transition-colors',
+                'w-8 h-8 text-sm rounded-lg border transition-all',
                 p === page
-                  ? 'bg-[rgba(51,255,51,0.12)] border-[#33FF33] text-[#33FF33]'
-                  : 'border-[rgba(51,255,51,0.15)] text-[rgba(51,255,51,0.4)] hover:text-[#33FF33] hover:border-[rgba(51,255,51,0.4)]'
+                  ? 'bg-[rgba(0,242,254,0.12)] border-[#00F2FE] text-[#00F2FE] font-medium'
+                  : 'border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]'
               )}
             >
               {p}
@@ -73,18 +73,18 @@ function TerminalPagination({ page, pageSize, total, onChange }: PaginationConfi
         <button
           disabled={page >= totalPages}
           onClick={() => onChange(page + 1, pageSize)}
-          className="px-2 py-1 font-mono text-[10px] border border-[rgba(51,255,51,0.2)] text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] hover:border-[rgba(51,255,51,0.5)] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          className="px-2.5 py-1 text-sm rounded-lg border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] disabled:opacity-30 disabled:pointer-events-none transition-all"
         >
-          NEXT
+          Next ›
         </button>
 
         <select
           value={pageSize}
           onChange={(e) => onChange(1, Number(e.target.value))}
-          className="ml-2 bg-[#050505] border border-[rgba(51,255,51,0.2)] text-[rgba(51,255,51,0.5)] font-mono text-[10px] px-2 py-1 focus:outline-none focus:border-[rgba(51,255,51,0.5)]"
+          className="ml-2 bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)] text-sm px-2 py-1 rounded-lg focus:outline-none focus:border-[var(--ring)]"
         >
           {[10, 20, 50, 100].map((n) => (
-            <option key={n} value={n}>{n} / PAGE</option>
+            <option key={n} value={n}>{n} / page</option>
           ))}
         </select>
       </div>
@@ -98,11 +98,11 @@ function SkeletonRows({ cols, rows = 5 }: { cols: number; rows?: number }) {
   return (
     <>
       {Array.from({ length: rows }, (_, ri) => (
-        <tr key={ri} className="border-b border-[rgba(51,255,51,0.06)]">
+        <tr key={ri} className="border-b border-[var(--border)]">
           {Array.from({ length: cols }, (_, ci) => (
-            <td key={ci} className="px-4 py-3">
+            <td key={ci} className="px-5 py-3.5">
               <div
-                className="h-3 bg-[rgba(51,255,51,0.07)] animate-pulse"
+                className="h-3 bg-[var(--muted)] rounded animate-pulse"
                 style={{ width: `${50 + ((ri * 3 + ci * 7) % 35)}%` }}
               />
             </td>
@@ -120,9 +120,7 @@ export interface TerminalTableProps<T extends object> {
   columns: ColumnDef<T, any>[];
   loading?: boolean;
   rowKey?: (row: T) => string;
-  /** Server-side pagination — omit for client-side (no pagination) */
   pagination?: PaginationConfig;
-  /** Render additional content below an expanded row */
   expandedRowRender?: (row: T) => React.ReactNode;
   emptyMessage?: string;
   className?: string;
@@ -135,7 +133,7 @@ export function TerminalTable<T extends object>({
   rowKey,
   pagination,
   expandedRowRender,
-  emptyMessage = 'NO DATA',
+  emptyMessage = 'No data',
   className,
 }: TerminalTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -144,12 +142,12 @@ export function TerminalTable<T extends object>({
   const expandCol: ColumnDef<T, any> | null = expandedRowRender
     ? {
         id: '__expand',
-        size: 32,
+        size: 40,
         header: () => null,
         cell: ({ row }) => (
           <button
             onClick={row.getToggleExpandedHandler()}
-            className="p-1 text-[rgba(51,255,51,0.4)] hover:text-[#33FF33] transition-colors"
+            className="p-1 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
             aria-label={row.getIsExpanded() ? 'Collapse row' : 'Expand row'}
           >
             {row.getIsExpanded() ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
@@ -178,16 +176,12 @@ export function TerminalTable<T extends object>({
   const visibleCols = table.getVisibleLeafColumns().length;
 
   return (
-    <div className={cn('bg-[#050505] border border-[rgba(51,255,51,0.2)]', className)}>
+    <div className={cn('bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden', className)}>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
-          {/* Header */}
           <thead>
             {table.getHeaderGroups().map((hg) => (
-              <tr
-                key={hg.id}
-                className="border-b border-[rgba(51,255,51,0.15)] bg-[rgba(51,255,51,0.04)]"
-              >
+              <tr key={hg.id} className="border-b border-[var(--border)] bg-[var(--muted)]">
                 {hg.headers.map((header) => {
                   const canSort = header.column.getCanSort();
                   const sorted = header.column.getIsSorted();
@@ -196,9 +190,9 @@ export function TerminalTable<T extends object>({
                       key={header.id}
                       colSpan={header.colSpan}
                       className={cn(
-                        'px-4 py-2 text-left font-mono text-[10px] tracking-[0.1em] uppercase',
-                        'text-[rgba(51,255,51,0.55)] select-none',
-                        canSort && 'cursor-pointer hover:text-[#33FF33] transition-colors'
+                        'px-5 py-3 text-left font-mono text-[10px] tracking-[0.08em] uppercase',
+                        'text-[var(--muted-foreground)] select-none',
+                        canSort && 'cursor-pointer hover:text-[var(--foreground)] transition-colors'
                       )}
                       style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
                       onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
@@ -208,7 +202,7 @@ export function TerminalTable<T extends object>({
                           ? null
                           : flexRender(header.column.columnDef.header, header.getContext())}
                         {canSort && (
-                          <span className="text-[rgba(51,255,51,0.3)]">
+                          <span className="text-[var(--muted-foreground)] opacity-50">
                             {sorted === 'asc' ? (
                               <ChevronUp size={11} />
                             ) : sorted === 'desc' ? (
@@ -226,7 +220,6 @@ export function TerminalTable<T extends object>({
             ))}
           </thead>
 
-          {/* Body */}
           <tbody>
             {loading ? (
               <SkeletonRows cols={visibleCols} />
@@ -234,23 +227,23 @@ export function TerminalTable<T extends object>({
               <tr>
                 <td
                   colSpan={visibleCols}
-                  className="px-4 py-12 text-center font-mono text-[11px] tracking-[0.15em] text-[rgba(51,255,51,0.25)]"
+                  className="px-5 py-12 text-center text-sm text-[var(--muted-foreground)]"
                 >
-                  — {emptyMessage} —
+                  {emptyMessage}
                 </td>
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
                 <React.Fragment key={row.id}>
-                  <tr className="border-b border-[rgba(51,255,51,0.07)] hover:bg-[rgba(51,255,51,0.025)] transition-colors">
+                  <tr className="border-b border-[var(--border)] hover:bg-[var(--accent)] transition-colors">
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3">
+                      <td key={cell.id} className="px-5 py-3.5">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
                   </tr>
                   {expandedRowRender && row.getIsExpanded() && (
-                    <tr className="border-b border-[rgba(51,255,51,0.07)] bg-[rgba(51,255,51,0.02)]">
+                    <tr className="border-b border-[var(--border)] bg-[var(--muted)]">
                       <td colSpan={visibleCols} className="px-6 py-4">
                         {expandedRowRender(row.original)}
                       </td>
@@ -263,9 +256,7 @@ export function TerminalTable<T extends object>({
         </table>
       </div>
 
-      {pagination && (
-        <TerminalPagination {...pagination} />
-      )}
+      {pagination && <TerminalPagination {...pagination} />}
     </div>
   );
 }

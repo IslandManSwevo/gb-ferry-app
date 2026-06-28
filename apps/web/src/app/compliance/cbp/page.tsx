@@ -18,7 +18,7 @@ const submissionColumns: ColumnDef<any, any>[] = [
     id: 'vessel',
     header: 'Vessel',
     cell: ({ row }) => (
-      <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">
+      <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">
         {row.original.vessel?.name ?? row.original.vesselId ?? 'N/A'}
       </span>
     ),
@@ -27,7 +27,7 @@ const submissionColumns: ColumnDef<any, any>[] = [
     accessorKey: 'formType',
     header: 'Form Type',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest">
+      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] tracking-widest">
         {getValue<string>()}
       </span>
     ),
@@ -42,7 +42,7 @@ const submissionColumns: ColumnDef<any, any>[] = [
         <span
           className="inline-flex items-center gap-1 font-mono text-[10px] px-2 py-0.5 border tracking-widest"
           style={ok
-            ? { color: '#33FF33', borderColor: 'rgba(51,255,51,0.4)', background: 'rgba(51,255,51,0.06)' }
+            ? { color: '#00F2FE', borderColor: 'rgba(0,242,254,0.4)', background: 'rgba(0,242,254,0.06)' }
             : { color: '#FF4B2B', borderColor: 'rgba(255,75,43,0.4)', background: 'rgba(255,75,43,0.06)' }}
         >
           {ok ? <CheckCircle size={10} /> : <XCircle size={10} />}
@@ -55,7 +55,7 @@ const submissionColumns: ColumnDef<any, any>[] = [
     accessorKey: 'transmissionId',
     header: 'Transmission ID',
     cell: ({ getValue }) => (
-      <code className="font-mono text-[11px] text-[#00FFFF]">{getValue<string>()}</code>
+      <code className="font-mono text-[11px] text-[#00F2FE]">{getValue<string>()}</code>
     ),
   },
   {
@@ -64,7 +64,7 @@ const submissionColumns: ColumnDef<any, any>[] = [
     cell: ({ getValue }) => {
       const d = getValue<string>();
       return (
-        <span className="font-mono text-[11px] text-[rgba(51,255,51,0.5)] tabular-nums">
+        <span className="font-mono text-[11px] text-[rgba(0,242,254,0.5)] tabular-nums">
           {d ? new Date(d).toLocaleString() : 'N/A'}
         </span>
       );
@@ -98,7 +98,7 @@ export default function CBPCompliancePage() {
     }
     setLoading(true);
     setSubmitError(null);
-    const { data, error } = await api.cbp.submitCrewList(selectedVessel, formType);
+    const { error } = await api.cbp.submitCrewList(selectedVessel, formType);
     setLoading(false);
     if (error) {
       setSubmitError(String(error));
@@ -114,11 +114,11 @@ export default function CBPCompliancePage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <FileText size={16} aria-hidden />
             US CBP Regulatory Reporting
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             Electronic Notice of Arrival/Departure (eNOAD) · Form I-418 Crew Manifest submissions
           </p>
         </div>
@@ -171,13 +171,13 @@ export default function CBPCompliancePage() {
                 </div>
               </div>
 
-              <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)] leading-relaxed">
+              <p className="font-mono text-[11px] text-[rgba(0,242,254,0.45)] leading-relaxed">
                 All crew must have valid Travel Documents (Passport/Seafarer ID) and Visa information in their profile for successful transmission.
               </p>
 
-              <div className="flex items-center gap-2 pt-1 border-t border-[rgba(51,255,51,0.06)]">
-                <ShieldCheck size={12} className="text-[#33FF33]" />
-                <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)]">AES-256 PII Encryption Active</span>
+              <div className="flex items-center gap-2 pt-1 border-t border-[rgba(0,242,254,0.06)]">
+                <ShieldCheck size={12} className="text-[#00F2FE]" />
+                <span className="font-mono text-[11px] text-[rgba(0,242,254,0.7)]">AES-256 PII Encryption Active</span>
               </div>
             </CardContent>
           </Card>
@@ -222,25 +222,25 @@ export default function CBPCompliancePage() {
             value={selectedVessel}
             onChange={(e) => { setSelectedVessel(e.target.value); setSubmitError(null); }}
           >
-            <option value="" className="bg-[#050505]">Choose vessel…</option>
+            <option value="" className="bg-[#0B132B]">Choose vessel…</option>
             {vessels.map((v) => (
-              <option key={v.id} value={v.id} className="bg-[#050505]">{v.name}</option>
+              <option key={v.id} value={v.id} className="bg-[#0B132B]">{v.name}</option>
             ))}
           </SelectField>
 
           <div className="flex flex-col gap-2">
-            <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(51,255,51,0.5)]">
+            <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(0,242,254,0.5)]">
               Filing Type
             </label>
-            <div className="flex border border-[rgba(51,255,51,0.2)]">
+            <div className="flex border border-[rgba(0,242,254,0.2)]">
               {(['I_418', 'eNOAD'] as const).map((t) => (
                 <button
                   key={t}
                   className={`flex-1 px-4 py-2 font-mono text-[11px] tracking-wider transition-colors ${
                     formType === t
-                      ? 'bg-[rgba(51,255,51,0.1)] text-[#33FF33]'
-                      : 'text-[rgba(51,255,51,0.4)] hover:text-[#33FF33]'
-                  } ${t === 'eNOAD' ? 'border-l border-[rgba(51,255,51,0.2)]' : ''}`}
+                      ? 'bg-[rgba(0,242,254,0.1)] text-[#00F2FE]'
+                      : 'text-[rgba(0,242,254,0.4)] hover:text-[#00F2FE]'
+                  } ${t === 'eNOAD' ? 'border-l border-[rgba(0,242,254,0.2)]' : ''}`}
                   onClick={() => setFormType(t)}
                 >
                   {t === 'I_418' ? 'Form I-418 (Crew List)' : 'eNOA/D (Notice of Arrival)'}
@@ -249,9 +249,9 @@ export default function CBPCompliancePage() {
             </div>
           </div>
 
-          <div className="border border-[rgba(0,255,255,0.2)] bg-[rgba(0,255,255,0.03)] px-3 py-3 flex items-start gap-2">
-            <Info size={12} className="text-[#00FFFF] mt-0.5 flex-shrink-0" />
-            <p className="font-mono text-[11px] text-[rgba(0,255,255,0.6)] leading-relaxed">
+          <div className="border border-[rgba(0,242,254,0.2)] bg-[rgba(0,242,254,0.03)] px-3 py-3 flex items-start gap-2">
+            <Info size={12} className="text-[#00F2FE] mt-0.5 flex-shrink-0" />
+            <p className="font-mono text-[11px] text-[rgba(0,242,254,0.6)] leading-relaxed">
               The system will automatically validate STCW certificates and safe manning compliance before transmission.
             </p>
           </div>

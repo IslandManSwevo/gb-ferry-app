@@ -5,6 +5,7 @@ import { useUserRoles } from '@/lib/auth/roles';
 import { cn } from '@/lib/utils';
 import {
   Anchor,
+  ChevronRight,
   ClipboardCheck,
   LayoutDashboard,
   PanelLeftClose,
@@ -47,12 +48,12 @@ const FEATURE_MAP: Record<string, string> = {
 export const menuItems: NavItem[] = [
   {
     key: '/',
-    icon: <LayoutDashboard size={14} />,
+    icon: <LayoutDashboard size={15} />,
     label: 'Command Center',
   },
   {
     key: 'crew-compliance',
-    icon: <Users size={14} />,
+    icon: <Users size={15} />,
     label: 'Crew Compliance',
     children: [
       { key: '/crew', label: 'Crew Directory' },
@@ -62,7 +63,7 @@ export const menuItems: NavItem[] = [
   },
   {
     key: 'regulatory-forms',
-    icon: <ShieldCheck size={14} />,
+    icon: <ShieldCheck size={15} />,
     label: 'Regulatory Forms',
     children: [
       { key: '/compliance/cbp', label: 'CBP Forms' },
@@ -72,7 +73,7 @@ export const menuItems: NavItem[] = [
   },
   {
     key: 'fleet-management',
-    icon: <Anchor size={14} />,
+    icon: <Anchor size={15} />,
     label: 'Fleet Management',
     children: [
       { key: '/vessels', label: 'Vessel Status' },
@@ -82,7 +83,7 @@ export const menuItems: NavItem[] = [
   },
   {
     key: 'regulatory',
-    icon: <ClipboardCheck size={14} />,
+    icon: <ClipboardCheck size={15} />,
     label: 'Inspections & Audit',
     children: [
       { key: '/compliance/fleet', label: 'Fleet Performance' },
@@ -94,7 +95,7 @@ export const menuItems: NavItem[] = [
   { key: '__divider__', label: '', type: 'divider' },
   {
     key: 'system-management',
-    icon: <Settings size={14} />,
+    icon: <Settings size={15} />,
     label: 'System Management',
     children: [{ key: '/settings', label: 'Platform Settings' }],
   },
@@ -171,28 +172,32 @@ export const AppSidebar: React.FC = () => {
   return (
     <aside
       className={cn(
-        'sticky top-0 h-screen flex flex-col bg-[#050505]',
-        'border-r border-[rgba(51,255,51,0.15)] transition-all duration-200',
-        'hidden md:flex overflow-hidden',
+        'sticky top-0 h-screen flex flex-col bg-[var(--card)]',
+        'border-r border-[var(--border)]',
+        'hidden md:flex overflow-hidden transition-all duration-200',
         collapsed ? 'w-0' : 'w-[260px]'
       )}
     >
       {/* Logo */}
-      <div className="flex items-center justify-between h-14 px-4 border-b border-[rgba(51,255,51,0.1)] flex-shrink-0">
+      <div className="flex items-center justify-between h-14 px-4 border-b border-[var(--border)] flex-shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 border border-[rgba(51,255,51,0.3)] flex items-center justify-center">
-              <ShieldCheck size={16} className="text-[#33FF33]" />
+            <div className="w-8 h-8 rounded-lg bg-[rgba(0,242,254,0.1)] border border-[rgba(0,242,254,0.2)] flex items-center justify-center flex-shrink-0">
+              <ShieldCheck size={15} className="text-[#00F2FE]" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-mono text-[11px] tracking-[0.1em] text-[#33FF33] font-semibold">GB FERRY</span>
-              <span className="font-mono text-[9px] tracking-[0.1em] text-[rgba(51,255,51,0.4)]">CREW COMPLIANCE</span>
+              <span className="font-display text-[13px] font-semibold tracking-tight text-[var(--foreground)]">
+                GB Ferry
+              </span>
+              <span className="font-mono text-[9px] tracking-[0.1em] text-[var(--muted-foreground)] uppercase">
+                Compliance
+              </span>
             </div>
           </div>
         )}
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="p-1.5 text-[rgba(51,255,51,0.4)] hover:text-[#33FF33] transition-colors ml-auto"
+          className="p-1.5 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-all ml-auto"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
@@ -200,10 +205,10 @@ export const AppSidebar: React.FC = () => {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
         {filtered.map((item) => {
           if (item.type === 'divider') {
-            return <div key={item.key} className="h-px mx-4 my-2 bg-[rgba(51,255,51,0.06)]" />;
+            return <div key={item.key} className="h-px mx-2 my-2 bg-[var(--border)]" />;
           }
 
           if (!item.children) {
@@ -213,14 +218,15 @@ export const AppSidebar: React.FC = () => {
                 key={item.key}
                 onClick={() => navigate(item.key)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-4 py-2.5 font-mono text-[11px] tracking-wide transition-colors text-left',
-                  'border-l-2',
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left',
                   active
-                    ? 'text-[#33FF33] bg-[rgba(51,255,51,0.06)] border-[#33FF33]'
-                    : 'text-[rgba(51,255,51,0.45)] hover:text-[#33FF33] hover:bg-[rgba(51,255,51,0.03)] border-transparent'
+                    ? 'bg-[rgba(0,242,254,0.1)] text-[#00F2FE]'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]'
                 )}
               >
-                {item.icon}
+                <span className={active ? 'text-[#00F2FE]' : 'text-[var(--muted-foreground)]'}>
+                  {item.icon}
+                </span>
                 {!collapsed && item.label}
               </button>
             );
@@ -234,26 +240,29 @@ export const AppSidebar: React.FC = () => {
               <button
                 onClick={() => toggleGroup(item.key)}
                 className={cn(
-                  'w-full flex items-center justify-between px-4 py-2.5 font-mono text-[11px] tracking-wide transition-colors text-left',
-                  groupActive ? 'text-[#33FF33]' : 'text-[rgba(51,255,51,0.45)] hover:text-[rgba(51,255,51,0.7)]'
+                  'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left',
+                  groupActive
+                    ? 'text-[var(--foreground)]'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]'
                 )}
               >
                 <span className="flex items-center gap-3">
-                  {item.icon}
+                  <span className={groupActive ? 'text-[#00F2FE]' : ''}>{item.icon}</span>
                   {!collapsed && item.label}
                 </span>
                 {!collapsed && (
-                  <span
-                    className={cn('transition-transform duration-150', groupOpen ? 'rotate-90' : 'rotate-0')}
-                    style={{ color: 'rgba(51,255,51,0.3)' }}
-                  >
-                    ›
-                  </span>
+                  <ChevronRight
+                    size={13}
+                    className={cn(
+                      'transition-transform duration-150 text-[var(--muted-foreground)]',
+                      groupOpen ? 'rotate-90' : 'rotate-0'
+                    )}
+                  />
                 )}
               </button>
 
               {groupOpen && !collapsed && (
-                <div className="ml-4 border-l border-[rgba(51,255,51,0.08)]">
+                <div className="ml-4 mt-0.5 pl-3 border-l border-[var(--border)] space-y-0.5">
                   {item.children.map((child) => {
                     const active = isActive(child.key);
                     return (
@@ -261,11 +270,10 @@ export const AppSidebar: React.FC = () => {
                         key={child.key}
                         onClick={() => navigate(child.key)}
                         className={cn(
-                          'w-full flex items-center px-4 py-2 font-mono text-[11px] tracking-wide transition-colors text-left',
-                          'border-l-2 -ml-px',
+                          'w-full flex items-center px-3 py-2 rounded-md text-sm transition-all text-left',
                           active
-                            ? 'text-[#33FF33] bg-[rgba(51,255,51,0.05)] border-[#33FF33]'
-                            : 'text-[rgba(51,255,51,0.38)] hover:text-[#33FF33] hover:bg-[rgba(51,255,51,0.03)] border-transparent'
+                            ? 'text-[#00F2FE] bg-[rgba(0,242,254,0.08)] font-medium'
+                            : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]'
                         )}
                       >
                         {child.label}

@@ -1,13 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { cn } from '@/lib/utils';
 import { useUserRoles } from '@/lib/auth/roles';
 import {
   AlertTriangle,
   Bell,
   ChevronRight,
-  HelpCircle,
   LogOut,
   Menu,
   Settings,
@@ -21,7 +21,6 @@ import { filterMenuItemsByRole, menuItems, parentKeys } from './AppSidebar';
 
 const API_PREFIX = process.env.NEXT_PUBLIC_API_PREFIX || '/api/v1';
 
-/* ── Types ───────────────────────────────────────────────── */
 type NavMenuItem = Record<string, any>;
 
 /* ── Mobile nav sheet ───────────────────────────────────── */
@@ -58,16 +57,14 @@ function NavSheet({ open, onClose, items, selectedKey, onNavigate }: NavSheetPro
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className={cn(
-          'fixed inset-0 z-40 bg-black/70 transition-opacity md:hidden',
+          'fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity md:hidden',
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         )}
         onClick={onClose}
         aria-hidden
       />
-      {/* Sheet */}
       <div
         ref={sheetRef}
         tabIndex={-1}
@@ -75,23 +72,23 @@ function NavSheet({ open, onClose, items, selectedKey, onNavigate }: NavSheetPro
         aria-modal
         aria-label="Navigation"
         className={cn(
-          'fixed top-0 left-0 bottom-0 z-50 w-72 bg-[#050505]',
-          'border-r border-[rgba(51,255,51,0.2)] flex flex-col',
+          'fixed top-0 left-0 bottom-0 z-50 w-72',
+          'bg-[var(--card)] border-r border-[var(--border)] flex flex-col',
           'transition-transform duration-200 ease-out md:hidden',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         {/* Sheet header */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-[rgba(51,255,51,0.1)]">
+        <div className="flex items-center justify-between h-14 px-4 border-b border-[var(--border)]">
           <div>
-            <p className="font-mono text-[10px] tracking-[0.15em] uppercase text-[#33FF33]">GB FERRY</p>
-            <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-[rgba(51,255,51,0.4)]">
-              CREW COMPLIANCE
+            <p className="font-display text-[13px] font-semibold text-[var(--foreground)]">GB Ferry</p>
+            <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-[var(--muted-foreground)]">
+              Crew Compliance
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] transition-colors"
+            className="p-2 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-all"
             aria-label="Close navigation"
           >
             <X size={16} />
@@ -99,10 +96,10 @@ function NavSheet({ open, onClose, items, selectedKey, onNavigate }: NavSheetPro
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto py-2">
+        <nav className="flex-1 overflow-y-auto py-3 px-2">
           {groups.map((group) => (
             <div key={String(group.key)} className="mb-4">
-              <p className="px-4 py-1 font-mono text-[9px] tracking-[0.15em] uppercase text-[rgba(51,255,51,0.3)]">
+              <p className="px-3 py-1.5 text-[10px] tracking-[0.1em] uppercase text-[var(--muted-foreground)] font-mono">
                 {String(group.label)}
               </p>
               {group.children.map((child) => {
@@ -113,11 +110,10 @@ function NavSheet({ open, onClose, items, selectedKey, onNavigate }: NavSheetPro
                     key={key}
                     onClick={() => onNavigate(key)}
                     className={cn(
-                      'w-full flex items-center justify-between px-4 py-2 text-left transition-colors',
-                      'font-mono text-[11px] tracking-wide',
+                      'w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-all',
                       active
-                        ? 'text-[#33FF33] bg-[rgba(51,255,51,0.06)] border-l-2 border-[#33FF33]'
-                        : 'text-[rgba(51,255,51,0.45)] hover:text-[#33FF33] hover:bg-[rgba(51,255,51,0.04)] border-l-2 border-transparent'
+                        ? 'text-[#00F2FE] bg-[rgba(0,242,254,0.08)] font-medium'
+                        : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]'
                     )}
                   >
                     {String(child.label)}
@@ -130,13 +126,13 @@ function NavSheet({ open, onClose, items, selectedKey, onNavigate }: NavSheetPro
         </nav>
 
         {/* Sheet footer */}
-        <div className="border-t border-[rgba(51,255,51,0.1)] p-4">
+        <div className="border-t border-[var(--border)] p-3">
           <button
             onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-            className="w-full flex items-center gap-2 px-3 py-2 font-mono text-[11px] tracking-wide text-[rgba(255,75,43,0.7)] hover:text-[#FF4B2B] transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[rgba(255,75,43,0.8)] hover:text-[#FF4B2B] hover:bg-[rgba(255,75,43,0.06)] transition-all"
           >
-            <LogOut size={13} aria-hidden />
-            SIGN OUT
+            <LogOut size={14} aria-hidden />
+            Sign Out
           </button>
         </div>
       </div>
@@ -155,7 +151,6 @@ export const AppHeader: React.FC = () => {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const roles = useUserRoles();
-  // filterMenuItemsByRole accepts antd MenuItem[] — cast via unknown to our structural alias
   const filteredItems = React.useMemo(
     () => filterMenuItemsByRole(menuItems, roles) as NavMenuItem[],
     [roles]
@@ -203,119 +198,120 @@ export const AppHeader: React.FC = () => {
     .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
 
+  /* Breadcrumb label */
+  const breadcrumb =
+    pathname === '/'
+      ? 'Command Center'
+      : pathname.split('/').filter(Boolean).join(' / ');
+
   return (
     <>
       <header
         className={cn(
           'sticky top-0 z-30 h-14',
-          'bg-[#050505] border-b border-[rgba(51,255,51,0.2)]',
+          'bg-[var(--card)] border-b border-[var(--border)]',
           'flex items-center justify-between px-4 gap-4'
         )}
       >
-        {/* Left — hamburger (mobile only) */}
+        {/* Left — hamburger + breadcrumb */}
         <div className="flex items-center gap-3">
           <button
-            className="md:hidden p-1.5 text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] transition-colors"
+            className="md:hidden p-2 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-all"
             onClick={() => setSheetOpen(true)}
             aria-label="Open navigation"
           >
             <Menu size={18} />
           </button>
 
-          {/* Breadcrumb / page label — desktop */}
-          <span className="hidden md:block font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(51,255,51,0.4)]">
-            {pathname === '/'
-              ? 'Command Center'
-              : pathname.split('/').filter(Boolean).join(' / ').toUpperCase()}
+          <span className="hidden md:block text-sm font-medium text-[var(--muted-foreground)] capitalize">
+            {breadcrumb}
           </span>
         </div>
 
         {/* Right controls */}
-        <div className="flex items-center gap-2">
-          {/* Emergency — always visible */}
+        <div className="flex items-center gap-1">
+          {/* Theme toggle */}
+          <ThemeToggle />
+
+          {/* Emergency */}
           <Button
             variant="danger"
             size="sm"
-            icon={<AlertTriangle size={12} />}
+            icon={<AlertTriangle size={13} />}
             onClick={() => router.push('/emergency')}
-            className="hidden sm:inline-flex"
+            className="hidden sm:inline-flex ml-1"
           >
             Emergency
           </Button>
-          {/* Emergency icon-only on xs */}
           <button
-            className="sm:hidden p-1.5 text-[#FF4B2B] hover:text-[#e03820] transition-colors"
+            className="sm:hidden p-2 rounded-md text-[#FF4B2B] hover:bg-[rgba(255,75,43,0.08)] transition-all"
             onClick={() => router.push('/emergency')}
             aria-label="Emergency"
           >
             <AlertTriangle size={18} />
           </button>
 
-          <button
-            className="p-1.5 text-[rgba(51,255,51,0.4)] hover:text-[#33FF33] transition-colors"
-            aria-label="Help"
-          >
-            <HelpCircle size={16} />
-          </button>
-
           {/* Notification bell */}
           <button
-            className="relative p-1.5 text-[rgba(51,255,51,0.4)] hover:text-[#33FF33] transition-colors"
+            className="relative p-2 rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-all"
             aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
             onClick={() => setUnreadCount(0)}
           >
             <Bell size={16} />
             {unreadCount > 0 && (
-              <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-[#FF4B2B] block" aria-hidden />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FF4B2B] rounded-full block" aria-hidden />
             )}
           </button>
 
           {/* User menu */}
-          <div className="relative" ref={userMenuRef}>
+          <div className="relative ml-1" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen((v) => !v)}
-              className="flex items-center gap-2 px-2 py-1 border border-[rgba(51,255,51,0.15)] hover:border-[rgba(51,255,51,0.4)] transition-colors"
+              className={cn(
+                'flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-all',
+                userMenuOpen
+                  ? 'bg-[var(--accent)] border-[var(--border)]'
+                  : 'border-transparent hover:bg-[var(--accent)] hover:border-[var(--border)]'
+              )}
               aria-label="User menu"
               aria-expanded={userMenuOpen}
             >
-              <div className="w-6 h-6 bg-[rgba(51,255,51,0.12)] flex items-center justify-center">
+              <div className="w-7 h-7 rounded-full bg-[rgba(0,242,254,0.12)] border border-[rgba(0,242,254,0.2)] flex items-center justify-center">
                 {status === 'loading' ? (
-                  <div className="w-3 h-3 border border-[#33FF33] border-t-transparent animate-spin" />
+                  <div className="w-3 h-3 border border-[#00F2FE] border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <span className="font-mono text-[10px] text-[#33FF33] font-semibold">
+                  <span className="font-mono text-[11px] text-[#00F2FE] font-semibold">
                     {userInitial}
                   </span>
                 )}
               </div>
               <div className="hidden sm:block text-left leading-none">
-                <p className="font-mono text-[11px] text-[rgba(51,255,51,0.7)]">{userName}</p>
-                <p className="font-mono text-[9px] text-[rgba(51,255,51,0.45)] uppercase tracking-wider">
-                  {primaryRole}
-                </p>
+                <p className="text-sm font-medium text-[var(--foreground)]">{userName}</p>
+                <p className="text-[10px] text-[var(--muted-foreground)]">{primaryRole}</p>
               </div>
             </button>
 
             {/* User dropdown */}
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-[#050505] border border-[rgba(51,255,51,0.2)] z-50">
+              <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-card z-50 overflow-hidden py-1">
                 <button
                   onClick={() => { setUserMenuOpen(false); router.push('/settings'); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 font-mono text-[11px] text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] hover:bg-[rgba(51,255,51,0.04)] transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-all"
                 >
-                  <User size={13} /> Profile
+                  <User size={14} /> Profile
                 </button>
                 <button
                   onClick={() => { setUserMenuOpen(false); router.push('/settings'); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 font-mono text-[11px] text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] hover:bg-[rgba(51,255,51,0.04)] transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] transition-all"
                 >
-                  <Settings size={13} /> Settings
+                  <Settings size={14} /> Settings
                 </button>
-                <div className="border-t border-[rgba(51,255,51,0.1)]" />
+                <div className="h-px bg-[var(--border)] my-1" />
                 <button
                   onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 font-mono text-[11px] text-[rgba(255,75,43,0.7)] hover:text-[#FF4B2B] hover:bg-[rgba(255,75,43,0.04)] transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-[rgba(255,75,43,0.8)] hover:text-[#FF4B2B] hover:bg-[rgba(255,75,43,0.06)] transition-all"
                 >
-                  <LogOut size={13} /> Sign Out
+                  <LogOut size={14} /> Sign Out
                 </button>
               </div>
             )}
@@ -323,7 +319,6 @@ export const AppHeader: React.FC = () => {
         </div>
       </header>
 
-      {/* Mobile slide-in nav sheet */}
       <NavSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}

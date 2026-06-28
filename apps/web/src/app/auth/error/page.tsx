@@ -48,13 +48,13 @@ function AuthErrorContent() {
       <div className="border-t border-[rgba(255,75,43,0.15)] pt-6 w-full flex flex-col gap-2">
         <a
           href="/auth/signin"
-          className="w-full py-2.5 font-mono text-[11px] tracking-widest uppercase text-center border border-[rgba(51,255,51,0.3)] text-[#33FF33] bg-[rgba(51,255,51,0.04)] hover:bg-[rgba(51,255,51,0.08)] transition-colors"
+          className="w-full py-2.5 font-mono text-[11px] tracking-widest uppercase text-center border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] hover:bg-[rgba(0,242,254,0.08)] transition-colors"
         >
           Try Again
         </a>
         <a
           href="/"
-          className="w-full py-2.5 font-mono text-[11px] tracking-widest uppercase text-center border border-[rgba(51,255,51,0.1)] text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] hover:border-[rgba(51,255,51,0.3)] transition-colors"
+          className="w-full py-2.5 font-mono text-[11px] tracking-widest uppercase text-center border border-[rgba(0,242,254,0.1)] text-[rgba(0,242,254,0.5)] hover:text-[#00F2FE] hover:border-[rgba(0,242,254,0.3)] transition-colors"
         >
           Return Home
         </a>
@@ -73,7 +73,7 @@ function ErrorFallback() {
 
 export default function AuthErrorPage() {
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-8">
+    <div className="min-h-screen bg-[#0B132B] flex items-center justify-center p-8">
       <Suspense fallback={<ErrorFallback />}>
         <AuthErrorContent />
       </Suspense>

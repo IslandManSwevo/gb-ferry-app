@@ -16,14 +16,14 @@ const trendColumns: ColumnDef<any, any>[] = [
     accessorKey: 'month',
     header: 'Month',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)] tabular-nums">{getValue<string>()}</span>
+      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.7)] tabular-nums">{getValue<string>()}</span>
     ),
   },
   {
     accessorKey: 'passRate',
     header: 'Pass Rate',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[12px] tabular-nums text-[#33FF33]">
+      <span className="font-mono text-[12px] tabular-nums text-[#00F2FE]">
         {getValue<number>().toFixed(1)}%
       </span>
     ),
@@ -34,7 +34,7 @@ const trendColumns: ColumnDef<any, any>[] = [
     cell: ({ getValue }) => {
       const n = getValue<number>();
       return (
-        <span className="font-mono text-[12px] tabular-nums" style={{ color: n > 0 ? '#FF4B2B' : 'rgba(51,255,51,0.5)' }}>
+        <span className="font-mono text-[12px] tabular-nums" style={{ color: n > 0 ? '#FF4B2B' : 'rgba(0,242,254,0.5)' }}>
           {n}
         </span>
       );
@@ -43,7 +43,7 @@ const trendColumns: ColumnDef<any, any>[] = [
 ];
 
 function scoreColor(score: number) {
-  if (score >= 80) return '#33FF33';
+  if (score >= 80) return '#00F2FE';
   if (score >= 60) return '#FFB000';
   return '#FF4B2B';
 }
@@ -58,7 +58,7 @@ const scoreColumns: ColumnDef<any, any>[] = [
     accessorKey: 'vesselName',
     header: 'Vessel',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{getValue<string>()}</span>
+      <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">{getValue<string>()}</span>
     ),
   },
   {
@@ -71,7 +71,7 @@ const scoreColumns: ColumnDef<any, any>[] = [
           <span className="font-mono text-[12px] tabular-nums" style={{ color: scoreColor(score) }}>
             {score.toFixed(1)}
           </span>
-          <div className="h-1 w-24 bg-[rgba(51,255,51,0.08)]">
+          <div className="h-1 w-24 bg-[rgba(0,242,254,0.08)]">
             <div className="h-full" style={{ width: `${score}%`, background: scoreColor(score) }} />
           </div>
         </div>
@@ -85,7 +85,7 @@ const scoreColumns: ColumnDef<any, any>[] = [
       const risk = getValue<string>();
       const s = riskStatus(risk);
       const colors = {
-        ok: { color: '#33FF33', border: 'rgba(51,255,51,0.4)', bg: 'rgba(51,255,51,0.06)' },
+        ok: { color: '#00F2FE', border: 'rgba(0,242,254,0.4)', bg: 'rgba(0,242,254,0.06)' },
         warning: { color: '#FFB000', border: 'rgba(255,176,0,0.4)', bg: 'rgba(255,176,0,0.06)' },
         critical: { color: '#FF4B2B', border: 'rgba(255,75,43,0.4)', bg: 'rgba(255,75,43,0.06)' },
       }[s];
@@ -128,11 +128,11 @@ export default function FleetAnalyticsPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <BarChart2 size={16} aria-hidden />
             Fleet Analytics Dashboard
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             Predictive performance metrics · PSC risk scoring · Certification forecasting
           </p>
         </div>
@@ -141,16 +141,16 @@ export default function FleetAnalyticsPage() {
           value={lookbackMonths}
           onChange={(e) => setLookbackMonths(Number(e.target.value))}
         >
-          <option value={3} className="bg-[#050505]">Last 3 Months</option>
-          <option value={6} className="bg-[#050505]">Last 6 Months</option>
-          <option value={12} className="bg-[#050505]">Last 12 Months</option>
+          <option value={3} className="bg-[#0B132B]">Last 3 Months</option>
+          <option value={6} className="bg-[#0B132B]">Last 6 Months</option>
+          <option value={12} className="bg-[#0B132B]">Last 12 Months</option>
         </select>
       </div>
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
-          <div className="w-8 h-8 border-2 border-[#33FF33] border-t-transparent animate-spin" />
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.3)] tracking-wider">
+          <div className="w-8 h-8 border-2 border-[#00F2FE] border-t-transparent animate-spin" />
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.3)] tracking-wider">
             AGGREGATING FLEET PERFORMANCE DATA...
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function FleetAnalyticsPage() {
                     emptyMessage="NO TREND DATA"
                   />
                 ) : (
-                  <p className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] text-center py-12 tracking-widest">
+                  <p className="font-mono text-[11px] text-[rgba(0,242,254,0.25)] text-center py-12 tracking-widest">
                     — NO DATA —
                   </p>
                 )}
@@ -230,9 +230,9 @@ export default function FleetAnalyticsPage() {
               </CardContent>
             </Card>
 
-            <div className="px-4 py-3 border border-[rgba(0,255,255,0.2)] bg-[rgba(0,255,255,0.03)] flex items-start gap-2">
-              <Info size={12} className="text-[#00FFFF] mt-0.5 flex-shrink-0" />
-              <p className="font-mono text-[11px] text-[rgba(0,255,255,0.6)] leading-relaxed">
+            <div className="px-4 py-3 border border-[rgba(0,242,254,0.2)] bg-[rgba(0,242,254,0.03)] flex items-start gap-2">
+              <Info size={12} className="text-[#00F2FE] mt-0.5 flex-shrink-0" />
+              <p className="font-mono text-[11px] text-[rgba(0,242,254,0.6)] leading-relaxed">
                 Forecast identifies upcoming compliance gaps based on STCW and Medical certificate validity.
               </p>
             </div>
