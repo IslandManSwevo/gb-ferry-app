@@ -148,8 +148,8 @@ function VerifyModal({ cert, docUrl, onClose, onApprove, onReject, verifying }: 
               docUrl.toLowerCase().includes('.pdf') || docUrl.includes('pdf') ? (
                 <iframe src={docUrl} className="w-full h-full" style={{ border: 'none' }} />
               ) : (
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <div className="flex items-center justify-center w-full h-full p-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={docUrl}
                     alt="Certificate document"
