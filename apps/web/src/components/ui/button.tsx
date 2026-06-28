@@ -26,11 +26,11 @@ const buttonVariants = cva(
           'hover:bg-[rgba(51,255,51,0.08)] hover:border-[#33FF33]',
         ],
         outline: [
-          'bg-transparent text-[#eaeaea] border-[rgba(255,255,255,0.2)]',
-          'hover:bg-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.4)]',
+          'bg-transparent text-[#33FF33] border-[rgba(51,255,51,0.2)]',
+          'hover:bg-[rgba(51,255,51,0.06)] hover:border-[rgba(51,255,51,0.4)]',
         ],
         danger: [
-          'bg-[#FF4B2B] text-[#eaeaea] border-[#FF4B2B]',
+          'bg-[#FF4B2B] text-[#050505] border-[#FF4B2B]',
           'hover:bg-[#e03820] hover:border-[#e03820]',
           'active:bg-[#c42e18]',
         ],

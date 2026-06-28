@@ -46,9 +46,9 @@ const statusConfig: Record<
     label: 'info',
   },
   muted: {
-    color: 'rgba(234,234,234,0.4)',
-    bg: 'rgba(255,255,255,0.04)',
-    border: 'rgba(255,255,255,0.1)',
+    color: 'rgba(51,255,51,0.3)',
+    bg: 'rgba(51,255,51,0.04)',
+    border: 'rgba(51,255,51,0.15)',
     icon: Minus,
     label: 'muted',
   },

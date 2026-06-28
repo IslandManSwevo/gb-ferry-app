@@ -92,7 +92,7 @@ const statusValueColor: Record<NonNullable<StatCardProps['status']>, string> = {
   warning: '#FFB000',
   critical: '#FF4B2B',
   info: '#00FFFF',
-  muted: 'rgba(234,234,234,0.45)',
+  muted: 'rgba(51,255,51,0.25)',
 };
 
 export function StatCard({ label, value, sub, status = 'info', accent, className, ...props }: StatCardProps) {
@@ -111,7 +111,7 @@ export function StatCard({ label, value, sub, status = 'info', accent, className
           {value}
         </span>
         {sub && (
-          <span className="font-mono text-[11px] text-[rgba(234,234,234,0.45)] mt-1">{sub}</span>
+          <span className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] mt-1">{sub}</span>
         )}
       </div>
     </Card>

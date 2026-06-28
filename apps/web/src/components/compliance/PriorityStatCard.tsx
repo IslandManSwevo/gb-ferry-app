@@ -42,7 +42,7 @@ export function PriorityStatCard({
   const displayValue = suffix ? (
     <span>
       {value}
-      <span className="text-base ml-1 opacity-60">{suffix}</span>
+      <span className="font-mono text-base ml-1" style={{ color: `${color}60` }}>{suffix}</span>
     </span>
   ) : (
     value
@@ -56,7 +56,7 @@ export function PriorityStatCard({
           <span>{trend.value}%</span>
         </span>
       )}
-      {description && <span className="text-[rgba(234,234,234,0.4)]">{description}</span>}
+      {description && <span className="text-[rgba(51,255,51,0.35)]">{description}</span>}
     </span>
   );
 
