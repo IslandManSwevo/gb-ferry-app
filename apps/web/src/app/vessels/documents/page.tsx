@@ -363,7 +363,7 @@ export default function VesselDocumentsPage() {
             <option value="" className="bg-[#050505]">Select category…</option>
             <option value="R102" className="bg-[#050505]">Registry Certificate (R102)</option>
             <option value="R106" className="bg-[#050505]">Safe Manning (R106)</option>
-            <option value="SHIPS_LIBRARY" className="bg-[#050505]">Ship's Library</option>
+            <option value="SHIPS_LIBRARY" className="bg-[#050505]">Ship&apos;s Library</option>
             <option value="RADIO_LICENSE" className="bg-[#050505]">Radio License</option>
             <option value="CLASS_CERT" className="bg-[#050505]">Classification Certificate</option>
             <option value="OTHER" className="bg-[#050505]">Other Regulatory</option>
