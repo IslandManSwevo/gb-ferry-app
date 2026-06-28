@@ -1,53 +1,31 @@
 'use client';
 
-import { Card, CardProps } from 'antd';
+/**
+ * GlassCard — legacy import alias.
+ * Preserves all existing import paths while replacing the old glassmorphism
+ * implementation with the Industrial Brutalist terminal card.
+ */
+
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import React from 'react';
 
-interface GlassCardProps extends CardProps {
+interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   intensity?: 'light' | 'medium' | 'strong';
+  hoverable?: boolean; // legacy antd Card compat — accepted, not applied
 }
 
-/**
- * GlassCard - Maritime-themed frosted glass card component
- * Used for dashboard statistics and key metrics display
- */
 export const GlassCard: React.FC<GlassCardProps> = ({
   children,
-  intensity = 'medium',
+  intensity,
+  hoverable: _hoverable,
+  className,
   style,
   ...props
 }) => {
-  const intensityStyles = {
-    light: {
-      background: 'rgba(255, 255, 255, 0.08)',
-      backdropFilter: 'blur(8px)',
-      border: '1px solid rgba(255, 255, 255, 0.15)',
-    },
-    medium: {
-      background: 'rgba(255, 255, 255, 0.12)',
-      backdropFilter: 'blur(12px)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-    },
-    strong: {
-      background: 'rgba(255, 255, 255, 0.18)',
-      backdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255, 255, 255, 0.25)',
-    },
-  };
-
   return (
-    <Card
-      bordered={false}
-      style={{
-        ...intensityStyles[intensity],
-        borderRadius: 16,
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
-        WebkitBackdropFilter: intensityStyles[intensity].backdropFilter,
-        ...style,
-      }}
-      {...props}
-    >
-      {children}
+    <Card className={cn('h-full', className)} style={style} {...props}>
+      <CardContent>{children}</CardContent>
     </Card>
   );
 };
