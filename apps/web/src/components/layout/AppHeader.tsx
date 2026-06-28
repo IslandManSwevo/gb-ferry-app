@@ -22,7 +22,6 @@ import { filterMenuItemsByRole, menuItems, parentKeys } from './AppSidebar';
 const API_PREFIX = process.env.NEXT_PUBLIC_API_PREFIX || '/api/v1';
 
 /* ── Types ───────────────────────────────────────────────── */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type NavMenuItem = Record<string, any>;
 
 /* ── Mobile nav sheet ───────────────────────────────────── */
