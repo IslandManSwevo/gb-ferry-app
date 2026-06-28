@@ -48,10 +48,10 @@ const columns: ColumnDef<CertRecord, any>[] = [
       const initial = (crew?.familyName ?? name).charAt(0).toUpperCase();
       return (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[rgba(51,255,51,0.1)] flex items-center justify-center flex-shrink-0">
-            <span className="font-mono text-[11px] text-[#33FF33] font-semibold">{initial}</span>
+          <div className="w-8 h-8 bg-[rgba(0,242,254,0.1)] flex items-center justify-center flex-shrink-0">
+            <span className="font-mono text-[11px] text-[#00F2FE] font-semibold">{initial}</span>
           </div>
-          <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{name}</span>
+          <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">{name}</span>
         </div>
       );
     },
@@ -60,7 +60,7 @@ const columns: ColumnDef<CertRecord, any>[] = [
     accessorKey: 'type',
     header: 'Document Type',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.05)]">
+      <span className="font-mono text-[11px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.05)]">
         {getValue<string>() ?? '—'}
       </span>
     ),
@@ -69,7 +69,7 @@ const columns: ColumnDef<CertRecord, any>[] = [
     accessorKey: 'certificateNumber',
     header: 'Cert No.',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)] tracking-wider">
+      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.7)] tracking-wider">
         {getValue<string>() ?? '—'}
       </span>
     ),
@@ -78,7 +78,7 @@ const columns: ColumnDef<CertRecord, any>[] = [
     accessorKey: 'issuingAuthority',
     header: 'Issuing Authority',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.45)]">
+      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.45)]">
         {getValue<string>() ?? '—'}
       </span>
     ),
@@ -89,7 +89,7 @@ const columns: ColumnDef<CertRecord, any>[] = [
     sortingFn: 'datetime',
     cell: ({ getValue, row }) => {
       const dateStr = getValue<string>();
-      if (!dateStr) return <span className="font-mono text-[11px] text-[rgba(51,255,51,0.25)]">N/A</span>;
+      if (!dateStr) return <span className="font-mono text-[11px] text-[rgba(0,242,254,0.25)]">N/A</span>;
       const d = new Date(dateStr);
       if (isNaN(d.getTime()))
         return <span className="font-mono text-[11px] text-[#FF4B2B]">Invalid</span>;
@@ -97,7 +97,7 @@ const columns: ColumnDef<CertRecord, any>[] = [
       return (
         <span
           className="font-mono text-[11px] tabular-nums"
-          style={{ color: isExpiring ? '#FF4B2B' : 'rgba(51,255,51,0.7)' }}
+          style={{ color: isExpiring ? '#FF4B2B' : 'rgba(0,242,254,0.7)' }}
         >
           {d.toLocaleDateString()}
         </span>
@@ -181,7 +181,7 @@ export default function CertificationsPage() {
       <Card>
         <CardHeader
           action={
-            <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)] tracking-widest">
+            <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)] tracking-widest">
               {data.length} RECORDS
             </span>
           }

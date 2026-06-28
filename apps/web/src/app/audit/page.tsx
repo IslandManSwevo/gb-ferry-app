@@ -29,7 +29,7 @@ const columns: ColumnDef<AuditLog, any>[] = [
     header: 'Timestamp',
     size: 180,
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.5)] tabular-nums">
+      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.5)] tabular-nums">
         {new Date(getValue<string>()).toLocaleString()}
       </span>
     ),
@@ -39,10 +39,10 @@ const columns: ColumnDef<AuditLog, any>[] = [
     header: 'User',
     cell: ({ getValue, row }) => (
       <div className="flex flex-col gap-1">
-        <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">
+        <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">
           {getValue<string>() ?? '—'}
         </span>
-        <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)] tracking-wider">
+        <span className="font-mono text-[10px] text-[rgba(0,242,254,0.3)] tracking-wider">
           {row.original.userId ?? ''}
         </span>
       </div>
@@ -52,7 +52,7 @@ const columns: ColumnDef<AuditLog, any>[] = [
     accessorKey: 'action',
     header: 'Action',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.05)] tracking-widest uppercase">
+      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.05)] tracking-widest uppercase">
         {getValue<string>() ?? '—'}
       </span>
     ),
@@ -61,7 +61,7 @@ const columns: ColumnDef<AuditLog, any>[] = [
     accessorKey: 'entityType',
     header: 'Entity',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.6)]">
+      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.6)]">
         {getValue<string>() ?? '—'}
       </span>
     ),
@@ -70,7 +70,7 @@ const columns: ColumnDef<AuditLog, any>[] = [
     accessorKey: 'entityId',
     header: 'Entity ID',
     cell: ({ getValue }) => (
-      <code className="font-mono text-[10px] text-[rgba(51,255,51,0.35)] tracking-wider">
+      <code className="font-mono text-[10px] text-[rgba(0,242,254,0.35)] tracking-wider">
         {getValue<string>() ?? '—'}
       </code>
     ),
@@ -80,7 +80,7 @@ const columns: ColumnDef<AuditLog, any>[] = [
     header: 'IP Address',
     size: 130,
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.4)] tabular-nums">
+      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.4)] tabular-nums">
         {getValue<string>() || '—'}
       </span>
     ),
@@ -98,7 +98,7 @@ const ENTITY_OPTIONS = [
 ];
 
 const inputCls =
-  'bg-[#050505] border border-[rgba(51,255,51,0.2)] text-[rgba(51,255,51,0.7)] font-mono text-[11px] px-3 py-2 placeholder:text-[rgba(51,255,51,0.2)] focus:outline-none focus:border-[rgba(51,255,51,0.5)] transition-colors';
+  'bg-[#0B132B] border border-[rgba(0,242,254,0.2)] text-[rgba(0,242,254,0.7)] font-mono text-[11px] px-3 py-2 placeholder:text-[rgba(0,242,254,0.2)] focus:outline-none focus:border-[rgba(0,242,254,0.5)] transition-colors';
 
 interface FilterState {
   search: string;
@@ -116,7 +116,7 @@ interface FilterToolbarProps {
 
 function FilterToolbar({ filters, onChange, onApply, loading }: FilterToolbarProps) {
   return (
-    <div className="flex flex-wrap items-end gap-2 px-4 py-3 border-b border-[rgba(51,255,51,0.1)] bg-[rgba(51,255,51,0.02)]">
+    <div className="flex flex-wrap items-end gap-2 px-4 py-3 border-b border-[rgba(0,242,254,0.1)] bg-[rgba(0,242,254,0.02)]">
       <input
         className={inputCls}
         style={{ width: 200 }}
@@ -133,7 +133,7 @@ function FilterToolbar({ filters, onChange, onApply, loading }: FilterToolbarPro
         onChange={(e) => onChange({ ...filters, entityType: e.target.value })}
       >
         {ENTITY_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value} className="bg-[#050505]">
+          <option key={o.value} value={o.value} className="bg-[#0B132B]">
             {o.label}
           </option>
         ))}
@@ -147,7 +147,7 @@ function FilterToolbar({ filters, onChange, onApply, loading }: FilterToolbarPro
           value={filters.startDate}
           onChange={(e) => onChange({ ...filters, startDate: e.target.value })}
         />
-        <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)]">–</span>
+        <span className="font-mono text-[10px] text-[rgba(0,242,254,0.3)]">–</span>
         <input
           type="date"
           className={inputCls}
@@ -169,7 +169,7 @@ function FilterToolbar({ filters, onChange, onApply, loading }: FilterToolbarPro
 
       {(filters.search || filters.entityType || filters.startDate || filters.endDate) && (
         <button
-          className="font-mono text-[10px] text-[rgba(51,255,51,0.35)] hover:text-[rgba(51,255,51,0.6)] transition-colors"
+          className="font-mono text-[10px] text-[rgba(0,242,254,0.35)] hover:text-[rgba(0,242,254,0.6)] transition-colors"
           onClick={() => onChange({ search: '', entityType: '', startDate: '', endDate: '' })}
         >
           CLEAR
@@ -183,13 +183,13 @@ function FilterToolbar({ filters, onChange, onApply, loading }: FilterToolbarPro
 function ExpandedDetails({ row }: { row: AuditLog }) {
   const payload = row.details ?? row.metadata;
   return (
-    <div className="border border-[rgba(51,255,51,0.1)] bg-[#050505]">
-      <div className="px-3 py-2 border-b border-[rgba(51,255,51,0.08)]">
-        <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-[rgba(51,255,51,0.4)]">
+    <div className="border border-[rgba(0,242,254,0.1)] bg-[#0B132B]">
+      <div className="px-3 py-2 border-b border-[rgba(0,242,254,0.08)]">
+        <span className="font-mono text-[9px] tracking-[0.15em] uppercase text-[rgba(0,242,254,0.4)]">
           CHANGE DETAILS
         </span>
       </div>
-      <pre className="px-4 py-3 font-mono text-[11px] text-[rgba(51,255,51,0.6)] overflow-auto">
+      <pre className="px-4 py-3 font-mono text-[11px] text-[rgba(0,242,254,0.6)] overflow-auto">
         {payload ? JSON.stringify(payload, null, 2) : '— no details —'}
       </pre>
     </div>
@@ -241,7 +241,7 @@ export default function AuditLogPage() {
         <span className="font-mono text-[10px] px-2 py-1 border border-[rgba(255,176,0,0.4)] text-[#FFB000] bg-[rgba(255,176,0,0.05)] tracking-widest">
           ISO 27001 A.8.15 COMPLIANT
         </span>
-        <span className="font-mono text-[10px] px-2 py-1 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest">
+        <span className="font-mono text-[10px] px-2 py-1 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] tracking-widest">
           AES-256 ENCRYPTED STORAGE
         </span>
       </div>
@@ -249,7 +249,7 @@ export default function AuditLogPage() {
       <Card>
         <CardHeader
           action={
-            <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)] tracking-widest">
+            <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)] tracking-widest">
               {total.toLocaleString()} ENTRIES
             </span>
           }

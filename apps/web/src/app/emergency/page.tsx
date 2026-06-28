@@ -19,16 +19,16 @@ import { useCallback, useEffect, useState } from 'react';
 
 /* ── SOP card ─────────────────────────────────────────────── */
 function SopCard({ title, steps, accent = 'vermilion' }: { title: string; steps: string[]; accent?: 'vermilion' | 'cyan' }) {
-  const color = accent === 'cyan' ? '#00FFFF' : '#FF4B2B';
-  const border = accent === 'cyan' ? 'rgba(0,255,255,0.2)' : 'rgba(255,75,43,0.2)';
-  const bg = accent === 'cyan' ? 'rgba(0,255,255,0.03)' : 'rgba(255,75,43,0.03)';
+  const color = accent === 'cyan' ? '#00F2FE' : '#FF4B2B';
+  const border = accent === 'cyan' ? 'rgba(0,242,254,0.2)' : 'rgba(255,75,43,0.2)';
+  const bg = accent === 'cyan' ? 'rgba(0,242,254,0.03)' : 'rgba(255,75,43,0.03)';
   return (
     <div className="border p-4 flex flex-col gap-2" style={{ borderColor: border, background: bg }}>
       <p className="font-mono text-[11px] tracking-[0.1em] uppercase font-semibold" style={{ color }}>{title}</p>
       <ol className="flex flex-col gap-1">
         {steps.map((s, i) => (
-          <li key={i} className="font-mono text-[11px] text-[rgba(51,255,51,0.55)] flex gap-2">
-            <span className="tabular-nums text-[rgba(51,255,51,0.3)] flex-shrink-0">{i + 1}.</span>
+          <li key={i} className="font-mono text-[11px] text-[rgba(0,242,254,0.55)] flex gap-2">
+            <span className="tabular-nums text-[rgba(0,242,254,0.3)] flex-shrink-0">{i + 1}.</span>
             {s}
           </li>
         ))}
@@ -110,7 +110,7 @@ export default function EmergencyPage() {
             <ShieldAlert size={16} aria-hidden />
             Emergency Operations Hub
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             Command center for time-critical maritime incidents and fleet safety
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function EmergencyPage() {
             </CardHeader>
             <CardContent>
               {crew.length === 0 ? (
-                <p className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] py-4 tracking-widest">
+                <p className="font-mono text-[11px] text-[rgba(0,242,254,0.25)] py-4 tracking-widest">
                   — NO CREW MEMBERS AVAILABLE —
                 </p>
               ) : (
@@ -177,17 +177,17 @@ export default function EmergencyPage() {
                   {crew.slice(0, 6).map((member) => (
                     <div
                       key={member.id}
-                      className="border border-[rgba(51,255,51,0.1)] bg-[rgba(51,255,51,0.02)] p-3 flex flex-col gap-2 cursor-pointer hover:border-[rgba(51,255,51,0.25)] transition-colors"
+                      className="border border-[rgba(0,242,254,0.1)] bg-[rgba(0,242,254,0.02)] p-3 flex flex-col gap-2 cursor-pointer hover:border-[rgba(0,242,254,0.25)] transition-colors"
                       onClick={() => setSelectedCrew(member)}
                     >
-                      <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">
+                      <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">
                         {member.fullName ?? 'Crew Member'}
                       </span>
-                      <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">
+                      <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)]">
                         {member.rank ?? 'Position not set'}
                       </span>
                       <button
-                        className="flex items-center justify-center gap-2 py-1.5 font-mono text-[10px] tracking-widest border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] hover:bg-[rgba(0,255,255,0.08)] transition-colors mt-1"
+                        className="flex items-center justify-center gap-2 py-1.5 font-mono text-[10px] tracking-widest border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] hover:bg-[rgba(0,242,254,0.08)] transition-colors mt-1"
                         onClick={(e) => { e.stopPropagation(); setSelectedCrew(member); }}
                       >
                         <Phone size={10} />
@@ -255,28 +255,28 @@ export default function EmergencyPage() {
           </CardHeader>
           <CardContent className="p-0 max-h-[500px] overflow-y-auto">
             {feed.map((item) => (
-              <div key={item.id} className="flex gap-3 px-4 py-3 border-b border-[rgba(51,255,51,0.06)] last:border-b-0">
+              <div key={item.id} className="flex gap-3 px-4 py-3 border-b border-[rgba(0,242,254,0.06)] last:border-b-0">
                 <div
                   className="w-[3px] flex-shrink-0 self-stretch"
-                  style={{ background: item.type === 'Incident' ? '#FF4B2B' : '#00FFFF' }}
+                  style={{ background: item.type === 'Incident' ? '#FF4B2B' : '#00F2FE' }}
                 />
                 <div className="flex-1 flex flex-col gap-0.5">
                   <div className="flex items-baseline justify-between gap-2">
                     <span
                       className="font-mono text-[10px] tracking-wider uppercase font-semibold"
-                      style={{ color: item.type === 'Incident' ? '#FF4B2B' : '#00FFFF' }}
+                      style={{ color: item.type === 'Incident' ? '#FF4B2B' : '#00F2FE' }}
                     >
                       {item.type}
                     </span>
-                    <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)] tabular-nums">{item.time}</span>
+                    <span className="font-mono text-[10px] text-[rgba(0,242,254,0.3)] tabular-nums">{item.time}</span>
                   </div>
-                  <span className="font-mono text-[11px] text-[rgba(51,255,51,0.6)]">{item.message}</span>
+                  <span className="font-mono text-[11px] text-[rgba(0,242,254,0.6)]">{item.message}</span>
                 </div>
               </div>
             ))}
           </CardContent>
-          <div className="border-t border-[rgba(51,255,51,0.08)] p-3">
-            <a href="/audit" className="font-mono text-[10px] text-[rgba(51,255,51,0.4)] hover:text-[#33FF33] tracking-widest w-full block text-center transition-colors">
+          <div className="border-t border-[rgba(0,242,254,0.08)] p-3">
+            <a href="/audit" className="font-mono text-[10px] text-[rgba(0,242,254,0.4)] hover:text-[#00F2FE] tracking-widest w-full block text-center transition-colors">
               VIEW FULL AUDIT LOG
             </a>
           </div>
@@ -306,14 +306,14 @@ export default function EmergencyPage() {
             value={form.incidentType}
             onChange={(e) => field('incidentType', e.target.value)}
           >
-            <option value="" className="bg-[#050505]">Identify the threat…</option>
-            <option value="medical" className="bg-[#050505]">Medical — Critical Patient</option>
-            <option value="fire" className="bg-[#050505]">Fire / Smoke Detected</option>
-            <option value="collision" className="bg-[#050505]">Collision / Structural Failure</option>
-            <option value="man_overboard" className="bg-[#050505]">Man Overboard (MOB)</option>
-            <option value="mechanical" className="bg-[#050505]">Engine / Steering Failure</option>
-            <option value="weather" className="bg-[#050505]">Hazardous Sea State</option>
-            <option value="security" className="bg-[#050505]">Security / Breach of Peace</option>
+            <option value="" className="bg-[#0B132B]">Identify the threat…</option>
+            <option value="medical" className="bg-[#0B132B]">Medical — Critical Patient</option>
+            <option value="fire" className="bg-[#0B132B]">Fire / Smoke Detected</option>
+            <option value="collision" className="bg-[#0B132B]">Collision / Structural Failure</option>
+            <option value="man_overboard" className="bg-[#0B132B]">Man Overboard (MOB)</option>
+            <option value="mechanical" className="bg-[#0B132B]">Engine / Steering Failure</option>
+            <option value="weather" className="bg-[#0B132B]">Hazardous Sea State</option>
+            <option value="security" className="bg-[#0B132B]">Security / Breach of Peace</option>
           </SelectField>
 
           <div className="grid grid-cols-2 gap-4">
@@ -324,10 +324,10 @@ export default function EmergencyPage() {
               value={form.severity}
               onChange={(e) => field('severity', e.target.value)}
             >
-              <option value="" className="bg-[#050505]">Crisis level…</option>
-              <option value="critical" className="bg-[#050505]">CRITICAL (Immediate danger)</option>
-              <option value="high" className="bg-[#050505]">HIGH (Urgent)</option>
-              <option value="medium" className="bg-[#050505]">MEDIUM (Escalating)</option>
+              <option value="" className="bg-[#0B132B]">Crisis level…</option>
+              <option value="critical" className="bg-[#0B132B]">CRITICAL (Immediate danger)</option>
+              <option value="high" className="bg-[#0B132B]">HIGH (Urgent)</option>
+              <option value="medium" className="bg-[#0B132B]">MEDIUM (Escalating)</option>
             </SelectField>
 
             <Field
@@ -341,7 +341,7 @@ export default function EmergencyPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className={`font-mono text-[10px] tracking-[0.12em] uppercase ${errors.description ? 'text-[#FF4B2B]' : 'text-[rgba(51,255,51,0.5)]'}`}>
+            <label className={`font-mono text-[10px] tracking-[0.12em] uppercase ${errors.description ? 'text-[#FF4B2B]' : 'text-[rgba(0,242,254,0.5)]'}`}>
               Situation Briefing *
             </label>
             <textarea
@@ -382,11 +382,11 @@ export default function EmergencyPage() {
               </p>
             </div>
           </div>
-          <div className="border-t border-[rgba(51,255,51,0.08)] pt-4 flex flex-col gap-2">
+          <div className="border-t border-[rgba(0,242,254,0.08)] pt-4 flex flex-col gap-2">
             {[['Local Nassau Tide', 'High 14:32 (0.9m)'], ['Barometric Pressure', '1014mb (Falling)']].map(([lbl, val]) => (
               <div key={lbl} className="flex justify-between">
-                <span className="font-mono text-[11px] text-[rgba(51,255,51,0.5)]">{lbl}</span>
-                <span className="font-mono text-[11px] text-[rgba(51,255,51,0.8)]">{val}</span>
+                <span className="font-mono text-[11px] text-[rgba(0,242,254,0.5)]">{lbl}</span>
+                <span className="font-mono text-[11px] text-[rgba(0,242,254,0.8)]">{val}</span>
               </div>
             ))}
           </div>
@@ -407,16 +407,16 @@ export default function EmergencyPage() {
           }
         >
           <div className="flex flex-col items-center gap-4 py-8">
-            <div className="w-16 h-16 border-2 border-[rgba(51,255,51,0.3)] flex items-center justify-center">
-              <Users size={28} className="text-[rgba(51,255,51,0.5)]" />
+            <div className="w-16 h-16 border-2 border-[rgba(0,242,254,0.3)] flex items-center justify-center">
+              <Users size={28} className="text-[rgba(0,242,254,0.5)]" />
             </div>
             <div className="text-center flex flex-col gap-1">
-              <p className="font-mono text-[14px] text-[rgba(51,255,51,0.8)]">{selectedCrew.fullName}</p>
-              <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">{selectedCrew.rank}</p>
+              <p className="font-mono text-[14px] text-[rgba(0,242,254,0.8)]">{selectedCrew.fullName}</p>
+              <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">{selectedCrew.rank}</p>
             </div>
-            <div className="mt-4 px-6 py-2 border border-[rgba(0,255,255,0.4)] bg-[rgba(0,255,255,0.04)] flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-[#00FFFF] animate-pulse" />
-              <span className="font-mono text-[11px] text-[#00FFFF] tracking-widest">ENCRYPTED VOICE LINK ACTIVE</span>
+            <div className="mt-4 px-6 py-2 border border-[rgba(0,242,254,0.4)] bg-[rgba(0,242,254,0.04)] flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-[#00F2FE] animate-pulse" />
+              <span className="font-mono text-[11px] text-[#00F2FE] tracking-widest">ENCRYPTED VOICE LINK ACTIVE</span>
             </div>
           </div>
         </TerminalModal>

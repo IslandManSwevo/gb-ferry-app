@@ -7,7 +7,7 @@ export default function UnauthorizedPage() {
   const { data: session } = useSession();
 
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-8">
+    <div className="min-h-screen bg-[#0B132B] flex items-center justify-center p-8">
       <div className="border border-[rgba(255,75,43,0.3)] bg-[rgba(255,75,43,0.04)] p-12 flex flex-col items-center gap-6 max-w-md w-full text-center">
         <div className="w-16 h-16 border border-[rgba(255,75,43,0.3)] flex items-center justify-center">
           <Lock size={28} className="text-[#FF4B2B]" />
@@ -26,11 +26,11 @@ export default function UnauthorizedPage() {
         <div className="border-t border-[rgba(255,75,43,0.15)] pt-6 w-full flex flex-col items-center gap-3">
           <a
             href="/"
-            className="w-full py-3 font-mono text-[11px] tracking-widest uppercase text-center border border-[rgba(51,255,51,0.3)] text-[#33FF33] bg-[rgba(51,255,51,0.04)] hover:bg-[rgba(51,255,51,0.08)] transition-colors"
+            className="w-full py-3 font-mono text-[11px] tracking-widest uppercase text-center border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] hover:bg-[rgba(0,242,254,0.08)] transition-colors"
           >
             Return to Dashboard
           </a>
-          <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)] tracking-wider">
+          <span className="font-mono text-[10px] text-[rgba(0,242,254,0.3)] tracking-wider">
             CONTACT AN ADMINISTRATOR IF YOU BELIEVE THIS IS AN ERROR
           </span>
         </div>

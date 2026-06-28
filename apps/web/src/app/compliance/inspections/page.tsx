@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from 'react';
 /* ── Result config ───────────────────────────────────────── */
 function resultConfig(result: string) {
   if (result === 'PASSED')
-    return { label: 'PASSED', color: '#33FF33', border: 'rgba(51,255,51,0.4)', bg: 'rgba(51,255,51,0.06)', Icon: CheckCircle };
+    return { label: 'PASSED', color: '#00F2FE', border: 'rgba(0,242,254,0.4)', bg: 'rgba(0,242,254,0.06)', Icon: CheckCircle };
   if (result === 'PASSED_WITH_OBSERVATIONS')
     return { label: 'PASSED W/OBS', color: '#FFB000', border: 'rgba(255,176,0,0.4)', bg: 'rgba(255,176,0,0.06)', Icon: CheckCircle };
   return { label: 'FAILED', color: '#FF4B2B', border: 'rgba(255,75,43,0.4)', bg: 'rgba(255,75,43,0.06)', Icon: XCircle };
@@ -26,14 +26,14 @@ const columns: ColumnDef<any, any>[] = [
     accessorKey: 'id',
     header: 'Inspection ID',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] text-[#00FFFF] tabular-nums">{String(getValue<string>()).slice(0, 8).toUpperCase()}</span>
+      <span className="font-mono text-[11px] text-[#00F2FE] tabular-nums">{String(getValue<string>()).slice(0, 8).toUpperCase()}</span>
     ),
   },
   {
     id: 'vessel',
     header: 'Vessel',
     cell: ({ row }) => (
-      <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">
+      <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">
         {row.original.vessel?.name ?? row.original.vesselId ?? 'N/A'}
       </span>
     ),
@@ -42,7 +42,7 @@ const columns: ColumnDef<any, any>[] = [
     accessorKey: 'authority',
     header: 'Authority',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)]">{getValue<string>()}</span>
+      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.7)]">{getValue<string>()}</span>
     ),
   },
   {
@@ -51,7 +51,7 @@ const columns: ColumnDef<any, any>[] = [
     cell: ({ getValue }) => {
       const v = getValue<string>();
       return (
-        <span className="font-mono text-[11px] text-[rgba(51,255,51,0.6)] tabular-nums">
+        <span className="font-mono text-[11px] text-[rgba(0,242,254,0.6)] tabular-nums">
           {v ? new Date(v).toLocaleDateString() : 'N/A'}
         </span>
       );
@@ -80,7 +80,7 @@ const columns: ColumnDef<any, any>[] = [
     cell: ({ getValue }) => {
       const n = getValue<number>() ?? 0;
       return (
-        <span className="font-mono text-[12px] tabular-nums" style={{ color: n > 0 ? '#FF4B2B' : 'rgba(51,255,51,0.4)' }}>
+        <span className="font-mono text-[12px] tabular-nums" style={{ color: n > 0 ? '#FF4B2B' : 'rgba(0,242,254,0.4)' }}>
           {n}
         </span>
       );
@@ -119,7 +119,7 @@ function AccessDenied() {
           <h2 className="font-mono text-[13px] tracking-[0.12em] uppercase text-[#FF4B2B]">
             Compliance Access Restricted
           </h2>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)] leading-relaxed">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.45)] leading-relaxed">
             Recording and managing vessel inspections requires regulatory-level clearance.
             Authenticate with a Compliance Officer or Admin role to proceed.
           </p>
@@ -199,11 +199,11 @@ export default function InspectionsPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <ShieldCheck size={16} aria-hidden />
             Port State Control Inspections
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             PSC inspection record · BMA / USCG / MOU authority reporting
           </p>
         </div>
@@ -260,9 +260,9 @@ export default function InspectionsPage() {
             value={form.vesselId}
             onChange={(e) => field('vesselId', e.target.value)}
           >
-            <option value="" className="bg-[#050505]">Select vessel…</option>
+            <option value="" className="bg-[#0B132B]">Select vessel…</option>
             {vessels.map((v) => (
-              <option key={v.id} value={v.id} className="bg-[#050505]">
+              <option key={v.id} value={v.id} className="bg-[#0B132B]">
                 {v.name} ({v.imoNumber ?? 'No IMO'})
               </option>
             ))}
@@ -275,7 +275,7 @@ export default function InspectionsPage() {
             value={form.authority}
             onChange={(e) => field('authority', e.target.value)}
           >
-            <option value="" className="bg-[#050505]">Select authority…</option>
+            <option value="" className="bg-[#0B132B]">Select authority…</option>
             {[
               'Bahamas Maritime Authority',
               'US Coast Guard',
@@ -284,7 +284,7 @@ export default function InspectionsPage() {
               'Paris MOU',
               'Tokyo MOU',
             ].map((a) => (
-              <option key={a} value={a} className="bg-[#050505]">{a}</option>
+              <option key={a} value={a} className="bg-[#0B132B]">{a}</option>
             ))}
           </SelectField>
 
@@ -304,14 +304,14 @@ export default function InspectionsPage() {
             value={form.result}
             onChange={(e) => field('result', e.target.value)}
           >
-            <option value="" className="bg-[#050505]">Select result…</option>
-            <option value="PASSED" className="bg-[#050505]">Passed</option>
-            <option value="PASSED_WITH_OBSERVATIONS" className="bg-[#050505]">Passed with Observations</option>
-            <option value="FAILED" className="bg-[#050505]">Failed</option>
+            <option value="" className="bg-[#0B132B]">Select result…</option>
+            <option value="PASSED" className="bg-[#0B132B]">Passed</option>
+            <option value="PASSED_WITH_OBSERVATIONS" className="bg-[#0B132B]">Passed with Observations</option>
+            <option value="FAILED" className="bg-[#0B132B]">Failed</option>
           </SelectField>
 
           <div className="flex flex-col gap-1">
-            <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(51,255,51,0.5)]">
+            <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(0,242,254,0.5)]">
               Number of Deficiencies
             </label>
             <input
@@ -324,7 +324,7 @@ export default function InspectionsPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(51,255,51,0.5)]">
+            <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(0,242,254,0.5)]">
               Notes / Observations
             </label>
             <textarea

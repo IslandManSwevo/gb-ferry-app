@@ -13,7 +13,7 @@ type Urgency = 'normal' | 'warning' | 'critical';
 const URGENCY_COLOR: Record<Urgency, string> = {
   critical: '#FF4B2B',
   warning:  '#FFB000',
-  normal:   '#33FF33',
+  normal:   '#00F2FE',
 };
 
 export const DepartureCountdown: React.FC<DepartureCountdownProps> = ({
@@ -50,7 +50,7 @@ export const DepartureCountdown: React.FC<DepartureCountdownProps> = ({
   return (
     <div className={`flex flex-col items-center gap-2 text-center ${className ?? ''}`}>
       {sailingLabel && (
-        <span className="font-mono text-[12px] text-[rgba(51,255,51,0.5)]">{sailingLabel}</span>
+        <span className="font-mono text-[12px] text-[var(--muted-foreground)]">{sailingLabel}</span>
       )}
       <div
         className="flex items-center gap-3"
@@ -61,7 +61,7 @@ export const DepartureCountdown: React.FC<DepartureCountdownProps> = ({
           {timeRemaining}
         </span>
       </div>
-      <span className="font-mono text-[11px] tracking-widest" style={{ color: 'rgba(51,255,51,0.4)' }}>
+      <span className="font-mono text-[11px] tracking-widest text-[var(--muted-foreground)]">
         {urgency === 'critical' ? 'URGENT — FINAL BOARDING' : urgency === 'warning' ? 'BOARDING SOON' : 'ON SCHEDULE'}
       </span>
     </div>

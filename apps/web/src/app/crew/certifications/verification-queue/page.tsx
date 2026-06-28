@@ -18,8 +18,8 @@ const columns: ColumnDef<any, any>[] = [
     header: 'Crew Member',
     cell: ({ row }) => (
       <div className="flex flex-col gap-0.5">
-        <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{row.original.crewName}</span>
-        <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">
+        <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">{row.original.crewName}</span>
+        <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)]">
           {row.original.crewRole} · {row.original.vesselName}
         </span>
       </div>
@@ -29,7 +29,7 @@ const columns: ColumnDef<any, any>[] = [
     accessorKey: 'certType',
     header: 'Type',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest">
+      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] tracking-widest">
         {getValue<string>()}
       </span>
     ),
@@ -39,7 +39,7 @@ const columns: ColumnDef<any, any>[] = [
     header: 'AI Confidence',
     cell: ({ getValue }) => {
       const score = getValue<number>() ?? 0;
-      const color = score > 0.8 ? '#33FF33' : score > 0.5 ? '#FFB000' : '#FF4B2B';
+      const color = score > 0.8 ? '#00F2FE' : score > 0.5 ? '#FFB000' : '#FF4B2B';
       return (
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: color }} />
@@ -56,7 +56,7 @@ const columns: ColumnDef<any, any>[] = [
     cell: ({ getValue }) => {
       const d = getValue<string>();
       return (
-        <span className="font-mono text-[11px] text-[rgba(51,255,51,0.5)] tabular-nums">
+        <span className="font-mono text-[11px] text-[rgba(0,242,254,0.5)] tabular-nums">
           {d ? new Date(d).toLocaleString() : 'N/A'}
         </span>
       );
@@ -67,7 +67,7 @@ const columns: ColumnDef<any, any>[] = [
     header: 'Renewal',
     cell: ({ getValue }) =>
       getValue<boolean>() ? (
-        <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest">
+        <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] tracking-widest">
           RENEWAL
         </span>
       ) : null,
@@ -107,7 +107,7 @@ function VerifyModal({ cert, docUrl, onClose, onApprove, onReject, verifying }: 
   }
 
   const score = cert?.aiConfidenceScore ?? 0;
-  const confidenceColor = score > 0.8 ? '#33FF33' : score > 0.5 ? '#FFB000' : '#FF4B2B';
+  const confidenceColor = score > 0.8 ? '#00F2FE' : score > 0.5 ? '#FFB000' : '#FF4B2B';
 
   return createPortal(
     <div
@@ -116,12 +116,12 @@ function VerifyModal({ cert, docUrl, onClose, onApprove, onReject, verifying }: 
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="bg-[#050505] border border-[rgba(51,255,51,0.2)] flex flex-col"
+        className="bg-[#0B132B] border border-[rgba(0,242,254,0.2)] flex flex-col"
         style={{ width: '90vw', maxWidth: '1200px', height: '85vh' }}
       >
         {/* Modal header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(51,255,51,0.1)]">
-          <span className="font-mono text-[12px] tracking-[0.12em] uppercase text-[#33FF33] flex items-center gap-2">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(0,242,254,0.1)]">
+          <span className="font-mono text-[12px] tracking-[0.12em] uppercase text-[#00F2FE] flex items-center gap-2">
             <Eye size={13} />
             VERIFYING CERTIFICATION
           </span>
@@ -143,7 +143,7 @@ function VerifyModal({ cert, docUrl, onClose, onApprove, onReject, verifying }: 
         {/* Split body */}
         <div className="flex flex-1 min-h-0">
           {/* Document viewer */}
-          <div className="flex-1 bg-black border-r border-[rgba(51,255,51,0.08)] flex items-center justify-center">
+          <div className="flex-1 bg-black border-r border-[rgba(0,242,254,0.08)] flex items-center justify-center">
             {docUrl ? (
               docUrl.toLowerCase().includes('.pdf') || docUrl.includes('pdf') ? (
                 <iframe src={docUrl} className="w-full h-full" style={{ border: 'none' }} />
@@ -159,8 +159,8 @@ function VerifyModal({ cert, docUrl, onClose, onApprove, onReject, verifying }: 
               )
             ) : (
               <div className="flex flex-col items-center gap-3">
-                <Eye size={48} className="text-[rgba(51,255,51,0.1)]" />
-                <span className="font-mono text-[11px] text-[rgba(51,255,51,0.25)]">
+                <Eye size={48} className="text-[rgba(0,242,254,0.1)]" />
+                <span className="font-mono text-[11px] text-[rgba(0,242,254,0.25)]">
                   Requesting secure preview...
                 </span>
               </div>
@@ -169,7 +169,7 @@ function VerifyModal({ cert, docUrl, onClose, onApprove, onReject, verifying }: 
 
           {/* Form panel */}
           <div className="w-[420px] flex-shrink-0 overflow-y-auto p-5 flex flex-col gap-4">
-            <p className="font-mono text-[11px] tracking-[0.1em] uppercase text-[rgba(51,255,51,0.4)]">
+            <p className="font-mono text-[11px] tracking-[0.1em] uppercase text-[rgba(0,242,254,0.4)]">
               Extraction Review
             </p>
 
@@ -213,7 +213,7 @@ function VerifyModal({ cert, docUrl, onClose, onApprove, onReject, verifying }: 
             ))}
 
             {/* Metadata */}
-            <div className="border border-[rgba(51,255,51,0.08)] bg-[rgba(51,255,51,0.02)] mt-2">
+            <div className="border border-[rgba(0,242,254,0.08)] bg-[rgba(0,242,254,0.02)] mt-2">
               <dl className="font-mono text-[11px]">
                 {[
                   ['CREW MEMBER', cert?.crewName],
@@ -222,9 +222,9 @@ function VerifyModal({ cert, docUrl, onClose, onApprove, onReject, verifying }: 
                   ['AI CONFIDENCE', `${(score * 100).toFixed(1)}%`],
                   cert?.isRenewal ? ['RENEWAL', 'REPLACES PREVIOUS'] : null,
                 ].filter(Boolean).map(([lbl, val]: any) => (
-                  <div key={lbl} className="flex justify-between px-3 py-1.5 border-b border-[rgba(51,255,51,0.05)] last:border-b-0">
-                    <dt className="text-[rgba(51,255,51,0.4)] tracking-wider">{lbl}</dt>
-                    <dd className="text-[rgba(51,255,51,0.8)]" style={lbl === 'AI CONFIDENCE' ? { color: confidenceColor } : {}}>
+                  <div key={lbl} className="flex justify-between px-3 py-1.5 border-b border-[rgba(0,242,254,0.05)] last:border-b-0">
+                    <dt className="text-[rgba(0,242,254,0.4)] tracking-wider">{lbl}</dt>
+                    <dd className="text-[rgba(0,242,254,0.8)]" style={lbl === 'AI CONFIDENCE' ? { color: confidenceColor } : {}}>
                       {val}
                     </dd>
                   </div>
@@ -249,9 +249,9 @@ function RejectModal({ onConfirm, onClose }: RejectModalProps) {
       className="fixed inset-0 z-[60] flex items-center justify-center"
       style={{ background: 'rgba(5,5,5,0.85)' }}
     >
-      <div className="bg-[#050505] border border-[rgba(255,75,43,0.3)] p-6 flex flex-col gap-4 w-[480px]">
+      <div className="bg-[#0B132B] border border-[rgba(255,75,43,0.3)] p-6 flex flex-col gap-4 w-[480px]">
         <p className="font-mono text-[12px] tracking-[0.12em] uppercase text-[#FF4B2B]">Reject Certification</p>
-        <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)] leading-relaxed">
+        <p className="font-mono text-[11px] text-[rgba(0,242,254,0.45)] leading-relaxed">
           Provide a reason for rejection. The document will be marked as REVOKED and a re-upload will be requested.
         </p>
         <textarea
@@ -343,11 +343,11 @@ export default function VerificationQueuePage() {
     <DashboardLayout contentClassName="p-4 md:p-6">
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <ShieldCheck size={16} />
             Document Verification Queue
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             Human assessment required for AI-extracted maritime certifications
           </p>
         </div>

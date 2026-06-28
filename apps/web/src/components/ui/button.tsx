@@ -8,47 +8,52 @@ import React from 'react';
 const buttonVariants = cva(
   [
     'inline-flex items-center justify-center gap-2',
-    'font-mono text-xs tracking-widest uppercase',
-    'border transition-colors duration-150',
+    'font-sans font-medium text-sm',
+    'rounded-lg border transition-all duration-150',
     'disabled:pointer-events-none disabled:opacity-40',
-    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#33FF33]',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--background)]',
   ],
   {
     variants: {
       variant: {
         primary: [
-          'bg-[#33FF33] text-[#050505] border-[#33FF33]',
-          'hover:bg-[#1adf1a] hover:border-[#1adf1a]',
-          'active:bg-[#0fbe0f]',
+          'bg-[#00F2FE] text-[#0B132B] border-[#00F2FE]',
+          'hover:bg-[#33F6FF] hover:border-[#33F6FF]',
+          'active:bg-[#00D4E0]',
+          '.light:bg-[#0066CC] .light:text-white .light:border-[#0066CC]',
         ],
         ghost: [
-          'bg-transparent text-[#33FF33] border-[rgba(51,255,51,0.3)]',
-          'hover:bg-[rgba(51,255,51,0.08)] hover:border-[#33FF33]',
+          'bg-transparent text-[var(--foreground)] border-[var(--border)]',
+          'hover:bg-[var(--accent)] hover:border-[var(--border)]',
         ],
         outline: [
-          'bg-transparent text-[#33FF33] border-[rgba(51,255,51,0.2)]',
-          'hover:bg-[rgba(51,255,51,0.06)] hover:border-[rgba(51,255,51,0.4)]',
+          'bg-transparent text-[var(--primary)] border-[var(--border)]',
+          'hover:bg-[var(--accent)] hover:border-[var(--primary)]',
+        ],
+        secondary: [
+          'bg-[var(--secondary)] text-[var(--secondary-foreground)] border-transparent',
+          'hover:bg-[var(--muted)] hover:border-[var(--border)]',
         ],
         danger: [
-          'bg-[#FF4B2B] text-[#050505] border-[#FF4B2B]',
+          'bg-[#FF4B2B] text-white border-[#FF4B2B]',
           'hover:bg-[#e03820] hover:border-[#e03820]',
           'active:bg-[#c42e18]',
         ],
         'danger-ghost': [
-          'bg-transparent text-[#FF4B2B] border-[rgba(255,75,43,0.4)]',
-          'hover:bg-[rgba(255,75,43,0.1)] hover:border-[#FF4B2B]',
+          'bg-transparent text-[#FF4B2B] border-[rgba(255,75,43,0.35)]',
+          'hover:bg-[rgba(255,75,43,0.08)] hover:border-[#FF4B2B]',
         ],
         amber: [
-          'bg-transparent text-[#FFB000] border-[rgba(255,176,0,0.4)]',
-          'hover:bg-[rgba(255,176,0,0.1)] hover:border-[#FFB000]',
+          'bg-transparent text-[#FFB000] border-[rgba(255,176,0,0.35)]',
+          'hover:bg-[rgba(255,176,0,0.08)] hover:border-[#FFB000]',
         ],
       },
       size: {
-        sm: 'h-7 px-3 text-[10px]',
-        md: 'h-9 px-4 text-xs',
-        lg: 'h-11 px-6 text-xs',
+        sm: 'h-8 px-3 text-xs',
+        md: 'h-9 px-4 text-sm',
+        lg: 'h-11 px-6 text-sm',
         icon: 'h-9 w-9 p-0',
-        'icon-sm': 'h-7 w-7 p-0',
+        'icon-sm': 'h-8 w-8 p-0',
       },
     },
     defaultVariants: {
@@ -68,17 +73,7 @@ export interface ButtonProps
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    {
-      className,
-      variant,
-      size,
-      loading,
-      icon,
-      iconPosition = 'left',
-      disabled,
-      children,
-      ...props
-    },
+    { className, variant, size, loading, icon, iconPosition = 'left', disabled, children, ...props },
     ref
   ) => {
     const isDisabled = disabled || loading;

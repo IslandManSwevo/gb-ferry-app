@@ -23,9 +23,9 @@ function getRiskLevel(windKts?: number, waveHeightM?: number): RiskLevel {
 }
 
 const RISK_CONFIG = {
-  high:     { color: '#FF4B2B', border: 'rgba(255,75,43,0.3)',  label: 'HIGH RISK' },
-  elevated: { color: '#FFB000', border: 'rgba(255,176,0,0.3)',  label: 'MONITOR' },
-  low:      { color: '#33FF33', border: 'rgba(51,255,51,0.3)',  label: 'CALM' },
+  high:     { color: '#FF4B2B', border: 'rgba(255,75,43,0.3)',   label: 'HIGH RISK' },
+  elevated: { color: '#FFB000', border: 'rgba(255,176,0,0.3)',   label: 'MONITOR' },
+  low:      { color: '#00F2FE', border: 'rgba(0,242,254,0.3)',   label: 'CALM' },
 };
 
 export function WeatherWidget({
@@ -51,7 +51,7 @@ export function WeatherWidget({
             <button
               onClick={onRefresh}
               disabled={loading}
-              className="flex items-center gap-1 font-mono text-[10px] tracking-widest text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1 text-[10px] tracking-wide text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-40 transition-colors font-mono"
             >
               <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
               SYNC
@@ -68,45 +68,43 @@ export function WeatherWidget({
       <CardContent>
         {loading ? (
           <div className="flex flex-col gap-2">
-            <div className="h-4 bg-[rgba(51,255,51,0.05)] animate-pulse" />
-            <div className="h-3 w-3/4 bg-[rgba(51,255,51,0.04)] animate-pulse" />
+            <div className="h-4 bg-[var(--muted)] rounded animate-pulse" />
+            <div className="h-3 w-3/4 bg-[var(--muted)] rounded animate-pulse" />
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {/* Risk badge + condition */}
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{condition}</span>
+              <span className="text-sm text-[var(--foreground)]">{condition}</span>
               <span
-                className="font-mono text-[10px] px-2 py-0.5 border tracking-widest"
-                style={{ color, borderColor: border, background: `${color}10` }}
+                className="font-mono text-[10px] px-2 py-0.5 rounded tracking-widest"
+                style={{ color, borderColor: border, border: `1px solid ${border}`, background: `${color}10` }}
               >
                 {label}
               </span>
             </div>
 
-            {/* 2-col metrics */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {[
                 { label: 'TEMP', value: temperatureC !== undefined ? `${temperatureC}°C` : '—' },
                 { label: 'WIND', value: windKts !== undefined ? `${windKts} kts` : '—' },
                 { label: 'SEAS', value: waveHeightM !== undefined ? `${waveHeightM}m` : '—' },
-                { label: 'VIS', value: visibilityNm !== undefined ? `${visibilityNm}nm` : '—' },
+                { label: 'VIS',  value: visibilityNm !== undefined ? `${visibilityNm}nm` : '—' },
               ].map(({ label: l, value }) => (
-                <div key={l} className="flex flex-col gap-0.5">
-                  <span className="font-mono text-[10px] text-[rgba(51,255,51,0.35)] tracking-[0.1em]">{l}</span>
-                  <span className="font-mono text-[13px] tabular-nums text-[#00FFFF]">{value}</span>
+                <div key={l} className="flex flex-col gap-1 p-2.5 rounded-lg bg-[var(--muted)]">
+                  <span className="font-mono text-[10px] text-[var(--muted-foreground)] tracking-[0.08em]">{l}</span>
+                  <span className="font-mono text-sm tabular-nums text-[#00F2FE] font-medium">{value}</span>
                 </div>
               ))}
             </div>
 
             {advisory && (
-              <div className="border-t border-[rgba(51,255,51,0.08)] pt-3">
-                <p className="font-mono text-[11px] text-[rgba(51,255,51,0.55)] leading-relaxed">{advisory}</p>
+              <div className="border-t border-[var(--border)] pt-3">
+                <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">{advisory}</p>
               </div>
             )}
 
             {updatedAt && (
-              <span className="font-mono text-[10px] text-[rgba(51,255,51,0.25)] tabular-nums">
+              <span className="font-mono text-[10px] text-[var(--muted-foreground)] tabular-nums">
                 UPDATED {new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}

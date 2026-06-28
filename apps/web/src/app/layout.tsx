@@ -1,6 +1,7 @@
 import { AuthProvider } from '@/components/providers/AuthProvider';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import '@/styles/globals.css';
-import { IBM_Plex_Mono, Inter } from 'next/font/google';
+import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
 import type { Metadata } from 'next';
 
 const inter = Inter({
@@ -9,10 +10,16 @@ const inter = Inter({
   display: 'swap',
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
-  variable: '--font-ibm-plex-mono',
+  variable: '--font-jetbrains-mono',
   display: 'swap',
 });
 
@@ -28,9 +35,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${ibmPlexMono.variable}`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+    >
       <body suppressHydrationWarning>
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

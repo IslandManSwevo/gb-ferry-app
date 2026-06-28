@@ -30,7 +30,7 @@ const deficiencyColumns: ColumnDef<any, any>[] = [
     accessorKey: 'code',
     header: 'Deficiency Code',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{getValue<string>()}</span>
+      <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">{getValue<string>()}</span>
     ),
   },
   {
@@ -38,7 +38,7 @@ const deficiencyColumns: ColumnDef<any, any>[] = [
     header: 'Occurrences',
     cell: ({ getValue }) => {
       const n = getValue<number>();
-      const color = n > 3 ? '#FF4B2B' : n > 1 ? '#FFB000' : 'rgba(51,255,51,0.5)';
+      const color = n > 3 ? '#FF4B2B' : n > 1 ? '#FFB000' : 'rgba(0,242,254,0.5)';
       return <span className="font-mono text-[12px] tabular-nums" style={{ color }}>{n}</span>;
     },
   },
@@ -50,8 +50,8 @@ const fleetColumns: ColumnDef<any, any>[] = [
     header: 'Vessel',
     cell: ({ row }) => (
       <div className="flex flex-col gap-0.5">
-        <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{row.original.vesselName}</span>
-        <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">IMO: {row.original.vesselImo ?? 'N/A'}</span>
+        <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">{row.original.vesselName}</span>
+        <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)]">IMO: {row.original.vesselImo ?? 'N/A'}</span>
       </div>
     ),
   },
@@ -59,7 +59,7 @@ const fleetColumns: ColumnDef<any, any>[] = [
     accessorKey: 'crewCount',
     header: 'Crew',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[12px] tabular-nums text-[rgba(51,255,51,0.7)]">{getValue<number>()}</span>
+      <span className="font-mono text-[12px] tabular-nums text-[rgba(0,242,254,0.7)]">{getValue<number>()}</span>
     ),
   },
   {
@@ -68,7 +68,7 @@ const fleetColumns: ColumnDef<any, any>[] = [
     cell: ({ getValue }) => {
       const ok = getValue<boolean>();
       return ok ? (
-        <span className="inline-flex items-center gap-1 font-mono text-[10px] px-2 py-0.5 border border-[rgba(51,255,51,0.4)] text-[#33FF33] bg-[rgba(51,255,51,0.06)] tracking-widest">
+        <span className="inline-flex items-center gap-1 font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.4)] text-[#00F2FE] bg-[rgba(0,242,254,0.06)] tracking-widest">
           <CheckCircle size={10} />COMPLIANT
         </span>
       ) : (
@@ -83,14 +83,14 @@ const fleetColumns: ColumnDef<any, any>[] = [
     header: 'Deficiencies',
     cell: ({ getValue }) => {
       const defs = getValue<string[]>() ?? [];
-      if (!defs.length) return <span className="font-mono text-[11px] text-[rgba(51,255,51,0.25)]">None</span>;
+      if (!defs.length) return <span className="font-mono text-[11px] text-[rgba(0,242,254,0.25)]">None</span>;
       return (
         <div className="flex flex-col gap-0.5">
           {defs.slice(0, 3).map((d, i) => (
             <span key={i} className="font-mono text-[11px] text-[#FF4B2B]">{d}</span>
           ))}
           {defs.length > 3 && (
-            <span className="font-mono text-[10px] text-[rgba(51,255,51,0.35)]">+{defs.length - 3} more</span>
+            <span className="font-mono text-[10px] text-[rgba(0,242,254,0.35)]">+{defs.length - 3} more</span>
           )}
         </div>
       );
@@ -139,14 +139,14 @@ export default function ComplianceReportsPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <BarChart2 size={16} aria-hidden />
             Compliance Reports
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             PSC trend analysis · Fleet compliance snapshots · Regulatory audit data
             {lastGenerated && (
-              <span className="ml-3 text-[rgba(51,255,51,0.3)]">Generated {lastGenerated}</span>
+              <span className="ml-3 text-[rgba(0,242,254,0.3)]">Generated {lastGenerated}</span>
             )}
           </p>
         </div>
@@ -165,7 +165,7 @@ export default function ComplianceReportsPage() {
         <CardContent className="py-3">
           <div className="flex flex-wrap items-end gap-4">
             <div className="flex flex-col gap-1">
-              <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(51,255,51,0.4)]">
+              <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(0,242,254,0.4)]">
                 Report Type
               </label>
               <select
@@ -173,16 +173,16 @@ export default function ComplianceReportsPage() {
                 value={reportType}
                 onChange={(e) => setReportType(e.target.value)}
               >
-                <option value="fleet_compliance_snapshot" className="bg-[#050505]">Fleet Compliance Snapshot</option>
-                <option value="psc_deficiency_trends" className="bg-[#050505]">PSC Deficiency Trends</option>
+                <option value="fleet_compliance_snapshot" className="bg-[#0B132B]">Fleet Compliance Snapshot</option>
+                <option value="psc_deficiency_trends" className="bg-[#0B132B]">PSC Deficiency Trends</option>
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(51,255,51,0.4)]">From</label>
+              <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(0,242,254,0.4)]">From</label>
               <input type="date" className={`${termInputCls} w-40`} value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(51,255,51,0.4)]">To</label>
+              <label className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(0,242,254,0.4)]">To</label>
               <input type="date" className={`${termInputCls} w-40`} value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             </div>
             <Button icon={<FileText size={11} />} onClick={generateReport} disabled={loading}>
@@ -195,8 +195,8 @@ export default function ComplianceReportsPage() {
       {/* Loading */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
-          <div className="w-8 h-8 border-2 border-[#33FF33] border-t-transparent animate-spin" />
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.3)] tracking-wider">
+          <div className="w-8 h-8 border-2 border-[#00F2FE] border-t-transparent animate-spin" />
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.3)] tracking-wider">
             GENERATING COMPLIANCE REPORT...
           </p>
         </div>
@@ -208,20 +208,20 @@ export default function ComplianceReportsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatCard label="TOTAL VESSELS" value={fleetData.summary.totalVessels} status="info" />
             <StatCard label="COMPLIANT" value={`${fleetData.summary.compliantVessels} / ${fleetData.summary.totalVessels}`} status="ok" />
-            <div className="border border-[rgba(51,255,51,0.2)] bg-[#050505] p-4 flex flex-col gap-2">
-              <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(51,255,51,0.4)]">Compliance Rate</span>
+            <div className="border border-[rgba(0,242,254,0.2)] bg-[#0B132B] p-4 flex flex-col gap-2">
+              <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-[rgba(0,242,254,0.4)]">Compliance Rate</span>
               <span
                 className="font-mono text-3xl font-bold tabular-nums"
-                style={{ color: fleetData.summary.overallComplianceRate >= 90 ? '#33FF33' : '#FF4B2B' }}
+                style={{ color: fleetData.summary.overallComplianceRate >= 90 ? '#00F2FE' : '#FF4B2B' }}
               >
                 {fleetData.summary.overallComplianceRate.toFixed(1)}%
               </span>
-              <div className="h-1 w-full bg-[rgba(51,255,51,0.08)] mt-1">
+              <div className="h-1 w-full bg-[rgba(0,242,254,0.08)] mt-1">
                 <div
                   className="h-full transition-all"
                   style={{
                     width: `${fleetData.summary.overallComplianceRate}%`,
-                    background: fleetData.summary.overallComplianceRate >= 90 ? '#33FF33' : '#FF4B2B',
+                    background: fleetData.summary.overallComplianceRate >= 90 ? '#00F2FE' : '#FF4B2B',
                   }}
                 />
               </div>
@@ -273,7 +273,7 @@ export default function ComplianceReportsPage() {
                 {byCodeData.length > 0 ? (
                   <TerminalTable data={byCodeData} columns={deficiencyColumns} rowKey={(r) => r.code} emptyMessage="NO DEFICIENCIES" />
                 ) : (
-                  <p className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] text-center py-12 tracking-widest">— NO DEFICIENCIES RECORDED —</p>
+                  <p className="font-mono text-[11px] text-[rgba(0,242,254,0.25)] text-center py-12 tracking-widest">— NO DEFICIENCIES RECORDED —</p>
                 )}
               </CardContent>
             </Card>
@@ -287,14 +287,14 @@ export default function ComplianceReportsPage() {
                   const pct = pscData.summary.totalDeficiencies > 0
                     ? (count / pscData.summary.totalDeficiencies) * 100
                     : 0;
-                  const color = severity === 'major' ? '#FF4B2B' : severity === 'minor' ? '#FFB000' : '#33FF33';
+                  const color = severity === 'major' ? '#FF4B2B' : severity === 'minor' ? '#FFB000' : '#00F2FE';
                   return (
                     <div key={severity} className="flex flex-col gap-1">
                       <div className="flex justify-between">
-                        <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)] capitalize">{severity}</span>
+                        <span className="font-mono text-[11px] text-[rgba(0,242,254,0.7)] capitalize">{severity}</span>
                         <span className="font-mono text-[11px] tabular-nums" style={{ color }}>{count}</span>
                       </div>
-                      <div className="h-1 w-full bg-[rgba(51,255,51,0.08)]">
+                      <div className="h-1 w-full bg-[rgba(0,242,254,0.08)]">
                         <div className="h-full" style={{ width: `${pct}%`, background: color }} />
                       </div>
                     </div>
@@ -310,7 +310,7 @@ export default function ComplianceReportsPage() {
       {!loading && !fleetData && !pscData && (
         <Card>
           <CardContent className="py-16 text-center">
-            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] tracking-widest">
+            <p className="font-mono text-[11px] text-[rgba(0,242,254,0.25)] tracking-widest">
               — SELECT A REPORT TYPE AND CLICK GENERATE —
             </p>
           </CardContent>

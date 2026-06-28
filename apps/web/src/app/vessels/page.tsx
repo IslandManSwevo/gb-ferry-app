@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from 'react';
 /* ── Status helpers ──────────────────────────────────────── */
 function statusConfig(status: string) {
   if (status === 'ACTIVE')
-    return { label: 'IN SERVICE', color: '#33FF33', border: 'rgba(51,255,51,0.4)', bg: 'rgba(51,255,51,0.06)' };
+    return { label: 'IN SERVICE', color: '#00F2FE', border: 'rgba(0,242,254,0.4)', bg: 'rgba(0,242,254,0.06)' };
   if (status === 'UNDER_MAINTENANCE')
     return { label: 'MAINTENANCE', color: '#FFB000', border: 'rgba(255,176,0,0.4)', bg: 'rgba(255,176,0,0.06)' };
   return { label: 'OUT OF SERVICE', color: '#FF4B2B', border: 'rgba(255,75,43,0.4)', bg: 'rgba(255,75,43,0.06)' };
@@ -27,8 +27,8 @@ const listColumns: ColumnDef<any, any>[] = [
     header: 'Vessel Identity',
     cell: ({ row }) => (
       <div className="flex flex-col gap-0.5">
-        <span className="font-mono text-[12px] text-[#33FF33] font-semibold">{row.original.name}</span>
-        <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">IMO: {row.original.imoNumber}</span>
+        <span className="font-mono text-[12px] text-[#00F2FE] font-semibold">{row.original.name}</span>
+        <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)]">IMO: {row.original.imoNumber}</span>
       </div>
     ),
   },
@@ -36,7 +36,7 @@ const listColumns: ColumnDef<any, any>[] = [
     accessorKey: 'type',
     header: 'Class/Type',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)]">
+      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)]">
         {String(getValue<string>()).replace(/_/g, ' ')}
       </span>
     ),
@@ -45,14 +45,14 @@ const listColumns: ColumnDef<any, any>[] = [
     accessorKey: 'flagState',
     header: 'Flag State',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)]">{getValue<string>()}</span>
+      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.7)]">{getValue<string>()}</span>
     ),
   },
   {
     accessorKey: 'grossTonnage',
     header: 'GT',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[12px] tabular-nums text-[rgba(51,255,51,0.7)]">
+      <span className="font-mono text-[12px] tabular-nums text-[rgba(0,242,254,0.7)]">
         {(getValue<number>() ?? 0).toLocaleString()}
       </span>
     ),
@@ -76,11 +76,11 @@ const listColumns: ColumnDef<any, any>[] = [
     cell: ({ row }) => (
       <div className="flex gap-2">
         <a href={`/vessels/${row.original.id}`}
-          className="font-mono text-[10px] text-[#00FFFF] hover:text-[rgba(0,255,255,0.7)] tracking-widest transition-colors">
+          className="font-mono text-[10px] text-[#00F2FE] hover:text-[rgba(0,242,254,0.7)] tracking-widest transition-colors">
           DASHBOARD
         </a>
         <a href={`/vessels/${row.original.id}/documents`}
-          className="font-mono text-[10px] text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] tracking-widest transition-colors">
+          className="font-mono text-[10px] text-[rgba(0,242,254,0.5)] hover:text-[#00F2FE] tracking-widest transition-colors">
           DOCS
         </a>
       </div>
@@ -92,12 +92,12 @@ const listColumns: ColumnDef<any, any>[] = [
 function VesselCard({ vessel }: { vessel: any }) {
   const { label, color, border } = statusConfig(vessel.status);
   return (
-    <div className="border border-[rgba(51,255,51,0.15)] bg-[#050505] p-4 flex flex-col gap-3"
+    <div className="border border-[rgba(0,242,254,0.15)] bg-[#0B132B] p-4 flex flex-col gap-3"
       style={{ borderLeftColor: color, borderLeftWidth: '3px' }}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-[13px] text-[#33FF33] font-semibold">{vessel.name}</span>
-          <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">IMO: {vessel.imoNumber}</span>
+          <span className="font-mono text-[13px] text-[#00F2FE] font-semibold">{vessel.name}</span>
+          <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)]">IMO: {vessel.imoNumber}</span>
         </div>
         <span className="font-mono text-[9px] px-1.5 py-0.5 border tracking-widest flex-shrink-0"
           style={{ color, borderColor: border, background: `${color}0d` }}>
@@ -105,7 +105,7 @@ function VesselCard({ vessel }: { vessel: any }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 border-t border-[rgba(51,255,51,0.06)] pt-3">
+      <div className="grid grid-cols-2 gap-2 border-t border-[rgba(0,242,254,0.06)] pt-3">
         {[
           ['TYPE', String(vessel.type ?? '').replace(/_/g, ' ')],
           ['FLAG', vessel.flagState],
@@ -113,19 +113,19 @@ function VesselCard({ vessel }: { vessel: any }) {
           ['BUILT', vessel.yearBuilt ?? '—'],
         ].map(([lbl, val]) => (
           <div key={lbl} className="flex flex-col gap-0.5">
-            <span className="font-mono text-[9px] tracking-[0.15em] text-[rgba(51,255,51,0.3)]">{lbl}</span>
-            <span className="font-mono text-[11px] text-[rgba(51,255,51,0.8)]">{val}</span>
+            <span className="font-mono text-[9px] tracking-[0.15em] text-[rgba(0,242,254,0.3)]">{lbl}</span>
+            <span className="font-mono text-[11px] text-[rgba(0,242,254,0.8)]">{val}</span>
           </div>
         ))}
       </div>
 
-      <div className="flex gap-2 border-t border-[rgba(51,255,51,0.06)] pt-3">
+      <div className="flex gap-2 border-t border-[rgba(0,242,254,0.06)] pt-3">
         <a href={`/vessels/${vessel.id}/documents`}
-          className="flex items-center gap-1 font-mono text-[10px] text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] transition-colors tracking-widest">
+          className="flex items-center gap-1 font-mono text-[10px] text-[rgba(0,242,254,0.5)] hover:text-[#00F2FE] transition-colors tracking-widest">
           <FileText size={11} />DOCS
         </a>
         <a href={`/vessels/${vessel.id}`}
-          className="ml-auto flex items-center gap-1 font-mono text-[10px] text-[#00FFFF] hover:text-[rgba(0,255,255,0.7)] transition-colors tracking-widest">
+          className="ml-auto flex items-center gap-1 font-mono text-[10px] text-[#00F2FE] hover:text-[rgba(0,242,254,0.7)] transition-colors tracking-widest">
           <Globe size={11} />FLEET OPS
         </a>
       </div>
@@ -162,15 +162,15 @@ const INITIAL_FORM: RegisterForm = {
 function AccessDenied() {
   return (
     <DashboardLayout contentClassName="p-4 md:p-6 flex items-center justify-center">
-      <div className="max-w-md w-full border border-[rgba(51,255,51,0.15)] bg-[#050505] px-8 py-12 flex flex-col items-center gap-6 text-center">
-        <div className="w-16 h-16 border-2 border-[rgba(51,255,51,0.2)] flex items-center justify-center">
-          <Lock size={28} className="text-[rgba(51,255,51,0.5)]" />
+      <div className="max-w-md w-full border border-[rgba(0,242,254,0.15)] bg-[#0B132B] px-8 py-12 flex flex-col items-center gap-6 text-center">
+        <div className="w-16 h-16 border-2 border-[rgba(0,242,254,0.2)] flex items-center justify-center">
+          <Lock size={28} className="text-[rgba(0,242,254,0.5)]" />
         </div>
         <div className="flex flex-col gap-2">
-          <h2 className="font-mono text-[13px] tracking-[0.12em] uppercase text-[#33FF33]">
+          <h2 className="font-mono text-[13px] tracking-[0.12em] uppercase text-[#00F2FE]">
             Registry Access Restricted
           </h2>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)] leading-relaxed">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.45)] leading-relaxed">
             Fleet registry and vessel status data is reserved for authorized operational staff.
             Authenticate with a higher clearance role to view the registry.
           </p>
@@ -257,32 +257,32 @@ export default function VesselsPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <Anchor size={16} aria-hidden />
             Fleet Registry
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             {vessels.length} vessel{vessels.length !== 1 ? 's' : ''} · Grand Bahama routes
           </p>
         </div>
         <div className="flex items-center gap-3">
           {/* View toggle */}
-          <div className="flex border border-[rgba(51,255,51,0.2)]">
+          <div className="flex border border-[rgba(0,242,254,0.2)]">
             <button
               className={`px-3 py-2 font-mono text-[10px] tracking-widest transition-colors ${
                 viewMode === 'grid'
-                  ? 'bg-[rgba(51,255,51,0.1)] text-[#33FF33]'
-                  : 'text-[rgba(51,255,51,0.4)] hover:text-[#33FF33]'
+                  ? 'bg-[rgba(0,242,254,0.1)] text-[#00F2FE]'
+                  : 'text-[rgba(0,242,254,0.4)] hover:text-[#00F2FE]'
               }`}
               onClick={() => setViewMode('grid')}
             >
               <LayoutGrid size={13} aria-label="Grid view" />
             </button>
             <button
-              className={`px-3 py-2 font-mono text-[10px] tracking-widest transition-colors border-l border-[rgba(51,255,51,0.2)] ${
+              className={`px-3 py-2 font-mono text-[10px] tracking-widest transition-colors border-l border-[rgba(0,242,254,0.2)] ${
                 viewMode === 'list'
-                  ? 'bg-[rgba(51,255,51,0.1)] text-[#33FF33]'
-                  : 'text-[rgba(51,255,51,0.4)] hover:text-[#33FF33]'
+                  ? 'bg-[rgba(0,242,254,0.1)] text-[#00F2FE]'
+                  : 'text-[rgba(0,242,254,0.4)] hover:text-[#00F2FE]'
               }`}
               onClick={() => setViewMode('list')}
             >
@@ -297,7 +297,7 @@ export default function VesselsPage() {
 
       {/* Search */}
       <div className="mb-6 relative">
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[rgba(51,255,51,0.3)]" />
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[rgba(0,242,254,0.3)]" />
         <input
           type="text"
           placeholder="Search by vessel name or IMO number..."
@@ -312,13 +312,13 @@ export default function VesselsPage() {
         loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="border border-[rgba(51,255,51,0.06)] bg-[#050505] p-4 h-40 animate-pulse" />
+              <div key={i} className="border border-[rgba(0,242,254,0.06)] bg-[#0B132B] p-4 h-40 animate-pulse" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
-            <Anchor size={40} className="text-[rgba(51,255,51,0.1)]" />
-            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] tracking-widest">
+            <Anchor size={40} className="text-[rgba(0,242,254,0.1)]" />
+            <p className="font-mono text-[11px] text-[rgba(0,242,254,0.25)] tracking-widest">
               {searchText ? '— NO VESSELS MATCHING SEARCH —' : '— NO VESSELS REGISTERED —'}
             </p>
           </div>
@@ -405,7 +405,7 @@ export default function VesselsPage() {
                 ['TANKER', 'Tanker'],
                 ['OTHER', 'Other'],
               ].map(([v, l]) => (
-                <option key={v} value={v} className="bg-[#050505]">{l}</option>
+                <option key={v} value={v} className="bg-[#0B132B]">{l}</option>
               ))}
             </SelectField>
             <Field

@@ -38,10 +38,10 @@ const TYPE_MAP: Record<string, string> = {
 };
 
 function statusConfig(status: string) {
-  if (status === 'VALID') return { color: '#33FF33', border: 'rgba(51,255,51,0.4)', bg: 'rgba(51,255,51,0.06)' };
+  if (status === 'VALID') return { color: '#00F2FE', border: 'rgba(0,242,254,0.4)', bg: 'rgba(0,242,254,0.06)' };
   if (status === 'EXPIRING') return { color: '#FFB000', border: 'rgba(255,176,0,0.4)', bg: 'rgba(255,176,0,0.06)' };
   if (status === 'EXPIRED') return { color: '#FF4B2B', border: 'rgba(255,75,43,0.4)', bg: 'rgba(255,75,43,0.06)' };
-  return { color: '#00FFFF', border: 'rgba(0,255,255,0.4)', bg: 'rgba(0,255,255,0.06)' };
+  return { color: '#00F2FE', border: 'rgba(0,242,254,0.4)', bg: 'rgba(0,242,254,0.06)' };
 }
 
 /* ── Columns ──────────────────────────────────────────────── */
@@ -51,8 +51,8 @@ const columns: ColumnDef<DocumentRow, any>[] = [
     header: 'Document',
     cell: ({ row }) => (
       <div className="flex flex-col gap-0.5">
-        <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{row.original.title}</span>
-        <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">{row.original.fileName}</span>
+        <span className="font-mono text-[12px] text-[rgba(0,242,254,0.8)]">{row.original.title}</span>
+        <span className="font-mono text-[10px] text-[rgba(0,242,254,0.4)]">{row.original.fileName}</span>
       </div>
     ),
   },
@@ -60,7 +60,7 @@ const columns: ColumnDef<DocumentRow, any>[] = [
     accessorKey: 'type',
     header: 'Type',
     cell: ({ getValue }) => (
-      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)]">{getValue<string>()}</span>
+      <span className="font-mono text-[11px] text-[rgba(0,242,254,0.7)]">{getValue<string>()}</span>
     ),
   },
   {
@@ -69,7 +69,7 @@ const columns: ColumnDef<DocumentRow, any>[] = [
     cell: ({ getValue }) => {
       const v = getValue<string | undefined>();
       return (
-        <span className="font-mono text-[11px] tabular-nums" style={{ color: v ? 'rgba(51,255,51,0.7)' : 'rgba(51,255,51,0.25)' }}>
+        <span className="font-mono text-[11px] tabular-nums" style={{ color: v ? 'rgba(0,242,254,0.7)' : 'rgba(0,242,254,0.25)' }}>
           {v ? new Date(v).toLocaleDateString('en-CA') : '—'}
         </span>
       );
@@ -112,8 +112,8 @@ function DropZone({ file, onChange }: DropZoneProps) {
     <div
       className="border border-dashed flex flex-col items-center justify-center gap-2 py-8 cursor-pointer transition-colors"
       style={{
-        borderColor: dragging ? '#33FF33' : 'rgba(51,255,51,0.2)',
-        background: dragging ? 'rgba(51,255,51,0.04)' : 'transparent',
+        borderColor: dragging ? '#00F2FE' : 'rgba(0,242,254,0.2)',
+        background: dragging ? 'rgba(0,242,254,0.04)' : 'transparent',
       }}
       onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}
@@ -127,13 +127,13 @@ function DropZone({ file, onChange }: DropZoneProps) {
         className="hidden"
         onChange={(e) => onChange(e.target.files?.[0] ?? null)}
       />
-      <Upload size={24} className="text-[rgba(51,255,51,0.3)]" />
+      <Upload size={24} className="text-[rgba(0,242,254,0.3)]" />
       {file ? (
-        <span className="font-mono text-[12px] text-[#33FF33]">{file.name}</span>
+        <span className="font-mono text-[12px] text-[#00F2FE]">{file.name}</span>
       ) : (
         <>
-          <span className="font-mono text-[12px] text-[rgba(51,255,51,0.5)]">Drop PDF or Click to Browse</span>
-          <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)]">AI will extract dates and document numbers for verification</span>
+          <span className="font-mono text-[12px] text-[rgba(0,242,254,0.5)]">Drop PDF or Click to Browse</span>
+          <span className="font-mono text-[10px] text-[rgba(0,242,254,0.3)]">AI will extract dates and document numbers for verification</span>
         </>
       )}
     </div>
@@ -221,16 +221,16 @@ export default function VesselDocumentsPage() {
     <DashboardLayout contentClassName="p-4 md:p-6">
       <div className="flex items-start justify-between mb-8 gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#00F2FE] font-semibold flex items-center gap-2">
             <FileText size={16} />
             Vessel Document Registry
           </h1>
-          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+          <p className="font-mono text-[11px] text-[rgba(0,242,254,0.4)]">
             Immutable storage for BMA R102–R106 certificates and ship&apos;s library
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest flex items-center gap-1">
+          <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,242,254,0.3)] text-[#00F2FE] bg-[rgba(0,242,254,0.04)] tracking-widest flex items-center gap-1">
             <ShieldCheck size={10} />
             AI EXTRACTION ENABLED
           </span>
@@ -257,11 +257,11 @@ export default function VesselDocumentsPage() {
           value={filterStatus}
           onChange={(e) => { setFilterStatus(e.target.value); loadData(1, searchQ, e.target.value); }}
         >
-          <option value="" className="bg-[#050505]">All Status</option>
-          <option value="VALID" className="bg-[#050505]">Valid</option>
-          <option value="EXPIRING" className="bg-[#050505]">Expiring</option>
-          <option value="EXPIRED" className="bg-[#050505]">Expired</option>
-          <option value="PENDING_REVIEW" className="bg-[#050505]">Pending Review</option>
+          <option value="" className="bg-[#0B132B]">All Status</option>
+          <option value="VALID" className="bg-[#0B132B]">Valid</option>
+          <option value="EXPIRING" className="bg-[#0B132B]">Expiring</option>
+          <option value="EXPIRED" className="bg-[#0B132B]">Expired</option>
+          <option value="PENDING_REVIEW" className="bg-[#0B132B]">Pending Review</option>
         </select>
         <Button
           variant="ghost"
@@ -360,13 +360,13 @@ export default function VesselDocumentsPage() {
             value={form.documentType}
             onChange={(e) => fieldChange('documentType', e.target.value)}
           >
-            <option value="" className="bg-[#050505]">Select category…</option>
-            <option value="R102" className="bg-[#050505]">Registry Certificate (R102)</option>
-            <option value="R106" className="bg-[#050505]">Safe Manning (R106)</option>
-            <option value="SHIPS_LIBRARY" className="bg-[#050505]">Ship&apos;s Library</option>
-            <option value="RADIO_LICENSE" className="bg-[#050505]">Radio License</option>
-            <option value="CLASS_CERT" className="bg-[#050505]">Classification Certificate</option>
-            <option value="OTHER" className="bg-[#050505]">Other Regulatory</option>
+            <option value="" className="bg-[#0B132B]">Select category…</option>
+            <option value="R102" className="bg-[#0B132B]">Registry Certificate (R102)</option>
+            <option value="R106" className="bg-[#0B132B]">Safe Manning (R106)</option>
+            <option value="SHIPS_LIBRARY" className="bg-[#0B132B]">Ship&apos;s Library</option>
+            <option value="RADIO_LICENSE" className="bg-[#0B132B]">Radio License</option>
+            <option value="CLASS_CERT" className="bg-[#0B132B]">Classification Certificate</option>
+            <option value="OTHER" className="bg-[#0B132B]">Other Regulatory</option>
           </SelectField>
 
           <div className="flex flex-col gap-1">

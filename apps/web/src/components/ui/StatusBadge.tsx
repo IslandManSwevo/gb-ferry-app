@@ -15,42 +15,37 @@ export interface StatusBadgeProps {
 
 const statusConfig: Record<
   StatusKind,
-  { color: string; bg: string; border: string; icon: React.ElementType; label: string }
+  { color: string; bg: string; border: string; icon: React.ElementType }
 > = {
   ok: {
-    color: '#33FF33',
-    bg: 'rgba(51,255,51,0.08)',
-    border: 'rgba(51,255,51,0.3)',
+    color: '#00F2FE',
+    bg: 'rgba(0,242,254,0.08)',
+    border: 'rgba(0,242,254,0.3)',
     icon: CheckCircle,
-    label: 'ok',
   },
   warning: {
     color: '#FFB000',
     bg: 'rgba(255,176,0,0.08)',
     border: 'rgba(255,176,0,0.3)',
     icon: AlertTriangle,
-    label: 'warning',
   },
   critical: {
     color: '#FF4B2B',
     bg: 'rgba(255,75,43,0.08)',
     border: 'rgba(255,75,43,0.3)',
     icon: XCircle,
-    label: 'critical',
   },
   info: {
-    color: '#00FFFF',
-    bg: 'rgba(0,255,255,0.06)',
-    border: 'rgba(0,255,255,0.25)',
+    color: '#00F2FE',
+    bg: 'rgba(0,242,254,0.06)',
+    border: 'rgba(0,242,254,0.25)',
     icon: Info,
-    label: 'info',
   },
   muted: {
-    color: 'rgba(51,255,51,0.3)',
-    bg: 'rgba(51,255,51,0.04)',
-    border: 'rgba(51,255,51,0.15)',
+    color: 'var(--muted-foreground)',
+    bg: 'var(--muted)',
+    border: 'var(--border)',
     icon: Minus,
-    label: 'muted',
   },
 };
 
@@ -70,8 +65,9 @@ export function StatusBadge({
     <span
       className={cn(
         'inline-flex items-center gap-1.5',
-        'font-mono uppercase tracking-widest',
-        compact ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-[10px]',
+        'font-mono uppercase tracking-[0.08em]',
+        'rounded-md',
+        compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[10px]',
         className
       )}
       style={{

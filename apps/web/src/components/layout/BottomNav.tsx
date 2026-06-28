@@ -21,12 +21,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/',                  label: 'Dashboard',   icon: LayoutDashboard },
-  { href: '/crew',              label: 'Crew',        icon: Users },
-  { href: '/vessels',           label: 'Fleet',       icon: Ship },
-  { href: '/compliance/alerts', label: 'Compliance',  icon: ClipboardList },
-  { href: '/compliance/fleet',  label: 'Analytics',   icon: BarChart2 },
-  { href: '/emergency',         label: 'Emergency',   icon: AlertTriangle, danger: true },
+  { href: '/',                  label: 'Dashboard',  icon: LayoutDashboard },
+  { href: '/crew',              label: 'Crew',       icon: Users },
+  { href: '/vessels',           label: 'Fleet',      icon: Ship },
+  { href: '/compliance/alerts', label: 'Compliance', icon: ClipboardList },
+  { href: '/compliance/fleet',  label: 'Analytics',  icon: BarChart2 },
+  { href: '/emergency',         label: 'Emergency',  icon: AlertTriangle, danger: true },
 ];
 
 export function BottomNav() {
@@ -34,13 +34,12 @@ export function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-[#050505] border-t border-[rgba(51,255,51,0.2)]"
+      className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-[var(--card)] border-t border-[var(--border)]"
       aria-label="Mobile navigation"
     >
       <div className="grid grid-cols-6 h-16">
         {NAV_ITEMS.map(({ href, label, icon: Icon, danger }) => {
-          const active =
-            href === '/' ? pathname === '/' : pathname.startsWith(href);
+          const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
 
           return (
             <Link
@@ -51,23 +50,19 @@ export function BottomNav() {
                 active
                   ? danger
                     ? 'text-[#FF4B2B]'
-                    : 'text-[#33FF33]'
+                    : 'text-[#00F2FE]'
                   : danger
                   ? 'text-[rgba(255,75,43,0.45)] hover:text-[#FF4B2B]'
-                  : 'text-[rgba(51,255,51,0.35)] hover:text-[rgba(51,255,51,0.7)]'
+                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
               )}
               aria-current={active ? 'page' : undefined}
             >
-              <Icon
-                size={18}
-                strokeWidth={active ? 2 : 1.5}
-                aria-hidden
-              />
-              <span className="font-mono text-[9px] tracking-widest uppercase leading-none">
+              <Icon size={18} strokeWidth={active ? 2 : 1.5} aria-hidden />
+              <span className="text-[9px] tracking-wide uppercase leading-none font-medium">
                 {label}
               </span>
               {active && !danger && (
-                <span className="absolute top-0 w-8 h-[2px] bg-[#33FF33]" aria-hidden />
+                <span className="absolute top-0 w-8 h-[2px] bg-[#00F2FE] rounded-full" aria-hidden />
               )}
             </Link>
           );

@@ -3,19 +3,20 @@
 import { cn } from '@/lib/utils';
 import React from 'react';
 
-/* ── Terminal module card ─────────────────────────────────── */
+/* ── Card ─────────────────────────────────────────────────── */
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  /** Phosphor-glow left accent stripe */
   accent?: boolean;
+  elevated?: boolean;
 }
 
-export function Card({ className, accent, children, ...props }: CardProps) {
+export function Card({ className, accent, elevated, children, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        'bg-[#050505] border border-[rgba(51,255,51,0.2)]',
-        accent && 'border-l-[#33FF33] border-l-2',
+        'bg-[var(--card)] border border-[var(--border)] rounded-2xl transition-shadow duration-200',
+        elevated && 'shadow-card',
+        accent && 'border-l-[#00F2FE] border-l-2',
         className
       )}
       {...props}
@@ -25,10 +26,9 @@ export function Card({ className, accent, children, ...props }: CardProps) {
   );
 }
 
-/* ── Card header with micro-label ────────────────────────── */
+/* ── Card header ─────────────────────────────────────────── */
 
 interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
-  /** Optional right-side action element */
   action?: React.ReactNode;
 }
 
@@ -37,12 +37,12 @@ export function CardHeader({ className, action, children, ...props }: CardHeader
     <div
       className={cn(
         'flex items-center justify-between',
-        'px-4 py-3 border-b border-[rgba(51,255,51,0.1)]',
+        'px-5 py-3.5 border-b border-[var(--border)]',
         className
       )}
       {...props}
     >
-      <div className="font-mono text-[10px] tracking-[0.1em] uppercase text-[rgba(51,255,51,0.6)]">
+      <div className="font-mono text-[11px] tracking-[0.08em] uppercase text-[var(--muted-foreground)] flex items-center gap-2">
         {children}
       </div>
       {action && <div className="flex items-center gap-2">{action}</div>}
@@ -54,7 +54,7 @@ export function CardHeader({ className, action, children, ...props }: CardHeader
 
 export function CardContent({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('p-4', className)} {...props}>
+    <div className={cn('p-5', className)} {...props}>
       {children}
     </div>
   );
@@ -66,7 +66,7 @@ export function CardFooter({ className, children, ...props }: React.HTMLAttribut
   return (
     <div
       className={cn(
-        'px-4 py-3 border-t border-[rgba(51,255,51,0.1)]',
+        'px-5 py-3.5 border-t border-[var(--border)]',
         'flex items-center justify-between gap-4',
         className
       )}
@@ -77,7 +77,7 @@ export function CardFooter({ className, children, ...props }: React.HTMLAttribut
   );
 }
 
-/* ── Stat card (data value + label) ──────────────────────── */
+/* ── Stat card ───────────────────────────────────────────── */
 
 interface StatCardProps extends React.HTMLAttributes<HTMLDivElement> {
   label: string;
@@ -88,20 +88,20 @@ interface StatCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const statusValueColor: Record<NonNullable<StatCardProps['status']>, string> = {
-  ok: '#33FF33',
-  warning: '#FFB000',
+  ok:       'var(--primary)',
+  warning:  '#FFB000',
   critical: '#FF4B2B',
-  info: '#00FFFF',
-  muted: 'rgba(51,255,51,0.25)',
+  info:     'var(--primary)',
+  muted:    'var(--muted-foreground)',
 };
 
 export function StatCard({ label, value, sub, status = 'info', accent, className, ...props }: StatCardProps) {
   const valueColor = statusValueColor[status];
 
   return (
-    <Card accent={accent} className={className} {...props}>
-      <div className="p-4 flex flex-col gap-1">
-        <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-[rgba(51,255,51,0.5)]">
+    <Card accent={accent} elevated className={className} {...props}>
+      <div className="p-5 flex flex-col gap-1.5">
+        <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-[var(--muted-foreground)]">
           {label}
         </span>
         <span
@@ -111,7 +111,7 @@ export function StatCard({ label, value, sub, status = 'info', accent, className
           {value}
         </span>
         {sub && (
-          <span className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] mt-1">{sub}</span>
+          <span className="font-mono text-[11px] text-[var(--muted-foreground)] mt-0.5">{sub}</span>
         )}
       </div>
     </Card>
