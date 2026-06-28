@@ -1,7 +1,6 @@
-import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
-import { Card, Statistic, Typography } from 'antd';
-
-const { Text } = Typography;
+import { StatCard } from '@/components/ui/card';
+import { TrendingDown, TrendingUp } from 'lucide-react';
+import React from 'react';
 
 export interface PriorityStatCardProps {
   title: string;
@@ -15,6 +14,20 @@ export interface PriorityStatCardProps {
   };
 }
 
+const priorityToStatus = {
+  BLOCKING: 'critical',
+  CRITICAL: 'critical',
+  WARNING: 'warning',
+  OK: 'ok',
+} as const;
+
+const trendColor = {
+  BLOCKING: '#FF4B2B',
+  CRITICAL: '#FF4B2B',
+  WARNING: '#FFB000',
+  OK: '#33FF33',
+} as const;
+
 export function PriorityStatCard({
   title,
   value,
@@ -23,65 +36,37 @@ export function PriorityStatCard({
   suffix,
   trend,
 }: PriorityStatCardProps) {
-  const styles = {
-    BLOCKING: {
-      color: '#ff4d4f',
-      background: 'rgba(255, 77, 79, 0.1)',
-      border: '1px solid #ff4d4f',
-    },
-    CRITICAL: {
-      color: '#ff7a45',
-      background: 'rgba(255, 122, 69, 0.1)',
-      border: '1px solid #ff7a45',
-    },
-    WARNING: {
-      color: '#faad14',
-      background: 'rgba(250, 173, 20, 0.1)',
-      border: '1px solid #faad14',
-    },
-    OK: {
-      color: '#52c41a',
-      background: 'rgba(82, 196, 26, 0.1)',
-      border: '1px solid #52c41a',
-    },
-  }[priority];
+  const TrendIcon = trend?.isUp ? TrendingUp : TrendingDown;
+  const color = trendColor[priority];
+
+  const displayValue = suffix ? (
+    <span>
+      {value}
+      <span className="font-mono text-base ml-1" style={{ color: `${color}60` }}>{suffix}</span>
+    </span>
+  ) : (
+    value
+  );
+
+  const sub = (
+    <span className="flex items-center gap-2">
+      {trend && (
+        <span className="flex items-center gap-1" style={{ color }}>
+          <TrendIcon size={11} aria-hidden />
+          <span>{trend.value}%</span>
+        </span>
+      )}
+      {description && <span className="text-[rgba(51,255,51,0.35)]">{description}</span>}
+    </span>
+  );
 
   return (
-    <Card
-      style={{
-        ...styles,
-        borderRadius: '8px',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-      }}
-      styles={{ body: { padding: '20px' } }}
-    >
-      <Statistic
-        title={<Text style={{ color: styles.color, fontWeight: 600 }}>{title}</Text>}
-        value={value}
-        valueStyle={{ color: styles.color, fontSize: '28px', fontWeight: 'bold' }}
-        suffix={suffix}
-        prefix={
-          trend && (
-            <span
-              style={{ fontSize: '14px', marginRight: '8px' }}
-              role="img"
-              aria-label={`Trend ${trend.isUp ? 'up' : 'down'} ${trend.value}%`}
-            >
-              {trend.isUp ? (
-                <ArrowUpOutlined aria-hidden="true" />
-              ) : (
-                <ArrowDownOutlined aria-hidden="true" />
-              )}
-              <span aria-hidden="true">{trend.value}%</span>
-            </span>
-          )
-        }
-      />
-      {description && (
-        <Text style={{ display: 'block', marginTop: '8px', fontSize: '12px', opacity: 0.8 }}>
-          {description}
-        </Text>
-      )}
-    </Card>
+    <StatCard
+      label={title}
+      value={displayValue}
+      status={priorityToStatus[priority]}
+      sub={sub}
+      accent={priority === 'BLOCKING' || priority === 'CRITICAL'}
+    />
   );
 }

@@ -1,11 +1,5 @@
-import {
-  CheckCircleFilled,
-  CloseCircleFilled,
-  ExclamationCircleFilled,
-  InfoCircleFilled,
-  MinusCircleFilled,
-} from '@ant-design/icons';
-import { Tag } from 'antd';
+import { cn } from '@/lib/utils';
+import { AlertTriangle, CheckCircle, Info, Minus, XCircle } from 'lucide-react';
 import React from 'react';
 
 export type StatusKind = 'ok' | 'warning' | 'critical' | 'info' | 'muted';
@@ -19,12 +13,45 @@ export interface StatusBadgeProps {
   dataTestId?: string;
 }
 
-const statusStyles: Record<StatusKind, { color: string; bg: string; icon: React.ReactNode }> = {
-  ok: { color: '#0f915a', bg: 'rgba(15,145,90,0.12)', icon: <CheckCircleFilled /> },
-  warning: { color: '#c47c00', bg: 'rgba(196,124,0,0.14)', icon: <ExclamationCircleFilled /> },
-  critical: { color: '#d4380d', bg: 'rgba(212,56,13,0.16)', icon: <CloseCircleFilled /> },
-  info: { color: '#1070b8', bg: 'rgba(16,112,184,0.12)', icon: <InfoCircleFilled /> },
-  muted: { color: '#6b7280', bg: 'rgba(107,114,128,0.14)', icon: <MinusCircleFilled /> },
+const statusConfig: Record<
+  StatusKind,
+  { color: string; bg: string; border: string; icon: React.ElementType; label: string }
+> = {
+  ok: {
+    color: '#33FF33',
+    bg: 'rgba(51,255,51,0.08)',
+    border: 'rgba(51,255,51,0.3)',
+    icon: CheckCircle,
+    label: 'ok',
+  },
+  warning: {
+    color: '#FFB000',
+    bg: 'rgba(255,176,0,0.08)',
+    border: 'rgba(255,176,0,0.3)',
+    icon: AlertTriangle,
+    label: 'warning',
+  },
+  critical: {
+    color: '#FF4B2B',
+    bg: 'rgba(255,75,43,0.08)',
+    border: 'rgba(255,75,43,0.3)',
+    icon: XCircle,
+    label: 'critical',
+  },
+  info: {
+    color: '#00FFFF',
+    bg: 'rgba(0,255,255,0.06)',
+    border: 'rgba(0,255,255,0.25)',
+    icon: Info,
+    label: 'info',
+  },
+  muted: {
+    color: 'rgba(51,255,51,0.3)',
+    bg: 'rgba(51,255,51,0.04)',
+    border: 'rgba(51,255,51,0.15)',
+    icon: Minus,
+    label: 'muted',
+  },
 };
 
 export function StatusBadge({
@@ -35,23 +62,27 @@ export function StatusBadge({
   dataTestId,
   'data-testid': dataTestIdAttr,
 }: StatusBadgeProps) {
-  const style = statusStyles[status] || statusStyles.muted;
+  const cfg = statusConfig[status] ?? statusConfig.muted;
+  const Icon = cfg.icon;
   const resolvedTestId = dataTestId ?? dataTestIdAttr;
 
   return (
-    <Tag
-      icon={style.icon}
-      className={className}
-      data-testid={resolvedTestId}
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5',
+        'font-mono uppercase tracking-widest',
+        compact ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-[10px]',
+        className
+      )}
       style={{
-        color: style.color,
-        background: style.bg,
-        borderColor: style.color,
-        padding: compact ? '2px 8px' : '4px 12px',
-        fontWeight: 600,
+        color: cfg.color,
+        background: cfg.bg,
+        border: `1px solid ${cfg.border}`,
       }}
+      data-testid={resolvedTestId}
     >
+      <Icon size={10} strokeWidth={2.5} aria-hidden />
       {label}
-    </Tag>
+    </span>
   );
 }

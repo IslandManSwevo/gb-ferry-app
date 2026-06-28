@@ -2,40 +2,30 @@
 
 import { canAccess } from '@/lib/auth/access';
 import { useUserRoles } from '@/lib/auth/roles';
+import { cn } from '@/lib/utils';
 import {
-  DashboardOutlined,
-  DeploymentUnitOutlined,
-  FileProtectOutlined,
-  GlobalOutlined,
-  IdcardOutlined,
-  SafetyCertificateOutlined,
-  SettingOutlined,
-} from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-import { Layout, Menu, Typography } from 'antd';
+  Anchor,
+  ClipboardCheck,
+  LayoutDashboard,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Settings,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
-const { Sider } = Layout;
-const { Text } = Typography;
+/* ── Types ────────────────────────────────────────────────── */
+export interface NavItem {
+  key: string;
+  label: string;
+  icon?: React.ReactNode;
+  children?: NavItem[];
+  type?: 'divider';
+}
 
-type MenuItem = Required<MenuProps>['items'][number];
-type MenuItemWithChildren = Extract<MenuItem, { key: React.Key; children: MenuItem[] }>;
-
-const isMenuItemWithChildren = (item: MenuItem): item is MenuItemWithChildren =>
-  !!item &&
-  typeof item === 'object' &&
-  'children' in item &&
-  Array.isArray((item as { children?: unknown }).children) &&
-  'key' in item;
-
-const isDividerItem = (item: MenuItem): item is Extract<MenuItem, { type: 'divider' }> =>
-  !!item &&
-  typeof item === 'object' &&
-  'type' in item &&
-  (item as { type?: string }).type === 'divider';
-
-// Feature Flag Mapping
+/* ── Feature access map ───────────────────────────────────── */
 const FEATURE_MAP: Record<string, string> = {
   '/crew': 'crew.view',
   '/crew/safe-manning': 'crew.manage',
@@ -53,15 +43,16 @@ const FEATURE_MAP: Record<string, string> = {
   '/settings': 'settings.view',
 };
 
-export const menuItems: MenuItem[] = [
+/* ── Menu items ───────────────────────────────────────────── */
+export const menuItems: NavItem[] = [
   {
     key: '/',
-    icon: <DashboardOutlined />,
+    icon: <LayoutDashboard size={14} />,
     label: 'Command Center',
   },
   {
     key: 'crew-compliance',
-    icon: <DeploymentUnitOutlined />,
+    icon: <Users size={14} />,
     label: 'Crew Compliance',
     children: [
       { key: '/crew', label: 'Crew Directory' },
@@ -71,7 +62,7 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: 'regulatory-forms',
-    icon: <IdcardOutlined />,
+    icon: <ShieldCheck size={14} />,
     label: 'Regulatory Forms',
     children: [
       { key: '/compliance/cbp', label: 'CBP Forms' },
@@ -81,7 +72,7 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: 'fleet-management',
-    icon: <GlobalOutlined />,
+    icon: <Anchor size={14} />,
     label: 'Fleet Management',
     children: [
       { key: '/vessels', label: 'Vessel Status' },
@@ -91,7 +82,7 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: 'regulatory',
-    icon: <SafetyCertificateOutlined />,
+    icon: <ClipboardCheck size={14} />,
     label: 'Inspections & Audit',
     children: [
       { key: '/compliance/fleet', label: 'Fleet Performance' },
@@ -100,157 +91,193 @@ export const menuItems: MenuItem[] = [
       { key: '/audit', label: 'Audit Log' },
     ],
   },
-  {
-    type: 'divider',
-  },
+  { key: '__divider__', label: '', type: 'divider' },
   {
     key: 'system-management',
-    icon: <SettingOutlined />,
+    icon: <Settings size={14} />,
     label: 'System Management',
     children: [{ key: '/settings', label: 'Platform Settings' }],
   },
 ];
 
 export const parentKeys = new Set(
-  menuItems.filter(isMenuItemWithChildren).map((item) => String(item.key))
+  menuItems.filter((item) => Array.isArray(item.children)).map((item) => item.key)
 );
 
-const matchesPath = (pathname: string, matcher: string) =>
-  pathname === matcher || pathname.startsWith(`${matcher}/`);
-
-export function filterMenuItemsByRole(items: MenuItem[], roles: string[]): MenuItem[] {
-  const recurse = (item: MenuItem): MenuItem | null => {
-    if (!item) return null;
-    if (isDividerItem(item)) return item;
-
-    const key = (item as any).key;
-    const realPath = (item as any).keyPath || key;
-
-    // Check feature flag if defined
-    if (FEATURE_MAP[realPath]) {
-      if (!canAccess(roles, FEATURE_MAP[realPath])) {
-        return null;
+export function filterMenuItemsByRole(items: NavItem[], roles: string[]): NavItem[] {
+  return items
+    .map((item): NavItem | null => {
+      if (item.type === 'divider') return item;
+      if (FEATURE_MAP[item.key] && !canAccess(roles, FEATURE_MAP[item.key])) return null;
+      if (item.children) {
+        const children = item.children
+          .map((child): NavItem | null =>
+            FEATURE_MAP[child.key] && !canAccess(roles, FEATURE_MAP[child.key]) ? null : child
+          )
+          .filter((c): c is NavItem => c !== null);
+        if (children.length === 0) return null;
+        return { ...item, children };
       }
-    }
-
-    if (isMenuItemWithChildren(item)) {
-      const children = item.children.map(recurse).filter(Boolean) as MenuItem[];
-      if (children.length === 0) return null; // Hide parent if no visible children
-      return { ...item, children } as MenuItem;
-    }
-
-    return item;
-  };
-
-  return items.map(recurse).filter(Boolean) as MenuItem[];
+      return item;
+    })
+    .filter((i): i is NavItem => i !== null);
 }
 
 export function findOpenKeys(pathname: string): string[] {
-  const mapping = [
-    { key: 'crew-compliance', matchers: ['/crew', '/crew/safe-manning', '/crew/certifications'] },
-    {
-      key: 'regulatory-forms',
-      matchers: ['/compliance/cbp', '/compliance/bma', '/compliance/alerts'],
-    },
-    {
-      key: 'fleet-management',
-      matchers: ['/vessels', '/vessels/documents', '/compliance/exports'],
-    },
-    {
-      key: 'regulatory',
-      matchers: ['/compliance/fleet', '/compliance/reports', '/compliance/inspections', '/audit'],
-    },
-    { key: 'system-management', matchers: ['/settings'] },
-  ];
-
-  for (const entry of mapping) {
-    if (entry.matchers.some((m) => matchesPath(pathname, m))) {
-      return [entry.key];
+  for (const item of menuItems) {
+    if (Array.isArray(item.children)) {
+      for (const child of item.children) {
+        if (pathname === child.key || pathname.startsWith(`${child.key}/`)) {
+          return [item.key];
+        }
+      }
     }
   }
   return [];
 }
 
+/* ── AppSidebar ───────────────────────────────────────────── */
 export const AppSidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const router = useRouter();
   const pathname = usePathname();
-  const [openKeys, setOpenKeys] = useState<string[]>(findOpenKeys(pathname));
   const roles = useUserRoles();
 
-  const filteredItems = React.useMemo(() => filterMenuItemsByRole(menuItems, roles), [roles]);
+  const filtered = React.useMemo(() => filterMenuItemsByRole(menuItems, roles), [roles]);
 
   useEffect(() => {
-    setOpenKeys(findOpenKeys(pathname));
+    const keys = findOpenKeys(pathname);
+    setOpenGroups(new Set(keys));
   }, [pathname]);
 
-  const handleMenuClick: MenuProps['onClick'] = ({ key, item }) => {
-    const targetKey = (item as any).props.keyPath || String(key);
-    if (parentKeys.has(targetKey)) return;
-    router.push(targetKey);
-  };
+  function toggleGroup(key: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function navigate(key: string) {
+    if (!parentKeys.has(key)) router.push(key);
+  }
+
+  function isActive(key: string) {
+    return pathname === key || pathname.startsWith(`${key}/`);
+  }
 
   return (
-    <Sider
-      collapsible
-      collapsed={collapsed}
-      onCollapse={setCollapsed}
-      breakpoint="lg"
-      collapsedWidth="0"
-      width={260}
-      theme="dark"
-      style={{
-        overflow: 'auto',
-        height: '100vh',
-        position: 'sticky',
-        top: 0,
-        left: 0,
-        zIndex: 1000,
-        borderRight: '1px solid rgba(255,255,255,0.05)',
-      }}
+    <aside
+      className={cn(
+        'sticky top-0 h-screen flex flex-col bg-[#050505]',
+        'border-r border-[rgba(51,255,51,0.15)] transition-all duration-200',
+        'hidden md:flex overflow-hidden',
+        collapsed ? 'w-0' : 'w-[260px]'
+      )}
     >
-      <div
-        style={{
-          height: 64,
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 24px',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            background: 'linear-gradient(135deg, #1890ff 0%, #001529 100%)',
-            borderRadius: 8,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <FileProtectOutlined style={{ color: '#fff', fontSize: 18 }} />
-        </div>
+      {/* Logo */}
+      <div className="flex items-center justify-between h-14 px-4 border-b border-[rgba(51,255,51,0.1)] flex-shrink-0">
         {!collapsed && (
-          <div style={{ marginLeft: 12 }}>
-            <Text strong style={{ color: '#fff', fontSize: 15, display: 'block', lineHeight: 1.2 }}>
-              GB Ferry
-            </Text>
-            <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>CREW COMPLIANCE</Text>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 border border-[rgba(51,255,51,0.3)] flex items-center justify-center">
+              <ShieldCheck size={16} className="text-[#33FF33]" />
+            </div>
+            <div className="flex flex-col leading-none">
+              <span className="font-mono text-[11px] tracking-[0.1em] text-[#33FF33] font-semibold">GB FERRY</span>
+              <span className="font-mono text-[9px] tracking-[0.1em] text-[rgba(51,255,51,0.4)]">CREW COMPLIANCE</span>
+            </div>
           </div>
         )}
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          className="p-1.5 text-[rgba(51,255,51,0.4)] hover:text-[#33FF33] transition-colors ml-auto"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+        </button>
       </div>
 
-      <Menu
-        theme="dark"
-        mode="inline"
-        selectedKeys={[pathname]}
-        openKeys={openKeys}
-        onOpenChange={(keys) => setOpenKeys(keys as string[])}
-        items={filteredItems}
-        onClick={handleMenuClick}
-        style={{ borderRight: 0, marginTop: 8 }}
-      />
-    </Sider>
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">
+        {filtered.map((item) => {
+          if (item.type === 'divider') {
+            return <div key={item.key} className="h-px mx-4 my-2 bg-[rgba(51,255,51,0.06)]" />;
+          }
+
+          if (!item.children) {
+            const active = isActive(item.key);
+            return (
+              <button
+                key={item.key}
+                onClick={() => navigate(item.key)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-2.5 font-mono text-[11px] tracking-wide transition-colors text-left',
+                  'border-l-2',
+                  active
+                    ? 'text-[#33FF33] bg-[rgba(51,255,51,0.06)] border-[#33FF33]'
+                    : 'text-[rgba(51,255,51,0.45)] hover:text-[#33FF33] hover:bg-[rgba(51,255,51,0.03)] border-transparent'
+                )}
+              >
+                {item.icon}
+                {!collapsed && item.label}
+              </button>
+            );
+          }
+
+          const groupOpen = openGroups.has(item.key);
+          const groupActive = item.children.some((c) => isActive(c.key));
+
+          return (
+            <div key={item.key}>
+              <button
+                onClick={() => toggleGroup(item.key)}
+                className={cn(
+                  'w-full flex items-center justify-between px-4 py-2.5 font-mono text-[11px] tracking-wide transition-colors text-left',
+                  groupActive ? 'text-[#33FF33]' : 'text-[rgba(51,255,51,0.45)] hover:text-[rgba(51,255,51,0.7)]'
+                )}
+              >
+                <span className="flex items-center gap-3">
+                  {item.icon}
+                  {!collapsed && item.label}
+                </span>
+                {!collapsed && (
+                  <span
+                    className={cn('transition-transform duration-150', groupOpen ? 'rotate-90' : 'rotate-0')}
+                    style={{ color: 'rgba(51,255,51,0.3)' }}
+                  >
+                    ›
+                  </span>
+                )}
+              </button>
+
+              {groupOpen && !collapsed && (
+                <div className="ml-4 border-l border-[rgba(51,255,51,0.08)]">
+                  {item.children.map((child) => {
+                    const active = isActive(child.key);
+                    return (
+                      <button
+                        key={child.key}
+                        onClick={() => navigate(child.key)}
+                        className={cn(
+                          'w-full flex items-center px-4 py-2 font-mono text-[11px] tracking-wide transition-colors text-left',
+                          'border-l-2 -ml-px',
+                          active
+                            ? 'text-[#33FF33] bg-[rgba(51,255,51,0.05)] border-[#33FF33]'
+                            : 'text-[rgba(51,255,51,0.38)] hover:text-[#33FF33] hover:bg-[rgba(51,255,51,0.03)] border-transparent'
+                        )}
+                      >
+                        {child.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </nav>
+    </aside>
   );
 };

@@ -1,86 +1,249 @@
-/* Global styles for GB Ferry Platform */
+@import "tailwindcss";
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* ─────────────────────────────────────────────────────────
+   DESIGN SYSTEM: Industrial Brutalist / Tactical Telemetry
+   GB Ferry Maritime Ops Command Center
+   Tailwind v4 — all custom tokens defined in @theme {}
+   ───────────────────────────────────────────────────────── */
+
+@theme {
+  /* Typography */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  --font-geist-sans: var(--font-sans);
+  --font-ibm-plex-mono: var(--font-mono);
+
+  /* ── Core palette ── */
+  --color-terminal: #050505;
+  --color-phosphor: #33FF33;
+  --color-phosphor-dim: rgba(51, 255, 51, 0.6);
+  --color-phosphor-faint: rgba(51, 255, 51, 0.3);
+  --color-phosphor-glow: rgba(51, 255, 51, 0.15);
+  --color-phosphor-ghost: rgba(51, 255, 51, 0.08);
+  --color-vermilion: #FF4B2B;
+  --color-cyan-data: #00FFFF;
+  --color-amber-warn: #FFB000;
+  --color-foreground: #eaeaea;
+
+  /* shadcn/ui CSS variable aliases (inline = resolve at runtime) */
+  --color-background: var(--background);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  /* Radius — zero everywhere */
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-full: 0px;
 }
 
-html,
-body {
-  height: 100%;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* ─────────────────────────────────────────────────────────
+   CSS CUSTOM PROPERTIES — shadcn/ui semantic tokens
+   ───────────────────────────────────────────────────────── */
 
-/* Glass effect utilities */
-.glass-effect {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-}
+@layer base {
+  :root {
+    /* shadcn/ui required CSS variables (HSL triplets for Tailwind opacity modifiers) */
+    --background: #050505;
+    --foreground: #eaeaea;
+    --card: #0a0a0a;
+    --card-foreground: #eaeaea;
+    --popover: #0a0a0a;
+    --popover-foreground: #eaeaea;
+    --primary: #33FF33;
+    --primary-foreground: #050505;
+    --secondary: rgba(51, 255, 51, 0.08);
+    --secondary-foreground: #33FF33;
+    --muted: rgba(255, 255, 255, 0.06);
+    --muted-foreground: rgba(255, 255, 255, 0.45);
+    --accent: rgba(51, 255, 51, 0.12);
+    --accent-foreground: #33FF33;
+    --destructive: #FF4B2B;
+    --destructive-foreground: #eaeaea;
+    --border: rgba(51, 255, 51, 0.2);
+    --input: rgba(51, 255, 51, 0.15);
+    --ring: #33FF33;
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
-}
-
-/* Maritime gradient backgrounds */
-.bg-maritime {
-  background: linear-gradient(135deg, #001529 0%, #003a70 50%, #0a4d8c 100%);
-}
-
-.bg-ocean {
-  background: linear-gradient(180deg, #0a4d8c 0%, #1890ff 100%);
-}
-
-/* Print styles for manifests */
-@media print {
-  .no-print {
-    display: none !important;
+    /* Design system semantic tokens */
+    --color-phosphor-hex: #33FF33;
+    --border-terminal: 1px solid rgba(51, 255, 51, 0.2);
   }
 
-  .print-only {
-    display: block !important;
+  /* Global resets for design system */
+  * {
+    box-sizing: border-box;
+    border-radius: 0 !important;
   }
 
+  html,
   body {
-    background: white !important;
+    height: 100%;
+    background-color: #050505;
+    color: #eaeaea;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* All telemetry/data values use monospace */
+  data,
+  samp,
+  kbd,
+  output,
+  code,
+  pre,
+  time {
+    font-family: var(--font-mono);
   }
 }
 
-/* ────────────────────────────────────────────────────────────────
-   Maritime dark UI — shared across compliance/fleet/cbp/crew pages
-   Apply className="maritime-table" to any Ant Design <Table>
-   ──────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   COMPONENT CLASSES — design system primitives
+   ───────────────────────────────────────────────────────── */
+
+@layer components {
+  .terminal-module {
+    background: #050505;
+    border: 1px solid rgba(51, 255, 51, 0.2);
+    padding: 1rem;
+  }
+
+  .terminal-label {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(51, 255, 51, 0.6);
+    line-height: 1.2;
+  }
+
+  .telemetry-value {
+    font-family: var(--font-mono);
+    color: #00FFFF;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* CRT scanlines overlay — apply .crt-scanlines to page root */
+  .crt-scanlines {
+    position: relative;
+  }
+  .crt-scanlines::after {
+    content: '';
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.08) 2px,
+      rgba(0, 0, 0, 0.08) 4px
+    );
+    z-index: 9999;
+  }
+
+  .status-critical {
+    color: #FF4B2B;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .status-warning {
+    color: #FFB000;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .status-ok {
+    color: #33FF33;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .bracket-label::before {
+    content: '[ ';
+    color: rgba(51, 255, 51, 0.4);
+  }
+  .bracket-label::after {
+    content: ' ]';
+    color: rgba(51, 255, 51, 0.4);
+  }
+
+  /* Gap-border trick — use gap:1px + contrasting bg to create razor-thin dividers */
+  .terminal-grid {
+    display: grid;
+    gap: 1px;
+    background: rgba(51, 255, 51, 0.2);
+  }
+  .terminal-grid > * {
+    background: #050505;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   UTILITY CLASSES
+   ───────────────────────────────────────────────────────── */
+
+@layer utilities {
+  .glow-phosphor {
+    text-shadow: 0 0 8px rgba(51, 255, 51, 0.6);
+  }
+  .glow-vermilion {
+    text-shadow: 0 0 8px rgba(255, 75, 43, 0.6);
+  }
+  .glow-cyan {
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+  }
+  .border-glow {
+    box-shadow: 0 0 0 1px rgba(51, 255, 51, 0.3), 0 0 8px rgba(51, 255, 51, 0.1);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   SCROLLBAR — terminal aesthetic
+   ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #050505; }
+::-webkit-scrollbar-thumb { background: rgba(51, 255, 51, 0.3); }
+::-webkit-scrollbar-thumb:hover { background: rgba(51, 255, 51, 0.6); }
+
+/* ─────────────────────────────────────────────────────────
+   PRINT STYLES
+   ───────────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  body { background: white !important; color: black !important; }
+}
+
+/* ─────────────────────────────────────────────────────────
+   LEGACY ANT DESIGN OVERRIDES
+   Remove when page-by-page migration is complete.
+   ───────────────────────────────────────────────────────── */
 .maritime-table .ant-table {
   background: transparent !important;
   color: #e6f7ff !important;

@@ -1,34 +1,16 @@
 'use client';
 
-import { AppHeader } from '@/components/layout/AppHeader';
-import { AppSidebar } from '@/components/layout/AppSidebar';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { TerminalModal, SelectField, termInputCls, termLabelCls } from '@/components/ui/TerminalModal';
+import { TerminalTable } from '@/components/ui/TerminalTable';
 import { api } from '@/lib/api';
-import { FileTextOutlined, SafetyCertificateOutlined, UploadOutlined } from '@ant-design/icons';
-import {
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Form,
-  Input,
-  Layout,
-  Modal,
-  Row,
-  Select,
-  Space,
-  Table,
-  Tag,
-  Typography,
-  Upload,
-  message,
-} from 'antd';
-import dayjs from 'dayjs';
-import { useEffect, useMemo, useState } from 'react';
+import { ColumnDef } from '@tanstack/react-table';
+import { AlertTriangle, FileText, RefreshCw, ShieldCheck, Upload } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-const { Content } = Layout;
-const { Title, Text } = Typography;
-const { Dragger } = Upload;
-
+/* ── Types ────────────────────────────────────────────────── */
 interface DocumentRow {
   id: string;
   title: string;
@@ -40,376 +22,360 @@ interface DocumentRow {
   fileName: string;
 }
 
-const statusColor: Record<string, string> = {
-  VALID: 'success',
-  EXPIRING: 'warning',
-  EXPIRED: 'error',
-  PENDING_REVIEW: 'processing',
+interface UploadForm {
+  name: string;
+  vesselId: string;
+  documentType: string;
+  expiryDate: string;
+}
+
+const TYPE_MAP: Record<string, string> = {
+  R102: 'Registry Certificate (R102)',
+  R106: 'Safe Manning (R106)',
+  SHIPS_LIBRARY: "Ship's Library",
+  RADIO_LICENSE: 'Radio License',
+  CLASS_CERT: 'Classification Certificate',
 };
+
+function statusConfig(status: string) {
+  if (status === 'VALID') return { color: '#33FF33', border: 'rgba(51,255,51,0.4)', bg: 'rgba(51,255,51,0.06)' };
+  if (status === 'EXPIRING') return { color: '#FFB000', border: 'rgba(255,176,0,0.4)', bg: 'rgba(255,176,0,0.06)' };
+  if (status === 'EXPIRED') return { color: '#FF4B2B', border: 'rgba(255,75,43,0.4)', bg: 'rgba(255,75,43,0.06)' };
+  return { color: '#00FFFF', border: 'rgba(0,255,255,0.4)', bg: 'rgba(0,255,255,0.06)' };
+}
+
+/* ── Columns ──────────────────────────────────────────────── */
+const columns: ColumnDef<DocumentRow, any>[] = [
+  {
+    id: 'document',
+    header: 'Document',
+    cell: ({ row }) => (
+      <div className="flex flex-col gap-0.5">
+        <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{row.original.title}</span>
+        <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">{row.original.fileName}</span>
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'type',
+    header: 'Type',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)]">{getValue<string>()}</span>
+    ),
+  },
+  {
+    accessorKey: 'expiryDate',
+    header: 'Expiry',
+    cell: ({ getValue }) => {
+      const v = getValue<string | undefined>();
+      return (
+        <span className="font-mono text-[11px] tabular-nums" style={{ color: v ? 'rgba(51,255,51,0.7)' : 'rgba(51,255,51,0.25)' }}>
+          {v ? new Date(v).toLocaleDateString('en-CA') : '—'}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ getValue }) => {
+      const s = getValue<string>();
+      const { color, border, bg } = statusConfig(s);
+      return (
+        <span className="font-mono text-[10px] px-2 py-0.5 border tracking-widest"
+          style={{ color, borderColor: border, background: bg }}>
+          {s.replace(/_/g, ' ')}
+        </span>
+      );
+    },
+  },
+];
+
+/* ── Drop zone ───────────────────────────────────────────── */
+interface DropZoneProps {
+  file: File | null;
+  onChange: (f: File | null) => void;
+}
+
+function DropZone({ file, onChange }: DropZoneProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    const f = e.dataTransfer.files[0];
+    if (f) onChange(f);
+  }
+
+  return (
+    <div
+      className="border border-dashed flex flex-col items-center justify-center gap-2 py-8 cursor-pointer transition-colors"
+      style={{
+        borderColor: dragging ? '#33FF33' : 'rgba(51,255,51,0.2)',
+        background: dragging ? 'rgba(51,255,51,0.04)' : 'transparent',
+      }}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      onClick={() => inputRef.current?.click()}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+      />
+      <Upload size={24} className="text-[rgba(51,255,51,0.3)]" />
+      {file ? (
+        <span className="font-mono text-[12px] text-[#33FF33]">{file.name}</span>
+      ) : (
+        <>
+          <span className="font-mono text-[12px] text-[rgba(51,255,51,0.5)]">Drop PDF or Click to Browse</span>
+          <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)]">AI will extract dates and document numbers for verification</span>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────── */
+const INITIAL_FORM: UploadForm = { name: '', vesselId: '', documentType: '', expiryDate: '' };
 
 export default function VesselDocumentsPage() {
   const [data, setData] = useState<DocumentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  const [filters, setFilters] = useState<{
-    vesselId?: string;
-    type?: string;
-    status?: string;
-    q?: string;
-  }>({});
+  const [searchQ, setSearchQ] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [fileList, setFileList] = useState<any[]>([]);
-  const [form] = Form.useForm();
+  const [file, setFile] = useState<File | null>(null);
+  const [form, setForm] = useState<UploadForm>(INITIAL_FORM);
+  const [errors, setErrors] = useState<Partial<Record<keyof UploadForm | 'file', string>>>({});
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Watch documentType to auto-fill and lock the name
-  const selectedType = Form.useWatch('documentType', form);
-
-  const typeMap: Record<string, string> = {
-    R102: 'Registry Certificate (R102)',
-    R106: 'Safe Manning (R106)',
-    SHIPS_LIBRARY: "Ship's Library",
-    RADIO_LICENSE: 'Radio License',
-    CLASS_CERT: 'Classification Certificate',
-  };
-
-  const handleValuesChange = (changedValues: any) => {
-    if (changedValues.documentType) {
-      const newName = typeMap[changedValues.documentType];
-      if (newName) {
-        form.setFieldsValue({ name: newName });
-      } else if (changedValues.documentType === 'OTHER') {
-        form.setFieldsValue({ name: '' });
-      }
-    }
-  };
-
-  const isNameLocked = !!selectedType && selectedType !== 'OTHER';
-
-  const columns = useMemo(
-    () => [
-      {
-        title: 'Document',
-        dataIndex: 'title',
-        key: 'title',
-        render: (text: string, record: DocumentRow) => (
-          <Space direction="vertical" size={0}>
-            <Text strong style={{ color: '#fff' }}>
-              {text}
-            </Text>
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{record.fileName}</Text>
-          </Space>
-        ),
-      },
-      {
-        title: 'Type',
-        dataIndex: 'type',
-        key: 'type',
-        render: (type: string) => <Text style={{ color: '#e6f7ff' }}>{type}</Text>,
-      },
-      {
-        title: 'Expiry',
-        dataIndex: 'expiryDate',
-        key: 'expiryDate',
-        render: (value?: string) => (
-          <Text style={{ color: value ? '#fff' : 'rgba(255,255,255,0.25)' }}>
-            {value ? dayjs(value).format('YYYY-MM-DD') : '—'}
-          </Text>
-        ),
-      },
-      {
-        title: 'Status',
-        dataIndex: 'status',
-        key: 'status',
-        render: (status: string) => <Tag color={statusColor[status] || 'default'}>{status}</Tag>,
-      },
-    ],
-    []
-  );
-
-  const loadData = async (nextPage = page, nextPageSize = pageSize, nextFilters = filters) => {
+  const loadData = useCallback(async (pg = 1, q = searchQ, status = filterStatus) => {
     setLoading(true);
-    const res = await api.documents.list({
-      vesselId: nextFilters.vesselId,
-      type: nextFilters.type,
-      status: nextFilters.status,
-      q: nextFilters.q,
-      page: nextPage,
-      limit: nextPageSize,
-    });
-
-    if (res.error || !res.data) {
-      message.error(res.error || 'Failed to load documents');
-      setLoading(false);
-      return;
+    const res = await api.documents.list({ q: q || undefined, status: status || undefined, page: pg, limit: pageSize });
+    if (res.data) {
+      setData(res.data.data ?? []);
+      setTotal(res.data.total ?? 0);
+      setPage(res.data.page ?? pg);
     }
-
-    setData(res.data.data || []);
-    setTotal(res.data.total);
-    setPage(res.data.page);
-    setPageSize(res.data.limit);
     setLoading(false);
-  };
+  }, [searchQ, filterStatus, pageSize]);
 
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const handleTableChange = (pagination: any) => {
-    loadData(pagination.current, pagination.pageSize);
-  };
-
-  const handleFilterChange = (key: keyof typeof filters, value?: string) => {
-    const next = { ...filters, [key]: value };
-    setFilters(next);
-    loadData(1, pageSize, next);
-  };
-
-  const uploadProps = {
-    multiple: false,
-    fileList,
-    beforeUpload: (file: any) => {
-      setFileList([file]);
-      return false; // prevent auto-upload
-    },
-    onRemove: () => setFileList([]),
-  };
-
-  const submitUpload = async () => {
-    const values = await form.validateFields();
-    if (!fileList.length) {
-      message.error('Please select a file');
-      return;
+  function fieldChange(key: keyof UploadForm, value: string) {
+    const next = { ...form, [key]: value };
+    if (key === 'documentType') {
+      if (TYPE_MAP[value]) next.name = TYPE_MAP[value];
+      else if (value === 'OTHER') next.name = '';
     }
+    setForm(next);
+    setErrors((e) => { const n = { ...e }; delete n[key]; return n; });
+  }
+
+  function validate(): boolean {
+    const e: Partial<Record<keyof UploadForm | 'file', string>> = {};
+    if (!form.name) e.name = 'Document name required';
+    if (!form.vesselId) e.vesselId = 'Vessel ID required';
+    if (!file) e.file = 'Please select a file';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
+  async function submitUpload() {
+    if (!validate()) return;
     setUploading(true);
+    setUploadError(null);
     const fd = new FormData();
-    fd.append('file', fileList[0] as File);
-    fd.append('name', values.name);
+    fd.append('file', file!);
+    fd.append('name', form.name);
     fd.append('entityType', 'vessel');
-    fd.append('entityId', values.vesselId);
-    if (values.documentType) fd.append('documentType', values.documentType);
-    if (values.expiryDate) fd.append('expiryDate', values.expiryDate.toISOString());
-    if (values.metadata) fd.append('metadata', JSON.stringify(values.metadata));
+    fd.append('entityId', form.vesselId);
+    if (form.documentType) fd.append('documentType', form.documentType);
+    if (form.expiryDate) fd.append('expiryDate', new Date(form.expiryDate).toISOString());
 
     const res = await api.documents.upload(fd);
     setUploading(false);
     if (res.error) {
-      message.error(res.error || 'Upload failed');
-      return;
+      setUploadError(String(res.error));
+    } else {
+      setUploadOpen(false);
+      setForm(INITIAL_FORM);
+      setFile(null);
+      setErrors({});
+      loadData();
     }
-    message.success('Document uploaded');
-    setUploadOpen(false);
-    setFileList([]);
-    form.resetFields();
-    loadData();
-  };
+  }
+
+  const isNameLocked = !!form.documentType && form.documentType !== 'OTHER';
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <AppSidebar />
-      <Layout>
-        <AppHeader />
-        <Content
-          style={{
-            margin: '24px',
-            padding: '24px',
-            background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
-            minHeight: 'calc(100vh - 64px - 48px)',
-          }}
-        >
-          <Row justify="space-between" align="middle" style={{ marginBottom: 32 }}>
-            <Col>
-              <Title level={2} style={{ color: '#fff', margin: 0 }}>
-                <FileTextOutlined style={{ marginRight: 12, color: '#1890ff' }} />
-                Vessel Document Registry
-              </Title>
-              <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                Immutable storage for BMA R102-R106 certificates and ship&apos;s library.
-              </Text>
-            </Col>
-            <Col>
-              <Button
-                type="primary"
-                icon={<UploadOutlined />}
-                size="large"
-                onClick={() => setUploadOpen(true)}
-              >
-                Upload Document
-              </Button>
-            </Col>
-          </Row>
+    <DashboardLayout contentClassName="p-4 md:p-6">
+      <div className="flex items-start justify-between mb-8 gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+            <FileText size={16} />
+            Vessel Document Registry
+          </h1>
+          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+            Immutable storage for BMA R102–R106 certificates and ship&apos;s library
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest flex items-center gap-1">
+            <ShieldCheck size={10} />
+            AI EXTRACTION ENABLED
+          </span>
+          <Button icon={<Upload size={11} />} onClick={() => setUploadOpen(true)}>
+            Upload Document
+          </Button>
+        </div>
+      </div>
 
-          <Card
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+      {/* Filters */}
+      <div className="flex flex-wrap items-end gap-4 mb-6">
+        <div className="flex-1 relative min-w-48">
+          <input
+            type="text"
+            placeholder="Search title / type / description..."
+            className={termInputCls}
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') loadData(1, searchQ, filterStatus); }}
+          />
+        </div>
+        <select
+          className={`${termInputCls} w-48`}
+          value={filterStatus}
+          onChange={(e) => { setFilterStatus(e.target.value); loadData(1, searchQ, e.target.value); }}
+        >
+          <option value="" className="bg-[#050505]">All Status</option>
+          <option value="VALID" className="bg-[#050505]">Valid</option>
+          <option value="EXPIRING" className="bg-[#050505]">Expiring</option>
+          <option value="EXPIRED" className="bg-[#050505]">Expired</option>
+          <option value="PENDING_REVIEW" className="bg-[#050505]">Pending Review</option>
+        </select>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<RefreshCw size={11} className={loading ? 'animate-spin' : ''} />}
+          onClick={() => loadData(1)}
+          disabled={loading}
+        >
+          Refresh
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <span className="flex items-center gap-2">
+            <FileText size={13} />
+            DOCUMENT REGISTRY
+          </span>
+        </CardHeader>
+        <CardContent className="p-0">
+          <TerminalTable
+            data={data}
+            columns={columns}
+            loading={loading}
+            rowKey={(r) => r.id}
+            emptyMessage="NO DOCUMENTS FOUND"
+            pagination={{
+              page,
+              pageSize,
+              total,
+              onChange: (pg) => loadData(pg),
             }}
-            headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            <Space style={{ marginBottom: 24 }} wrap>
-              <Input.Search
-                allowClear
-                placeholder="Search title/type/description"
-                onSearch={(v) => handleFilterChange('q', v || undefined)}
-                style={{ width: 300 }}
-              />
-              <Select
-                allowClear
-                placeholder="Status"
-                style={{ width: 180 }}
-                onChange={(v) => handleFilterChange('status', v)}
-                options={[
-                  { label: 'Valid', value: 'VALID' },
-                  { label: 'Expiring', value: 'EXPIRING' },
-                  { label: 'Expired', value: 'EXPIRED' },
-                  { label: 'Pending Review', value: 'PENDING_REVIEW' },
-                ]}
-              />
-              <Tag color="blue" icon={<SafetyCertificateOutlined />}>
-                AI EXTRACTION ENABLED
-              </Tag>
-            </Space>
+          />
+        </CardContent>
+      </Card>
 
-            <Table
-              rowKey="id"
-              columns={columns}
-              dataSource={data}
-              loading={loading}
-              pagination={{
-                current: page,
-                pageSize,
-                total,
-                showSizeChanger: true,
-                showTotal: (total) => `Total ${total} documents`,
-              }}
-              onChange={handleTableChange}
-              className="maritime-table"
-            />
-          </Card>
-
-          <style jsx global>{`
-            .maritime-table .ant-table {
-              background: transparent !important;
-              color: #e6f7ff !important;
-            }
-            .maritime-table .ant-table-thead > tr > th {
-              background: rgba(255, 255, 255, 0.05) !important;
-              color: rgba(255, 255, 255, 0.85) !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-            }
-            .maritime-table .ant-table-tbody > tr > td {
-              border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-            }
-            .maritime-table .ant-table-tbody > tr:hover > td {
-              background: rgba(255, 255, 255, 0.02) !important;
-            }
-            .ant-input-search .ant-input,
-            .ant-select-selector {
-              background: rgba(255, 255, 255, 0.05) !important;
-              border: 1px solid rgba(255, 255, 255, 0.1) !important;
-              color: #fff !important;
-            }
-            .ant-input {
-              background: transparent !important;
-              color: #fff !important;
-            }
-          `}</style>
-        </Content>
-      </Layout>
-
-      <Modal
-        title="Upload Vessel Document"
+      {/* Upload modal */}
+      <TerminalModal
         open={uploadOpen}
-        onCancel={() => setUploadOpen(false)}
-        onOk={submitUpload}
-        confirmLoading={uploading}
-        okText="Upload to Cloud"
-        width={600}
-        styles={{
-          body: { background: '#0c2f4a', color: '#fff' },
-          mask: { backdropFilter: 'blur(4px)' },
-        }}
+        title="UPLOAD VESSEL DOCUMENT"
+        onClose={() => { setUploadOpen(false); setForm(INITIAL_FORM); setFile(null); setErrors({}); setUploadError(null); }}
+        footer={
+          <div className="flex items-center gap-3">
+            {uploadError && (
+              <span className="font-mono text-[11px] text-[#FF4B2B] flex items-center gap-1">
+                <AlertTriangle size={11} />
+                {uploadError}
+              </span>
+            )}
+            <Button variant="ghost" onClick={() => setUploadOpen(false)} disabled={uploading}>Cancel</Button>
+            <Button onClick={submitUpload} disabled={uploading}>
+              {uploading ? 'Uploading...' : 'Upload to Cloud'}
+            </Button>
+          </div>
+        }
       >
-        <Form 
-          layout="vertical" 
-          form={form} 
-          initialValues={{ documentType: undefined }}
-          onValuesChange={handleValuesChange}
-        >
-          <Form.Item
-            name="name"
-            label={<Text style={{ color: '#e6f7ff' }}>Document Name</Text>}
-            rules={[{ required: true, message: 'Enter a document name' }]}
-          >
-            <Input 
-              placeholder="e.g., Safe Manning Certificate" 
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className={`${termLabelCls} ${errors.name ? 'text-[#FF4B2B]' : ''}`}>Document Name *</label>
+            <input
+              type="text"
+              className={`${termInputCls} ${isNameLocked ? 'opacity-50 cursor-not-allowed' : ''} ${errors.name ? 'border-[rgba(255,75,43,0.5)]' : ''}`}
+              placeholder="e.g., Safe Manning Certificate"
+              value={form.name}
               readOnly={isNameLocked}
-              style={isNameLocked ? { background: 'rgba(255,255,255,0.05)', cursor: 'not-allowed' } : {}}
+              onChange={(e) => fieldChange('name', e.target.value)}
             />
-          </Form.Item>
+            {errors.name && <span className="font-mono text-[10px] text-[#FF4B2B]">{errors.name}</span>}
+          </div>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="vesselId"
-                label={<Text style={{ color: '#e6f7ff' }}>Vessel ID</Text>}
-                rules={[{ required: true, message: 'Enter vessel id' }]}
-              >
-                <Input placeholder="Vessel UUID" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="expiryDate"
-                label={<Text style={{ color: '#e6f7ff' }}>Expiry Date</Text>}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className={`${termLabelCls} ${errors.vesselId ? 'text-[#FF4B2B]' : ''}`}>Vessel ID *</label>
+              <input
+                type="text"
+                className={`${termInputCls} ${errors.vesselId ? 'border-[rgba(255,75,43,0.5)]' : ''}`}
+                placeholder="Vessel UUID"
+                value={form.vesselId}
+                onChange={(e) => fieldChange('vesselId', e.target.value)}
+              />
+              {errors.vesselId && <span className="font-mono text-[10px] text-[#FF4B2B]">{errors.vesselId}</span>}
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className={termLabelCls}>Expiry Date</label>
+              <input
+                type="date"
+                className={termInputCls}
+                value={form.expiryDate}
+                onChange={(e) => fieldChange('expiryDate', e.target.value)}
+              />
+            </div>
+          </div>
 
-          <Form.Item
-            name="documentType"
-            label={<Text style={{ color: '#e6f7ff' }}>Document Type</Text>}
+          <SelectField
+            label="Document Type"
+            value={form.documentType}
+            onChange={(e) => fieldChange('documentType', e.target.value)}
           >
-            <Select
-              placeholder="Select category"
-              options={[
-                { label: 'Registry Certificate (R102)', value: 'R102' },
-                { label: 'Safe Manning (R106)', value: 'R106' },
-                { label: "Ship's Library", value: 'SHIPS_LIBRARY' },
-                { label: 'Radio License', value: 'RADIO_LICENSE' },
-                { label: 'Classification Certificate', value: 'CLASS_CERT' },
-                { label: 'Other Regulatory', value: 'OTHER' },
-              ]}
-            />
-          </Form.Item>
+            <option value="" className="bg-[#050505]">Select category…</option>
+            <option value="R102" className="bg-[#050505]">Registry Certificate (R102)</option>
+            <option value="R106" className="bg-[#050505]">Safe Manning (R106)</option>
+            <option value="SHIPS_LIBRARY" className="bg-[#050505]">Ship's Library</option>
+            <option value="RADIO_LICENSE" className="bg-[#050505]">Radio License</option>
+            <option value="CLASS_CERT" className="bg-[#050505]">Classification Certificate</option>
+            <option value="OTHER" className="bg-[#050505]">Other Regulatory</option>
+          </SelectField>
 
-          <Form.Item label={<Text style={{ color: '#e6f7ff' }}>Document File (PDF)</Text>} required>
-            <Dragger
-              {...uploadProps}
-              accept="application/pdf"
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px dashed rgba(255,255,255,0.2)',
-              }}
-            >
-              <p className="ant-upload-drag-icon">
-                <UploadOutlined style={{ color: '#1890ff' }} />
-              </p>
-              <p className="ant-upload-text" style={{ color: '#fff' }}>
-                Drop PDF or Click to Browse
-              </p>
-              <p className="ant-upload-hint" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                AI will automatically extract dates and document numbers for verification.
-              </p>
-            </Dragger>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </Layout>
+          <div className="flex flex-col gap-1">
+            <label className={`${termLabelCls} ${errors.file ? 'text-[#FF4B2B]' : ''}`}>Document File (PDF) *</label>
+            <DropZone file={file} onChange={(f) => { setFile(f); setErrors((e) => { const n = { ...e }; delete n.file; return n; }); }} />
+            {errors.file && <span className="font-mono text-[10px] text-[#FF4B2B]">{errors.file}</span>}
+          </div>
+        </div>
+      </TerminalModal>
+    </DashboardLayout>
   );
 }

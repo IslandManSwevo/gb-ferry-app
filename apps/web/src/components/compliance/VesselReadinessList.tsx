@@ -1,12 +1,5 @@
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  RocketOutlined,
-  WarningOutlined,
-} from '@ant-design/icons';
-import { Card, Empty, Space, Tag, Typography } from 'antd';
-
-const { Text } = Typography;
+import { CheckCircle, Navigation, XCircle, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 export interface VesselReadiness {
   id: string;
@@ -21,92 +14,72 @@ export interface VesselReadiness {
   blockers?: string[];
 }
 
+const STATUS_CONFIG = {
+  BLOCKED: { color: '#FF4B2B', border: 'rgba(255,75,43,0.4)', Icon: XCircle, label: 'BLOCKED' },
+  WARNING: { color: '#FFB000', border: 'rgba(255,176,0,0.4)', Icon: AlertTriangle, label: 'WARNING' },
+  READY:   { color: '#33FF33', border: 'rgba(51,255,51,0.4)',  Icon: CheckCircle, label: 'READY' },
+} as const;
+
 export function VesselReadinessList({ vessels }: { vessels: VesselReadiness[] }) {
   if (!vessels || vessels.length === 0) {
     return (
-      <Card
-        style={{
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          marginTop: '24px',
-          textAlign: 'center',
-        }}
-      >
-        <Empty
-          description={
-            <Text style={{ color: 'rgba(255,255,255,0.45)' }}>No vessels found in fleet</Text>
-          }
-        />
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] tracking-widest">
+            — NO VESSELS FOUND IN FLEET —
+          </p>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card
-      title={
-        <Space>
-          <RocketOutlined style={{ color: '#1890ff' }} />
-          <Text style={{ color: '#e6f7ff' }}>Vessel Departure Readiness</Text>
-        </Space>
-      }
-      style={{
-        background: 'rgba(255, 255, 255, 0.04)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        marginTop: '24px',
-      }}
-      bodyStyle={{ padding: '0 20px' }}
-    >
-      {vessels.map((v, index) => {
-        const isLast = index === vessels.length - 1;
-        const readiness = v.readinessStatus || (v.isCompliant ? 'READY' : 'BLOCKED');
+    <Card>
+      <CardHeader>
+        <span className="flex items-center gap-2">
+          <Navigation size={13} />
+          VESSEL DEPARTURE READINESS
+        </span>
+      </CardHeader>
+      <CardContent className="p-0">
+        {vessels.map((v, index) => {
+          const readiness = v.readinessStatus ?? (v.isCompliant ? 'READY' : 'BLOCKED');
+          const { color, border, Icon, label } = STATUS_CONFIG[readiness];
+          const isLast = index === vessels.length - 1;
 
-        const statusConfig = {
-          BLOCKED: { color: '#ff4d4f', label: 'BLOCKED', icon: <CloseCircleOutlined /> },
-          WARNING: { color: '#faad14', label: 'WARNING', icon: <WarningOutlined /> },
-          READY: { color: '#52c41a', label: 'READY', icon: <CheckCircleOutlined /> },
-        }[readiness];
-
-        return (
-          <div
-            key={v.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '16px 0',
-              borderBottom: isLast ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
-            }}
-          >
-            <Space size="middle">
-              <span style={{ color: statusConfig.color, fontSize: '20px' }}>
-                {statusConfig.icon}
-              </span>
-              <div>
-                <Text style={{ color: '#e6f7ff', fontWeight: 500, fontSize: '15px' }}>
-                  {v.name}
-                </Text>
-                <br />
-                <Text style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '12px' }}>
-                  IMO: {v.imoNumber || 'N/A'}{' '}
-                  {v.assignedCrew !== undefined &&
-                    ` · Manning: ${v.assignedCrew}/${v.requiredCrew}`}
-                </Text>
+          return (
+            <div
+              key={v.id}
+              className={`flex items-center justify-between px-5 py-4 ${!isLast ? 'border-b border-[rgba(51,255,51,0.06)]' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <Icon size={18} style={{ color }} />
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono text-[13px] text-[rgba(51,255,51,0.85)] font-medium">{v.name}</span>
+                  <span className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+                    IMO: {v.imoNumber ?? 'N/A'}
+                    {v.assignedCrew !== undefined && ` · Manning: ${v.assignedCrew}/${v.requiredCrew}`}
+                  </span>
+                </div>
               </div>
-            </Space>
-            <Space direction="vertical" align="end" size={2}>
-              <Tag color={statusConfig.color} style={{ margin: 0, borderRadius: '4px' }}>
-                {statusConfig.label}
-              </Tag>
-              {v.blockers && v.blockers.length > 0 && (
-                <Text style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '11px' }}>
-                  {v.blockers[0]}
-                  {v.blockers.length > 1 && ` +${v.blockers.length - 1} more`}
-                </Text>
-              )}
-            </Space>
-          </div>
-        );
-      })}
+
+              <div className="flex flex-col items-end gap-0.5">
+                <span
+                  className="font-mono text-[10px] px-2 py-0.5 border tracking-widest"
+                  style={{ color, borderColor: border, background: `${color}10` }}
+                >
+                  {label}
+                </span>
+                {v.blockers && v.blockers.length > 0 && (
+                  <span className="font-mono text-[10px] text-[rgba(255,75,43,0.5)]">
+                    {v.blockers[0]}{v.blockers.length > 1 ? ` +${v.blockers.length - 1} more` : ''}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
     </Card>
   );
 }

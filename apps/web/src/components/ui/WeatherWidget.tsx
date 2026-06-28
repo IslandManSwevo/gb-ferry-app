@@ -1,9 +1,5 @@
-import { ReloadOutlined } from '@ant-design/icons';
-import { Button, Col, Row, Space, Statistic, Typography } from 'antd';
-import { GlassCard } from './GlassCard';
-import { StatusBadge, StatusKind } from './StatusBadge';
-
-const { Text } = Typography;
+import { RefreshCw, Wind } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 type RiskLevel = 'low' | 'elevated' | 'high';
 
@@ -26,11 +22,11 @@ function getRiskLevel(windKts?: number, waveHeightM?: number): RiskLevel {
   return 'low';
 }
 
-function toStatus(risk: RiskLevel): StatusKind {
-  if (risk === 'high') return 'critical';
-  if (risk === 'elevated') return 'warning';
-  return 'ok';
-}
+const RISK_CONFIG = {
+  high:     { color: '#FF4B2B', border: 'rgba(255,75,43,0.3)',  label: 'HIGH RISK' },
+  elevated: { color: '#FFB000', border: 'rgba(255,176,0,0.3)',  label: 'MONITOR' },
+  low:      { color: '#33FF33', border: 'rgba(51,255,51,0.3)',  label: 'CALM' },
+};
 
 export function WeatherWidget({
   loading,
@@ -45,94 +41,78 @@ export function WeatherWidget({
   onRefresh,
 }: WeatherWidgetProps) {
   const risk = getRiskLevel(windKts, waveHeightM);
-  const statusLabel = risk === 'high' ? 'High risk' : risk === 'elevated' ? 'Monitor' : 'Calm';
+  const { color, border, label } = RISK_CONFIG[risk];
 
   return (
-    <GlassCard>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
-        <Col>
-          <Text style={{ color: '#e6f7ff', fontWeight: 600 }}>{location}</Text>
-          <div>
-            <StatusBadge status={toStatus(risk)} label={statusLabel} compact />
-          </div>
-        </Col>
-        {onRefresh && (
-          <Col>
-            <Button
-              size="small"
-              icon={<ReloadOutlined spin={loading} />}
+    <Card>
+      <CardHeader
+        action={
+          onRefresh ? (
+            <button
               onClick={onRefresh}
               disabled={loading}
+              className="flex items-center gap-1 font-mono text-[10px] tracking-widest text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] disabled:opacity-40 transition-colors"
             >
-              Refresh
-            </Button>
-          </Col>
-        )}
-      </Row>
+              <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
+              SYNC
+            </button>
+          ) : undefined
+        }
+      >
+        <span className="flex items-center gap-2">
+          <Wind size={13} />
+          {location.toUpperCase()}
+        </span>
+      </CardHeader>
 
-      {loading ? (
-        <Space direction="vertical" style={{ width: '100%' }} size="small">
-          <div style={{ height: 16, background: 'rgba(255,255,255,0.08)', borderRadius: 4 }} />
-          <div style={{ height: 12, background: 'rgba(255,255,255,0.06)', borderRadius: 4 }} />
-        </Space>
-      ) : (
-        <>
-          <Row gutter={[12, 12]}>
-            <Col span={12}>
-              <Statistic
-                title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>Conditions</Text>}
-                value={condition}
-                valueStyle={{ color: '#e6f7ff', fontSize: 18 }}
-              />
-            </Col>
-            <Col span={12}>
-              <Statistic
-                title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>Temperature</Text>}
-                value={temperatureC ?? '--'}
-                suffix={temperatureC !== undefined ? '°C' : ''}
-                valueStyle={{ color: '#e6f7ff' }}
-              />
-            </Col>
-          </Row>
-          <Row gutter={[12, 12]} style={{ marginTop: 8 }}>
-            <Col span={8}>
-              <Statistic
-                title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>Wind</Text>}
-                value={windKts ?? '--'}
-                suffix={windKts !== undefined ? 'kts' : ''}
-                valueStyle={{ color: '#e6f7ff' }}
-              />
-            </Col>
-            <Col span={8}>
-              <Statistic
-                title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>Seas</Text>}
-                value={waveHeightM ?? '--'}
-                suffix={waveHeightM !== undefined ? 'm' : ''}
-                valueStyle={{ color: '#e6f7ff' }}
-              />
-            </Col>
-            <Col span={8}>
-              <Statistic
-                title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>Visibility</Text>}
-                value={visibilityNm ?? '--'}
-                suffix={visibilityNm !== undefined ? 'nm' : ''}
-                valueStyle={{ color: '#e6f7ff' }}
-              />
-            </Col>
-          </Row>
-          {advisory && (
-            <div style={{ marginTop: 12 }}>
-              <Text style={{ color: 'rgba(230,247,255,0.8)' }}>{advisory}</Text>
+      <CardContent>
+        {loading ? (
+          <div className="flex flex-col gap-2">
+            <div className="h-4 bg-[rgba(51,255,51,0.05)] animate-pulse" />
+            <div className="h-3 w-3/4 bg-[rgba(51,255,51,0.04)] animate-pulse" />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {/* Risk badge + condition */}
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{condition}</span>
+              <span
+                className="font-mono text-[10px] px-2 py-0.5 border tracking-widest"
+                style={{ color, borderColor: border, background: `${color}10` }}
+              >
+                {label}
+              </span>
             </div>
-          )}
-          {updatedAt && (
-            <Text type="secondary" style={{ display: 'block', marginTop: 6 }}>
-              Updated{' '}
-              {new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-          )}
-        </>
-      )}
-    </GlassCard>
+
+            {/* 2-col metrics */}
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'TEMP', value: temperatureC !== undefined ? `${temperatureC}°C` : '—' },
+                { label: 'WIND', value: windKts !== undefined ? `${windKts} kts` : '—' },
+                { label: 'SEAS', value: waveHeightM !== undefined ? `${waveHeightM}m` : '—' },
+                { label: 'VIS', value: visibilityNm !== undefined ? `${visibilityNm}nm` : '—' },
+              ].map(({ label: l, value }) => (
+                <div key={l} className="flex flex-col gap-0.5">
+                  <span className="font-mono text-[10px] text-[rgba(51,255,51,0.35)] tracking-[0.1em]">{l}</span>
+                  <span className="font-mono text-[13px] tabular-nums text-[#00FFFF]">{value}</span>
+                </div>
+              ))}
+            </div>
+
+            {advisory && (
+              <div className="border-t border-[rgba(51,255,51,0.08)] pt-3">
+                <p className="font-mono text-[11px] text-[rgba(51,255,51,0.55)] leading-relaxed">{advisory}</p>
+              </div>
+            )}
+
+            {updatedAt && (
+              <span className="font-mono text-[10px] text-[rgba(51,255,51,0.25)] tabular-nums">
+                UPDATED {new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
