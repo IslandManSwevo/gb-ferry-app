@@ -1,8 +1,5 @@
 import { AuthProvider } from '@/components/providers/AuthProvider';
 import '@/styles/globals.css';
-import { gbferryTheme } from '@/theme/antd-theme';
-import { AntdRegistry } from '@ant-design/nextjs-registry';
-import { ConfigProvider } from 'antd';
 import { IBM_Plex_Mono, Inter } from 'next/font/google';
 import type { Metadata } from 'next';
 
@@ -33,11 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${ibmPlexMono.variable}`}>
       <body suppressHydrationWarning>
-        <AuthProvider>
-          <AntdRegistry>
-            <ConfigProvider theme={gbferryTheme}>{children}</ConfigProvider>
-          </AntdRegistry>
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

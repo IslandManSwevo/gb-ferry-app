@@ -1,182 +1,252 @@
 'use client';
 
-import { AppHeader } from '@/components/layout/AppHeader';
-import { AppSidebar } from '@/components/layout/AppSidebar';
-import { GlassCard } from '@/components/ui/GlassCard';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, StatCard } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import {
+  Field,
+  SelectField,
+  TerminalModal,
+  termInputCls,
+  termSectionCls,
+} from '@/components/ui/TerminalModal';
+import { TerminalTable } from '@/components/ui/TerminalTable';
 import { api } from '@/lib/api';
 import { useCanAccess } from '@/lib/auth/roles';
+import { ColumnDef } from '@tanstack/react-table';
 import {
-  ClockCircleOutlined,
-  PhoneOutlined,
-  PlusOutlined,
-  SafetyCertificateOutlined,
-  SearchOutlined,
-  TeamOutlined,
-} from '@ant-design/icons';
-import {
-  Avatar,
-  Button,
-  Col,
-  DatePicker,
-  Divider,
-  Form,
-  Input,
-  Layout,
-  Modal,
-  Progress,
-  Row,
-  Select,
-  Space,
-  Table,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+  Lock,
+  Phone,
+  Plus,
+  Search,
+  Shield,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-const { Content } = Layout;
-const { Title, Text } = Typography;
+/* ── Types ───────────────────────────────────────────────── */
+interface CrewMember {
+  id: string;
+  fullName?: string;
+  rank?: string;
+  vesselName?: string;
+  status?: string;
+  certifications?: Array<{ expirationDate?: string }>;
+}
 
+interface OnboardForm {
+  givenNames: string;
+  familyName: string;
+  dateOfBirth: string;
+  nationality: string;
+  gender: string;
+  passportNumber: string;
+  passportExpiryDate: string;
+  seamanBookNumber: string;
+  passportIssuingCountry: string;
+  role: string;
+  vesselId: string;
+}
+
+const INITIAL_FORM: OnboardForm = {
+  givenNames: '',
+  familyName: '',
+  dateOfBirth: '',
+  nationality: 'Bahamian',
+  gender: 'MALE',
+  passportNumber: '',
+  passportExpiryDate: '',
+  seamanBookNumber: '',
+  passportIssuingCountry: 'BHS',
+  role: 'DECK_OFFICER',
+  vesselId: '',
+};
+
+/* ── Compliance progress bar ──────────────────────────────── */
+function ComplianceBar({ crew }: { crew: CrewMember }) {
+  const expiringCount =
+    crew.certifications?.filter((c) => {
+      if (!c.expirationDate) return false;
+      const d = new Date(c.expirationDate);
+      if (isNaN(d.getTime())) return false;
+      return d.getTime() < Date.now() + 30 * 24 * 60 * 60 * 1000;
+    }).length ?? 0;
+
+  const compliant = expiringCount === 0;
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="h-1 w-full bg-[rgba(51,255,51,0.08)]">
+        <div
+          className="h-full transition-all duration-300"
+          style={{
+            width: compliant ? '100%' : '80%',
+            background: compliant ? '#33FF33' : '#FF4B2B',
+          }}
+        />
+      </div>
+      <span
+        className="font-mono text-[10px]"
+        style={{ color: compliant ? '#33FF33' : '#FF4B2B' }}
+      >
+        {compliant ? 'FULLY COMPLIANT' : `${expiringCount} EXPIRING`}
+      </span>
+    </div>
+  );
+}
+
+/* ── Table columns ───────────────────────────────────────── */
+function buildColumns(onContact: (c: CrewMember) => void): ColumnDef<CrewMember, any>[] {
+  return [
+    {
+      accessorKey: 'fullName',
+      header: 'Crew Identity',
+      cell: ({ getValue, row }) => {
+        const name = getValue<string>() || 'Unknown';
+        const initial = name.charAt(0).toUpperCase();
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[rgba(51,255,51,0.1)] flex items-center justify-center flex-shrink-0">
+              <span className="font-mono text-[11px] text-[#33FF33] font-semibold">{initial}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{name}</span>
+              <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)]">
+                ID:{row.original.id.slice(0, 8)}
+              </span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'rank',
+      header: 'Rank / Role',
+      cell: ({ getValue }) => (
+        <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.05)] tracking-wider uppercase">
+          {getValue<string>() ?? '—'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'vesselName',
+      header: 'Assigned Vessel',
+      cell: ({ getValue }) => (
+        <span className="font-mono text-[11px] text-[rgba(51,255,51,0.6)]">
+          {getValue<string>() || <span className="text-[rgba(51,255,51,0.25)]">Unassigned</span>}
+        </span>
+      ),
+    },
+    {
+      id: 'compliance',
+      header: 'Compliance',
+      enableSorting: false,
+      cell: ({ row }) => <ComplianceBar crew={row.original} />,
+    },
+    {
+      accessorKey: 'status',
+      header: 'Duty Status',
+      cell: ({ getValue }) => {
+        const s = getValue<string>();
+        const map: Record<string, { status: any; label: string }> = {
+          ACTIVE: { status: 'ok', label: 'On Duty' },
+          ON_LEAVE: { status: 'warning', label: 'On Leave' },
+          OFF_DUTY: { status: 'muted', label: 'Off Duty' },
+        };
+        const cfg = map[s] ?? { status: 'warning', label: s };
+        return <StatusBadge status={cfg.status} label={cfg.label} compact />;
+      },
+    },
+    {
+      id: 'action',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            icon={<Phone size={11} />}
+            onClick={() => onContact(row.original)}
+            aria-label="Contact crew member"
+          />
+          <Button variant="outline" size="sm">
+            Profile
+          </Button>
+        </div>
+      ),
+    },
+  ];
+}
+
+/* ── Page ─────────────────────────────────────────────────── */
 export default function CrewPage() {
   const canAccessPage = useCanAccess('crew.view');
-  const [crew, setCrew] = useState<any[]>([]);
+  const [crew, setCrew] = useState<CrewMember[]>([]);
   const [vessels, setVessels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
-  const [selectedCrew, setSelectedCrew] = useState<any | null>(null);
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-  const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
+  const [selectedCrew, setSelectedCrew] = useState<CrewMember | null>(null);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [onboardOpen, setOnboardOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [dashboard, setDashboard] = useState<any | null>(null);
-  const [form] = Form.useForm();
+  const [form, setForm] = useState<OnboardForm>(INITIAL_FORM);
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof OnboardForm, string>>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const fetchCrew = useCallback(async () => {
     setLoading(true);
-    try {
-      const [crewResult, dashResult, vesselResult] = await Promise.all([
-        api.crew.list(),
-        api.compliance.dashboard(),
-        api.vessels.list({ pageSize: 100 }),
-      ]);
-
-      if (crewResult.error) {
-        message.error(crewResult.error || 'Failed to load crew registry');
-      } else if (crewResult.data) {
-        setCrew(crewResult.data.items || []);
-      }
-
-      if (dashResult.data) {
-        setDashboard(dashResult.data);
-      }
-
-      // FIX-06: Handle vessel fetch errors and clear stale data
-      if (vesselResult.error) {
-        message.error(vesselResult.error || 'Failed to fetch vessel list');
-        setVessels([]);
-      } else if (vesselResult.data) {
-        setVessels(vesselResult.data.items || []);
-      }
-    } catch (err: any) {
-      message.error('System error occurred while loading crew data');
-    } finally {
-      setLoading(false);
-    }
+    const [crewResult, dashResult, vesselResult] = await Promise.all([
+      api.crew.list(),
+      api.compliance.dashboard(),
+      api.vessels.list({ pageSize: 100 }),
+    ]);
+    if (crewResult.data) setCrew(crewResult.data.items || []);
+    if (dashResult.data) setDashboard(dashResult.data);
+    if (vesselResult.data) setVessels(vesselResult.data.items || []);
+    setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchCrew();
-  }, [fetchCrew]);
+  useEffect(() => { fetchCrew(); }, [fetchCrew]);
+
+  /* ── Onboard form validation ── */
+  const validateForm = (): boolean => {
+    const errs: Partial<Record<keyof OnboardForm, string>> = {};
+    if (!form.givenNames.trim()) errs.givenNames = 'Required';
+    if (!form.familyName.trim()) errs.familyName = 'Required';
+    if (!form.dateOfBirth) errs.dateOfBirth = 'Required';
+    if (!form.passportNumber.trim()) errs.passportNumber = 'Required';
+    if (!form.passportExpiryDate) errs.passportExpiryDate = 'Required';
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const handleOnboard = async () => {
-    try {
-      const values = await form.validateFields();
-      setSubmitting(true);
-
-      const payload = {
-        ...values,
-        dateOfBirth: values.dateOfBirth.format('YYYY-MM-DD'),
-        passportExpiryDate: values.passportExpiryDate.format('YYYY-MM-DD'),
-      };
-
-      const { error } = await api.crew.create(payload);
-      if (error) {
-        // FIX-06: Normalize error object to string to prevent [object Object]
-        const errorMsg =
-          typeof error === 'string'
-            ? error
-            : (error as any).message || JSON.stringify(error) || 'Failed to onboard crew member';
-        message.error(errorMsg);
-      } else {
-        message.success('Crew member onboarded successfully');
-        setIsOnboardModalOpen(false);
-        form.resetFields();
-        fetchCrew();
-      }
-    } catch (err: any) {
-      // Form validation errors handled by Ant Design UI
-    } finally {
-      setSubmitting(false);
+    if (!validateForm()) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const { error } = await api.crew.create(form);
+    if (error) {
+      setSubmitError(typeof error === 'string' ? error : 'Failed to onboard crew member');
+    } else {
+      setSubmitSuccess(true);
+      setOnboardOpen(false);
+      setForm(INITIAL_FORM);
+      setFormErrors({});
+      fetchCrew();
     }
+    setSubmitting(false);
   };
 
-  if (!canAccessPage) {
-    return (
-      <Layout style={{ minHeight: '100vh' }}>
-        <AppSidebar />
-        <Layout>
-          <AppHeader />
-          <Content
-            style={{
-              margin: '24px',
-              padding: '24px',
-              background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
-              minHeight: 'calc(100vh - 64px - 48px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <GlassCard style={{ maxWidth: 600, padding: 40, textAlign: 'center' }}>
-              <Space direction="vertical" size="large">
-                <div
-                  style={{
-                    width: 80,
-                    height: 80,
-                    background: 'rgba(24, 144, 255, 0.1)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto',
-                  }}
-                >
-                  <TeamOutlined style={{ fontSize: 40, color: '#1890ff' }} />
-                </div>
-                <div>
-                  <Title level={3} style={{ color: '#fff', marginBottom: 8 }}>
-                    Crew Registry Restricted
-                  </Title>
-                  <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    Access to crew documents and duty rosters is restricted to authorized personnel.
-                    Please contact your department head for access clearance.
-                  </Text>
-                </div>
-                <Button type="primary" size="large" onClick={() => window.history.back()}>
-                  Return to Dashboard
-                </Button>
-              </Space>
-            </GlassCard>
-          </Content>
-        </Layout>
-      </Layout>
-    );
-  }
-
-  const handleContactCrew = (member: any) => {
+  const handleContact = (member: CrewMember) => {
     setSelectedCrew(member);
-    setIsContactModalOpen(true);
+    setContactOpen(true);
   };
+
+  const columns = buildColumns(handleContact);
 
   const filteredCrew = crew.filter(
     (c) =>
@@ -185,490 +255,301 @@ export default function CrewPage() {
       c.vesselName?.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const columns = [
-    {
-      title: 'Crew Identity',
-      dataIndex: 'fullName',
-      key: 'fullName',
-      render: (text: string, record: any) => (
-        <Space>
-          <Avatar style={{ backgroundColor: '#1890ff' }} icon={<TeamOutlined />} />
-          <Space direction="vertical" size={0}>
-            <Text strong style={{ color: '#e6f7ff' }}>
-              {text}
-            </Text>
-            <Text type="secondary" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-              ID: {record.id.slice(0, 8)}
-            </Text>
-          </Space>
-        </Space>
-      ),
-    },
-    {
-      title: 'Rank / Role',
-      dataIndex: 'rank',
-      key: 'rank',
-      render: (rank: string) => <Tag color="blue">{rank}</Tag>,
-    },
-    {
-      title: 'Assigned Vessel',
-      dataIndex: 'vesselName',
-      key: 'vesselName',
-      render: (name: string) =>
-        name || <Text style={{ color: 'rgba(255,255,255,0.25)' }}>Unassigned</Text>,
-    },
-    {
-      title: 'Compliance',
-      key: 'compliance',
-      render: (record: any) => {
-        // FIX-06: Robust date check for certification logic
-        const expiringCount =
-          record.certifications?.filter((c: any) => {
-            if (!c.expirationDate) return false;
-            const expirationDate = new Date(c.expirationDate);
-            if (isNaN(expirationDate.getTime())) return false;
-
-            const thirtyDaysFromNow = new Date();
-            thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-            return expirationDate < thirtyDaysFromNow;
-          }).length || 0;
-
-        return (
-          <Space direction="vertical" size={4} style={{ width: '100%' }}>
-            <Progress
-              percent={expiringCount > 0 ? 80 : 100}
-              size="small"
-              status={expiringCount > 0 ? 'exception' : 'success'}
-              showInfo={false}
-            />
-            <Text style={{ fontSize: '10px', color: expiringCount > 0 ? '#ff4d4f' : '#52c41a' }}>
-              {expiringCount > 0 ? `${expiringCount} certs expiring` : 'Fully Compliant'}
-            </Text>
-          </Space>
-        );
-      },
-    },
-    {
-      title: 'Duty Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const statusMap: Record<string, any> = {
-          ACTIVE: { status: 'ok', label: 'On Duty' },
-          ON_LEAVE: { status: 'warning', label: 'On Leave' },
-          OFF_DUTY: { status: 'muted', label: 'Off Duty' },
-        };
-        const config = statusMap[status] || { status: 'warning', label: status };
-        return <StatusBadge status={config.status} label={config.label} compact />;
-      },
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (record: any) => (
-        <Space size="middle">
-          <Button
-            type="primary"
-            shape="circle"
-            icon={<PhoneOutlined />}
-            size="small"
-            onClick={() => handleContactCrew(record)}
-          />
-          <Button type="link" size="small" style={{ color: '#1890ff' }}>
-            PROFILE
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
+  const activeCount = crew.filter((c) => c.status === 'ACTIVE').length;
   const expiringTotal = crew.filter((c) =>
-    c.certifications?.some((cert: any) => {
-      const d = new Date(cert.expirationDate);
-      return !isNaN(d.getTime()) && d < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    c.certifications?.some((cert) => {
+      const d = new Date(cert.expirationDate ?? '');
+      return !isNaN(d.getTime()) && d.getTime() < Date.now() + 30 * 24 * 60 * 60 * 1000;
     })
   ).length;
 
+  /* ── RBAC gate ── */
+  if (!canAccessPage) {
+    return (
+      <DashboardLayout contentClassName="p-6 flex items-center justify-center">
+        <Card className="max-w-lg w-full">
+          <CardContent className="py-16 flex flex-col items-center gap-4 text-center">
+            <Lock size={40} className="text-[rgba(51,255,51,0.2)]" />
+            <h2 className="font-mono text-[13px] uppercase tracking-[0.1em] text-[#33FF33]">
+              Crew Registry Restricted
+            </h2>
+            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)] max-w-xs">
+              Access to crew documents and duty rosters is restricted to authorized personnel.
+              Contact your department head for access clearance.
+            </p>
+            <Button variant="ghost" onClick={() => window.history.back()}>
+              Return to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <AppSidebar />
-      <Layout>
-        <AppHeader />
-        <Content
-          style={{
-            margin: '24px',
-            padding: '24px',
-            background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
-            minHeight: 'calc(100vh - 64px - 48px)',
-          }}
+    <DashboardLayout contentClassName="p-4 md:p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8 gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+            <Users size={16} aria-hidden />
+            Crew Operations
+          </h1>
+          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+            {crew.length} maritime professionals across Grand Bahama fleet
+          </p>
+        </div>
+        <Button
+          variant="primary"
+          size="md"
+          icon={<Plus size={12} />}
+          onClick={() => setOnboardOpen(true)}
         >
-          <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-            <Col>
-              <Title level={2} style={{ color: '#fff', margin: 0 }}>
-                <TeamOutlined style={{ marginRight: 12 }} />
-                Crew Operations
-              </Title>
-              <Text style={{ color: 'rgba(255,255,255,0.75)' }}>
-                Managing {crew.length} maritime professionals across Group Bahama fleet
-              </Text>
-            </Col>
-            <Col>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                size="large"
-                onClick={() => setIsOnboardModalOpen(true)}
-              >
-                Onboard New Crew
-              </Button>
-            </Col>
-          </Row>
+          Onboard Crew
+        </Button>
+      </div>
 
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} md={8}>
-              <GlassCard>
-                <Space direction="vertical" size={8}>
-                  <Text style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>
-                    <ClockCircleOutlined style={{ marginRight: 8 }} />
-                    Watch Distribution
-                  </Text>
-                  <Title level={4} style={{ color: '#fff', margin: 0 }}>
-                    {crew.filter((c) => c.status === 'ACTIVE').length} On Watch
-                  </Title>
-                  <Progress
-                    percent={
-                      crew.length > 0
-                        ? (crew.filter((c) => c.status === 'ACTIVE').length / crew.length) * 100
-                        : 0
-                    }
-                    strokeColor="#1890ff"
-                    showInfo={false}
-                  />
-                </Space>
-              </GlassCard>
-            </Col>
-            <Col xs={24} md={8}>
-              <GlassCard>
-                <Space direction="vertical" size={8}>
-                  <Text style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>
-                    <SafetyCertificateOutlined style={{ marginRight: 8 }} />
-                    Certification Health
-                  </Text>
-                  <Title
-                    level={4}
-                    style={{
-                      color:
-                        (dashboard?.summary?.expiringCertifications || expiringTotal) > 0
-                          ? '#ff4d4f'
-                          : '#52c41a',
-                      margin: 0,
-                    }}
-                  >
-                    {dashboard?.summary?.expiringCertifications ?? expiringTotal} Expiring
-                  </Title>
-                  <Space size={4}>
-                    <Tag
-                      color={
-                        (dashboard?.summary?.expiringCertifications || expiringTotal) > 0
-                          ? 'error'
-                          : 'success'
-                      }
-                    >
-                      {(dashboard?.summary?.expiringCertifications || expiringTotal) > 0
-                        ? 'Action required within 30 days'
-                        : 'All certifications current'}
-                    </Tag>
-                    {dashboard?.metrics?.certificateValidityRate != null && (
-                      <Tag color="blue" style={{ fontSize: 10 }}>
-                        {dashboard.metrics.certificateValidityRate.toFixed(0)}% valid
-                      </Tag>
-                    )}
-                  </Space>
-                </Space>
-              </GlassCard>
-            </Col>
-            <Col xs={24} md={8}>
-              <GlassCard>
-                <Space direction="vertical" size={8}>
-                  <Text style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>
-                    <TeamOutlined style={{ marginRight: 8 }} />
-                    Safe Manning
-                  </Text>
-                  <Title
-                    level={4}
-                    style={{
-                      color:
-                        (dashboard?.metrics?.safeManningCompliance ?? 100) >= 100
-                          ? '#52c41a'
-                          : '#faad14',
-                      margin: 0,
-                    }}
-                  >
-                    {(dashboard?.metrics?.safeManningCompliance ?? 100).toFixed(0)}% Coverage
-                  </Title>
-                  <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>
-                    {dashboard?.summary?.compliantVessels ?? '—'} /{' '}
-                    {dashboard?.summary?.totalVessels ?? '—'} vessels meet BMA R106 requirements
-                  </Text>
-                </Space>
-              </GlassCard>
-            </Col>
-          </Row>
+      {submitSuccess && (
+        <div className="mb-6 px-4 py-3 border border-[rgba(51,255,51,0.4)] bg-[rgba(51,255,51,0.06)] flex items-center justify-between">
+          <span className="font-mono text-[11px] text-[#33FF33]">Crew member onboarded successfully.</span>
+          <button className="font-mono text-[10px] text-[rgba(51,255,51,0.4)] hover:text-[#33FF33]" onClick={() => setSubmitSuccess(false)}>DISMISS</button>
+        </div>
+      )}
 
-          <GlassCard style={{ marginBottom: 24 }}>
-            <Input
-              placeholder="Search by name, rank, or vessel..."
-              prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.45)' }} />}
-              size="large"
-              allowClear
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff',
-              }}
-            />
-          </GlassCard>
+      {/* KPI cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <StatCard
+          label="WATCH DISTRIBUTION"
+          value={`${activeCount} / ${crew.length}`}
+          status="ok"
+          sub={
+            crew.length > 0 ? (
+              <div className="h-1 w-full bg-[rgba(51,255,51,0.08)] mt-1">
+                <div
+                  className="h-full bg-[#33FF33]"
+                  style={{ width: `${(activeCount / crew.length) * 100}%` }}
+                />
+              </div>
+            ) : null
+          }
+        />
+        <StatCard
+          label="CERTIFICATION HEALTH"
+          value={`${expiringTotal} Expiring`}
+          status={expiringTotal > 0 ? 'warning' : 'ok'}
+          sub={
+            <span className="font-mono text-[10px]" style={{ color: expiringTotal > 0 ? '#FFB000' : 'rgba(51,255,51,0.4)' }}>
+              {expiringTotal > 0 ? 'ACTION REQUIRED WITHIN 30 DAYS' : 'ALL CERTIFICATIONS CURRENT'}
+            </span>
+          }
+        />
+        <StatCard
+          label="SAFE MANNING"
+          value={`${(dashboard?.metrics?.safeManningCompliance ?? 100).toFixed(0)}%`}
+          status={(dashboard?.metrics?.safeManningCompliance ?? 100) >= 100 ? 'ok' : 'warning'}
+          sub={
+            <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">
+              {dashboard?.summary?.compliantVessels ?? '—'}/{dashboard?.summary?.totalVessels ?? '—'} VESSELS · BMA R106
+            </span>
+          }
+        />
+      </div>
 
-          <GlassCard>
-            <Table
-              columns={columns}
-              dataSource={filteredCrew}
-              loading={loading}
-              rowKey="id"
-              pagination={{ pageSize: 15 }}
-              style={{ background: 'transparent' }}
-              className="maritime-table"
-            />
-          </GlassCard>
-        </Content>
-      </Layout>
+      {/* Search */}
+      <div className="mb-4 relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[rgba(51,255,51,0.3)]" aria-hidden />
+        <input
+          className={`${termInputCls} pl-9 w-full`}
+          placeholder="SEARCH BY NAME, RANK OR VESSEL..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+      </div>
 
-      <Modal
-        title="Onboard New Crew Member"
-        open={isOnboardModalOpen}
-        onOk={handleOnboard}
-        onCancel={() => {
-          setIsOnboardModalOpen(false);
-          form.resetFields();
-        }}
-        confirmLoading={submitting}
-        width={800}
-        styles={{
-          body: { background: '#0c2f4a', color: '#fff', padding: '24px' },
-          mask: { backdropFilter: 'blur(4px)' },
-        }}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{
-            gender: 'MALE',
-            role: 'DECK_OFFICER',
-            nationality: 'Bahamian',
-            passportIssuingCountry: 'BHS',
-          }}
+      {/* Crew table */}
+      <Card>
+        <CardHeader
+          action={
+            <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)] tracking-widest">
+              {filteredCrew.length} RECORDS
+            </span>
+          }
         >
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item
-                name="givenNames"
-                label={<Text style={{ color: '#e6f7ff' }}>Given Names</Text>}
-                rules={[{ required: true, message: 'First names are required' }]}
-              >
-                <Input placeholder="e.g. John Albert" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="familyName"
-                label={<Text style={{ color: '#e6f7ff' }}>Family Name</Text>}
-                rules={[{ required: true, message: 'Last name is required' }]}
-              >
-                <Input placeholder="e.g. Smith" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={24}>
-            <Col span={8}>
-              <Form.Item
-                name="dateOfBirth"
-                label={<Text style={{ color: '#e6f7ff' }}>Date of Birth</Text>}
-                rules={[{ required: true }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="nationality"
-                label={<Text style={{ color: '#e6f7ff' }}>Nationality</Text>}
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="e.g. Bahamian" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="gender"
-                label={<Text style={{ color: '#e6f7ff' }}>Gender</Text>}
-                rules={[{ required: true }]}
-              >
-                <Select
-                  options={[
-                    { label: 'Male', value: 'MALE' },
-                    { label: 'Female', value: 'FEMALE' },
-                    { label: 'Other', value: 'OTHER' },
-                  ]}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider style={{ borderColor: 'rgba(255,255,255,0.1)' }}>TRAVEL DOCUMENTS</Divider>
-
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item
-                name="passportNumber"
-                label={<Text style={{ color: '#e6f7ff' }}>Passport Number</Text>}
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="e.g. P1234567" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="passportExpiryDate"
-                label={<Text style={{ color: '#e6f7ff' }}>Passport Expiry</Text>}
-                rules={[{ required: true }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item
-                name="seamanBookNumber"
-                label={<Text style={{ color: '#e6f7ff' }}>Seaman Book No.</Text>}
-              >
-                <Input placeholder="e.g. SB998877" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="passportIssuingCountry"
-                label={<Text style={{ color: '#e6f7ff' }}>Issuing Country (ISO)</Text>}
-              >
-                <Input placeholder="BHS" maxLength={3} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider style={{ borderColor: 'rgba(255,255,255,0.1)' }}>ASSIGNMENT</Divider>
-
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item
-                name="role"
-                label={<Text style={{ color: '#e6f7ff' }}>Rank / Role</Text>}
-                rules={[{ required: true }]}
-              >
-                <Select
-                  options={[
-                    { label: 'Master / Captain', value: 'MASTER' },
-                    { label: 'Chief Officer', value: 'CHIEF_OFFICER' },
-                    { label: 'Deck Officer', value: 'DECK_OFFICER' },
-                    { label: 'Chief Engineer', value: 'CHIEF_ENGINEER' },
-                    { label: 'Engineer Officer', value: 'ENGINEER_OFFICER' },
-                    { label: 'Rating', value: 'RATING' },
-                    { label: 'Cook / Steward', value: 'COOK_STEWARD' },
-                  ]}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="vesselId"
-                label={<Text style={{ color: '#e6f7ff' }}>Assign to Vessel</Text>}
-              >
-                <Select
-                  placeholder="Select vessel"
-                  allowClear
-                  options={vessels.map((v) => ({ label: v.name, value: v.id }))}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="Establishing Secure Link"
-        open={isContactModalOpen}
-        onCancel={() => setIsContactModalOpen(false)}
-        footer={[
-          <Button key="end" danger type="primary" onClick={() => setIsContactModalOpen(false)}>
-            END SECURE CALL
-          </Button>,
-        ]}
-      >
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Avatar
-            size={80}
-            style={{ backgroundColor: '#1890ff', marginBottom: 16 }}
-            icon={<TeamOutlined />}
+          <span className="flex items-center gap-2">
+            <Shield size={13} />
+            CREW REGISTRY
+          </span>
+        </CardHeader>
+        <CardContent className="p-0">
+          <TerminalTable
+            data={filteredCrew}
+            columns={columns}
+            loading={loading}
+            rowKey={(r) => r.id}
+            emptyMessage="NO CREW MEMBERS MATCH YOUR SEARCH"
           />
-          <Title level={3} style={{ marginBottom: 8 }}>
-            {selectedCrew?.fullName}
-          </Title>
-          <Text type="secondary">{selectedCrew?.rank}</Text>
-          <div style={{ marginTop: '24px' }}>
-            <Tag color="processing" style={{ padding: '8px 24px', borderRadius: '20px' }}>
-              <Space>
-                <span className="pulse">●</span>
-                ENCRYPTED VOICE LINK ACTIVE
-              </Space>
-            </Tag>
+        </CardContent>
+      </Card>
+
+      {/* ── Onboard modal ── */}
+      <TerminalModal
+        open={onboardOpen}
+        onClose={() => { setOnboardOpen(false); setForm(INITIAL_FORM); setFormErrors({}); setSubmitError(null); }}
+        title="Onboard New Crew Member"
+        width={720}
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setOnboardOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleOnboard}
+              disabled={submitting}
+            >
+              {submitting ? 'Submitting...' : 'Onboard Crew Member'}
+            </Button>
+          </>
+        }
+      >
+        {submitError && (
+          <div className="mb-4 px-3 py-2 border border-[rgba(255,75,43,0.4)] bg-[rgba(255,75,43,0.06)]">
+            <span className="font-mono text-[11px] text-[#FF4B2B]">{submitError}</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+          <Field
+            label="Given Names *"
+            placeholder="e.g. John Albert"
+            value={form.givenNames}
+            onChange={(e) => setForm((f) => ({ ...f, givenNames: e.target.value }))}
+            error={formErrors.givenNames}
+          />
+          <Field
+            label="Family Name *"
+            placeholder="e.g. Smith"
+            value={form.familyName}
+            onChange={(e) => setForm((f) => ({ ...f, familyName: e.target.value }))}
+            error={formErrors.familyName}
+          />
+          <Field
+            label="Date of Birth *"
+            type="date"
+            value={form.dateOfBirth}
+            onChange={(e) => setForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
+            error={formErrors.dateOfBirth}
+          />
+          <Field
+            label="Nationality"
+            placeholder="e.g. Bahamian"
+            value={form.nationality}
+            onChange={(e) => setForm((f) => ({ ...f, nationality: e.target.value }))}
+          />
+          <SelectField
+            label="Gender"
+            value={form.gender}
+            onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
+            options={[
+              { label: 'Male', value: 'MALE' },
+              { label: 'Female', value: 'FEMALE' },
+              { label: 'Other', value: 'OTHER' },
+            ]}
+          />
+
+          <p className={`${termSectionCls} col-span-2`}>TRAVEL DOCUMENTS</p>
+
+          <Field
+            label="Passport Number *"
+            placeholder="e.g. P1234567"
+            value={form.passportNumber}
+            onChange={(e) => setForm((f) => ({ ...f, passportNumber: e.target.value }))}
+            error={formErrors.passportNumber}
+          />
+          <Field
+            label="Passport Expiry *"
+            type="date"
+            value={form.passportExpiryDate}
+            onChange={(e) => setForm((f) => ({ ...f, passportExpiryDate: e.target.value }))}
+            error={formErrors.passportExpiryDate}
+          />
+          <Field
+            label="Seaman Book No."
+            placeholder="e.g. SB998877"
+            value={form.seamanBookNumber}
+            onChange={(e) => setForm((f) => ({ ...f, seamanBookNumber: e.target.value }))}
+          />
+          <Field
+            label="Issuing Country (ISO)"
+            placeholder="BHS"
+            maxLength={3}
+            value={form.passportIssuingCountry}
+            onChange={(e) => setForm((f) => ({ ...f, passportIssuingCountry: e.target.value }))}
+          />
+
+          <p className={`${termSectionCls} col-span-2`}>ASSIGNMENT</p>
+
+          <SelectField
+            label="Rank / Role *"
+            value={form.role}
+            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+            options={[
+              { label: 'Master / Captain', value: 'MASTER' },
+              { label: 'Chief Officer', value: 'CHIEF_OFFICER' },
+              { label: 'Deck Officer', value: 'DECK_OFFICER' },
+              { label: 'Chief Engineer', value: 'CHIEF_ENGINEER' },
+              { label: 'Engineer Officer', value: 'ENGINEER_OFFICER' },
+              { label: 'Rating', value: 'RATING' },
+              { label: 'Cook / Steward', value: 'COOK_STEWARD' },
+            ]}
+          />
+          <SelectField
+            label="Assign to Vessel"
+            value={form.vesselId}
+            onChange={(e) => setForm((f) => ({ ...f, vesselId: e.target.value }))}
+            options={[
+              { label: 'Unassigned', value: '' },
+              ...vessels.map((v) => ({ label: v.name, value: v.id })),
+            ]}
+          />
+        </div>
+      </TerminalModal>
+
+      {/* ── Contact modal ── */}
+      <TerminalModal
+        open={contactOpen}
+        onClose={() => setContactOpen(false)}
+        title="Establish Secure Link"
+        width={400}
+        footer={
+          <Button variant="danger" size="sm" onClick={() => setContactOpen(false)}>
+            End Secure Call
+          </Button>
+        }
+      >
+        <div className="flex flex-col items-center gap-4 py-8">
+          <div className="w-16 h-16 bg-[rgba(51,255,51,0.1)] flex items-center justify-center">
+            <span className="font-mono text-2xl text-[#33FF33] font-semibold">
+              {(selectedCrew?.fullName ?? '?').charAt(0).toUpperCase()}
+            </span>
+          </div>
+          <div className="text-center">
+            <p className="font-mono text-[14px] text-[#33FF33] font-semibold">
+              {selectedCrew?.fullName}
+            </p>
+            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)] mt-0.5">
+              {selectedCrew?.rank}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 border border-[rgba(0,255,255,0.3)] bg-[rgba(0,255,255,0.04)]">
+            <ShieldCheck size={12} className="text-[#00FFFF]" />
+            <span className="font-mono text-[10px] text-[#00FFFF] tracking-widest">
+              ENCRYPTED VOICE LINK ACTIVE
+            </span>
           </div>
         </div>
-      </Modal>
-
-      <style jsx global>{`
-        .maritime-table .ant-table {
-          background: transparent !important;
-          color: #e6f7ff !important;
-        }
-        .maritime-table .ant-table-thead > tr > th {
-          background: rgba(255, 255, 255, 0.05) !important;
-          color: rgba(255, 255, 255, 0.85) !important;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-        }
-        .maritime-table .ant-table-tbody > tr > td {
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-        }
-        .maritime-table .ant-table-tbody > tr:hover > td {
-          background: rgba(255, 255, 255, 0.02) !important;
-        }
-        .pulse {
-          animation: pulse-animation 2s infinite;
-        }
-        @keyframes pulse-animation {
-          0% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.3;
-          }
-          100% {
-            opacity: 1;
-          }
-        }
-      `}</style>
-    </Layout>
+      </TerminalModal>
+    </DashboardLayout>
   );
 }

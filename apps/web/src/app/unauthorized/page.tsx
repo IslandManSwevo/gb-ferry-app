@@ -1,36 +1,40 @@
 'use client';
 
-import { Button, Result } from 'antd';
+import { Lock } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
 export default function UnauthorizedPage() {
   const { data: session } = useSession();
 
   return (
-    <div
-      style={{
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #001529 0%, #003a70 100%)',
-      }}
-    >
-      <Result
-        status="403"
-        title="403 - Access Denied"
-        subTitle={`Sorry ${session?.user?.name || 'User'}, you don't have permission to access this page.`}
-        extra={[
-          <Button type="primary" key="home" href="/">
-            Back to Dashboard
-          </Button>,
-        ]}
-        style={{
-          background: 'white',
-          padding: 48,
-          borderRadius: 16,
-        }}
-      />
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-8">
+      <div className="border border-[rgba(255,75,43,0.3)] bg-[rgba(255,75,43,0.04)] p-12 flex flex-col items-center gap-6 max-w-md w-full text-center">
+        <div className="w-16 h-16 border border-[rgba(255,75,43,0.3)] flex items-center justify-center">
+          <Lock size={28} className="text-[#FF4B2B]" />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="font-mono text-[10px] tracking-[0.15em] text-[rgba(255,75,43,0.5)]">ERROR / 403</span>
+          <h1 className="font-mono text-[18px] tracking-tight font-bold text-white uppercase">
+            Access Denied
+          </h1>
+          <p className="font-mono text-[12px] text-[rgba(255,255,255,0.5)] leading-relaxed">
+            {session?.user?.name ? `${session.user.name}, you` : 'You'} do not have the required role to view this page.
+          </p>
+        </div>
+
+        <div className="border-t border-[rgba(255,75,43,0.15)] pt-6 w-full flex flex-col items-center gap-3">
+          <a
+            href="/"
+            className="w-full py-3 font-mono text-[11px] tracking-widest uppercase text-center border border-[rgba(51,255,51,0.3)] text-[#33FF33] bg-[rgba(51,255,51,0.04)] hover:bg-[rgba(51,255,51,0.08)] transition-colors"
+          >
+            Return to Dashboard
+          </a>
+          <span className="font-mono text-[10px] text-[rgba(51,255,51,0.3)] tracking-wider">
+            CONTACT AN ADMINISTRATOR IF YOU BELIEVE THIS IS AN ERROR
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,205 +1,206 @@
 'use client';
 
-import { AppHeader } from '@/components/layout/AppHeader';
-import { AppSidebar } from '@/components/layout/AppSidebar';
-import { GlassCard } from '@/components/ui/GlassCard';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { StatusBadge, StatusKind } from '@/components/ui/StatusBadge';
+import { TerminalTable } from '@/components/ui/TerminalTable';
 import { api } from '@/lib/api';
-import { SafetyCertificateOutlined, WarningOutlined } from '@ant-design/icons';
-import {
-  Alert,
-  Avatar,
-  Button,
-  ConfigProvider,
-  Layout,
-  Space,
-  Table,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { ColumnDef } from '@tanstack/react-table';
+import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-const { Content } = Layout;
-const { Title, Text } = Typography;
+interface CertRecord {
+  id: string;
+  crewMember?: { familyName?: string; givenNames?: string };
+  type?: string;
+  certificateNumber?: string;
+  issuingAuthority?: string;
+  expiryDate?: string;
+  status?: string;
+}
+
+function certStatus(record: CertRecord): StatusKind {
+  if (!record.expiryDate) return 'ok';
+  const d = new Date(record.expiryDate);
+  if (isNaN(d.getTime())) return 'warning';
+  if (d.getTime() < Date.now()) return 'critical';
+  if (d.getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000) return 'warning';
+  return 'ok';
+}
+
+function certLabel(record: CertRecord): string {
+  if (!record.expiryDate) return 'VALID';
+  const d = new Date(record.expiryDate);
+  if (isNaN(d.getTime())) return 'ERROR';
+  if (d.getTime() < Date.now()) return 'EXPIRED';
+  if (d.getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000) return 'EXPIRING';
+  return 'VALID';
+}
+
+const columns: ColumnDef<CertRecord, any>[] = [
+  {
+    accessorKey: 'crewMember',
+    header: 'Crew Member',
+    cell: ({ getValue }) => {
+      const crew = getValue<CertRecord['crewMember']>();
+      const name = `${crew?.givenNames ?? ''} ${crew?.familyName ?? 'Unknown'}`.trim();
+      const initial = (crew?.familyName ?? name).charAt(0).toUpperCase();
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-[rgba(51,255,51,0.1)] flex items-center justify-center flex-shrink-0">
+            <span className="font-mono text-[11px] text-[#33FF33] font-semibold">{initial}</span>
+          </div>
+          <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{name}</span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: 'type',
+    header: 'Document Type',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[11px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.05)]">
+        {getValue<string>() ?? '—'}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'certificateNumber',
+    header: 'Cert No.',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)] tracking-wider">
+        {getValue<string>() ?? '—'}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'issuingAuthority',
+    header: 'Issuing Authority',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.45)]">
+        {getValue<string>() ?? '—'}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'expiryDate',
+    header: 'Expiry Date',
+    sortingFn: 'datetime',
+    cell: ({ getValue, row }) => {
+      const dateStr = getValue<string>();
+      if (!dateStr) return <span className="font-mono text-[11px] text-[rgba(51,255,51,0.25)]">N/A</span>;
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime()))
+        return <span className="font-mono text-[11px] text-[#FF4B2B]">Invalid</span>;
+      const isExpiring = certStatus(row.original) === 'warning' || certStatus(row.original) === 'critical';
+      return (
+        <span
+          className="font-mono text-[11px] tabular-nums"
+          style={{ color: isExpiring ? '#FF4B2B' : 'rgba(51,255,51,0.7)' }}
+        >
+          {d.toLocaleDateString()}
+        </span>
+      );
+    },
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    cell: ({ row }) => (
+      <StatusBadge status={certStatus(row.original)} label={certLabel(row.original)} compact />
+    ),
+  },
+  {
+    id: 'action',
+    header: '',
+    enableSorting: false,
+    cell: () => (
+      <Button
+        variant="ghost"
+        size="sm"
+        icon={<ShieldCheck size={11} />}
+        onClick={() => {}}
+      >
+        Verify
+      </Button>
+    ),
+  },
+];
 
 export default function CertificationsPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<CertRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    const fetchCerts = async () => {
+    (async () => {
       setLoading(true);
       try {
         const res = await api.certifications.list();
-        if (mounted) {
-          if (res.data) {
-            setData(res.data);
-          } else if (res.error) {
-            message.error(res.error);
-          }
-        }
-      } catch (err) {
-        if (mounted) message.error('Failed to load certifications');
+        if (!mounted) return;
+        if (res.data) setData(res.data);
+        else if (res.error) setError(res.error);
+      } catch {
+        if (mounted) setError('Failed to load certifications');
       } finally {
         if (mounted) setLoading(false);
       }
-    };
-    fetchCerts();
-
-    return () => {
-      mounted = false;
-    };
+    })();
+    return () => { mounted = false; };
   }, []);
 
-  const expiringCount = data.filter((d: any) => d.status === 'EXPIRING').length;
-  const expiredCount = data.filter((d: any) => d.status === 'EXPIRED').length;
-
-  const columns = [
-    {
-      title: 'Crew Member',
-      dataIndex: 'crewMember',
-      key: 'crewName',
-      render: (crew: any) => {
-        const familyName = crew?.familyName ?? 'Unknown';
-        const givenNames = crew?.givenNames ?? '';
-        return (
-          <Space>
-            <Avatar src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${familyName}`} />
-            <Text strong style={{ color: '#e6f7ff' }}>
-              {givenNames} {familyName}
-            </Text>
-          </Space>
-        );
-      },
-    },
-    {
-      title: 'Document Type',
-      dataIndex: 'type',
-      key: 'type',
-      render: (t: string) => <Tag color="blue">{t}</Tag>,
-    },
-    {
-      title: 'Certificate No.',
-      dataIndex: 'certificateNumber',
-      key: 'certificateNumber',
-      render: (t: string) => <Text style={{ fontFamily: 'monospace', color: '#fff' }}>{t}</Text>,
-    },
-    {
-      title: 'Issuing Authority',
-      dataIndex: 'issuingAuthority',
-      key: 'issuingAuthority',
-      responsive: ['md'] as any,
-      render: (t: string) => <Text style={{ color: 'rgba(255,255,255,0.65)' }}>{t}</Text>,
-    },
-    {
-      title: 'Expiry Date',
-      dataIndex: 'expiryDate',
-      key: 'expiryDate',
-      render: (date: string) => {
-        if (!date) return <Text style={{ color: 'rgba(255,255,255,0.25)' }}>N/A</Text>;
-        const d = new Date(date);
-        if (isNaN(d.getTime())) return <Text style={{ color: '#ff4d4f' }}>Invalid Date</Text>;
-
-        const isExpiring = d.getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000;
-        return (
-          <Text style={{ color: isExpiring ? '#ff4d4f' : '#fff' }}>{d.toLocaleDateString()}</Text>
-        );
-      },
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (_: string, record: any) => {
-        if (!record.expiryDate) return <StatusBadge status="ok" label="VALID" compact />;
-        const d = new Date(record.expiryDate);
-        if (isNaN(d.getTime())) return <StatusBadge status="warning" label="ERROR" compact />;
-
-        const isExpired = d.getTime() < Date.now();
-        const isExpiring = d.getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000;
-
-        const badgeKind: StatusKind = isExpired ? 'critical' : isExpiring ? 'warning' : 'ok';
-        const label = isExpired ? 'EXPIRED' : isExpiring ? 'EXPIRING' : 'VALID';
-
-        return <StatusBadge status={badgeKind} label={label} compact />;
-      },
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: () => (
-        <Button
-          type="link"
-          icon={<SafetyCertificateOutlined />}
-          style={{ color: '#1890ff' }}
-          onClick={() => message.info('Digital verification signature valid.')}
-        >
-          Verify
-        </Button>
-      ),
-    },
-  ];
+  const expiringCount = data.filter((d) => certStatus(d) === 'warning').length;
+  const expiredCount = data.filter((d) => certStatus(d) === 'critical').length;
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <AppSidebar />
-      <Layout>
-        <AppHeader />
-        <Content
-          style={{
-            margin: '24px',
-            padding: '24px',
-            background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
-            minHeight: 'calc(100vh - 64px - 48px)',
-          }}
+    <DashboardLayout contentClassName="p-6">
+      {/* Alerts banner */}
+      {(expiringCount > 0 || expiredCount > 0) && (
+        <div className="mb-8 px-4 py-3 border border-[rgba(255,176,0,0.4)] bg-[rgba(255,176,0,0.06)] flex items-start gap-3">
+          <AlertTriangle size={11} className="text-[#FFB000] mt-0.5 flex-shrink-0" aria-hidden />
+          <span className="font-mono text-[10px] text-[#FFB000] tracking-widest uppercase">
+            CERT ALERT
+          </span>
+          <span className="font-mono text-[11px] text-[rgba(255,176,0,0.8)]">
+            {expiredCount > 0 && `${expiredCount} expired`}
+            {expiredCount > 0 && expiringCount > 0 && ' · '}
+            {expiringCount > 0 && `${expiringCount} expiring within 30 days`}
+            {' — immediate action required'}
+          </span>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-8 px-4 py-3 border border-[rgba(255,75,43,0.4)] bg-[rgba(255,75,43,0.06)]">
+          <span className="font-mono text-[11px] text-[#FF4B2B]">{error}</span>
+        </div>
+      )}
+
+      <Card>
+        <CardHeader
+          action={
+            <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)] tracking-widest">
+              {data.length} RECORDS
+            </span>
+          }
         >
-          {(expiringCount > 0 || expiredCount > 0) && (
-            <Alert
-              message="Certification Alerts"
-              description={`${expiredCount} expired and ${expiringCount} expiring soon. Immediate action required.`}
-              type="warning"
-              icon={<WarningOutlined />}
-              showIcon
-              style={{
-                marginBottom: 24,
-                background: 'rgba(250, 173, 20, 0.1)',
-                border: '1px solid #faad14',
-              }}
-            />
-          )}
-          <GlassCard>
-            <Title level={3} style={{ marginBottom: 24, color: '#fff' }}>
-              <SafetyCertificateOutlined style={{ marginRight: 12, color: '#1890ff' }} />
-              Crew Certifications
-            </Title>
-            <ConfigProvider
-              theme={{
-                components: {
-                  Table: {
-                    headerBg: 'rgba(255, 255, 255, 0.05)',
-                    headerColor: 'rgba(255, 255, 255, 0.85)',
-                    headerBorderRadius: 8,
-                    colorBgContainer: 'transparent',
-                    colorText: '#e6f7ff',
-                    colorBorderSecondary: 'rgba(255, 255, 255, 0.05)',
-                    rowHoverBg: 'rgba(255, 255, 255, 0.02)',
-                  },
-                },
-              }}
-            >
-              <Table
-                columns={columns}
-                dataSource={data}
-                loading={loading}
-                scroll={{ x: 'max-content' }}
-                rowKey="id"
-              />
-            </ConfigProvider>
-          </GlassCard>
-        </Content>
-      </Layout>
-    </Layout>
+          <span className="flex items-center gap-2">
+            <ShieldCheck size={13} />
+            CREW CERTIFICATIONS
+          </span>
+        </CardHeader>
+        <CardContent className="p-0">
+          <TerminalTable
+            data={data}
+            columns={columns}
+            loading={loading}
+            rowKey={(r) => r.id}
+            emptyMessage="NO CERTIFICATIONS FOUND"
+          />
+        </CardContent>
+      </Card>
+    </DashboardLayout>
   );
 }

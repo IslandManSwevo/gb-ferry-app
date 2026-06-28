@@ -1,35 +1,67 @@
 'use client';
 
-import { AppHeader } from '@/components/layout/AppHeader';
-import { AppSidebar } from '@/components/layout/AppSidebar';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { TerminalTable } from '@/components/ui/TerminalTable';
+import { termInputCls } from '@/components/ui/TerminalModal';
 import { api } from '@/lib/api';
-import {
-  CheckCircleOutlined,
-  InfoCircleOutlined,
-  TeamOutlined,
-  WarningOutlined,
-} from '@ant-design/icons';
-import {
-  Card,
-  Col,
-  Empty,
-  Layout,
-  List,
-  Progress,
-  Row,
-  Select,
-  Space,
-  Spin,
-  Table,
-  Tag,
-  Tooltip,
-  Typography,
-  message,
-} from 'antd';
+import { ColumnDef } from '@tanstack/react-table';
+import { AlertTriangle, CheckCircle, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-const { Content } = Layout;
-const { Title, Text, Paragraph } = Typography;
+interface RoleRow { role: string; required: number; actual: number; fulfillable: number; }
+
+const columns: ColumnDef<RoleRow, any>[] = [
+  {
+    accessorKey: 'role',
+    header: 'Role',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">
+        {getValue<string>().replace(/_/g, ' ')}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'required',
+    header: 'Required',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[12px] tabular-nums text-[rgba(51,255,51,0.7)]">{getValue<number>()}</span>
+    ),
+  },
+  {
+    accessorKey: 'actual',
+    header: 'Actual',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[12px] tabular-nums text-[rgba(51,255,51,0.7)]">{getValue<number>()}</span>
+    ),
+  },
+  {
+    accessorKey: 'fulfillable',
+    header: 'Fulfillable',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[12px] tabular-nums text-[rgba(51,255,51,0.4)]" title="Qualified crew available but perhaps not assigned">
+        {getValue<number>()}
+      </span>
+    ),
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    cell: ({ row }) => {
+      const met = row.original.actual >= row.original.required;
+      return (
+        <span
+          className="font-mono text-[10px] px-2 py-0.5 border tracking-widest"
+          style={met
+            ? { color: '#33FF33', border: '1px solid rgba(51,255,51,0.4)', background: 'rgba(51,255,51,0.06)' }
+            : { color: '#FF4B2B', border: '1px solid rgba(255,75,43,0.4)', background: 'rgba(255,75,43,0.06)' }}
+        >
+          {met ? 'MET' : 'SHORTFALL'}
+        </span>
+      );
+    },
+  },
+];
 
 export default function SafeManningPage() {
   const [vessels, setVessels] = useState<any[]>([]);
@@ -38,80 +70,30 @@ export default function SafeManningPage() {
   const [loadingVessels, setLoadingVessels] = useState(true);
   const [loadingRoster, setLoadingRoster] = useState(false);
 
-  const fetchVessels = async () => {
-    setLoadingVessels(true);
-    const { data } = await api.vessels.list({ pageSize: 100 });
-    if (data?.items) {
-      setVessels(data.items);
-      if (data.items.length > 0) {
-        setSelectedVessel(data.items[0].id);
+  useEffect(() => {
+    (async () => {
+      setLoadingVessels(true);
+      const { data } = await api.vessels.list({ pageSize: 100 });
+      if (data?.items) {
+        setVessels(data.items);
+        if (data.items.length > 0) setSelectedVessel(data.items[0].id);
       }
-    }
-    setLoadingVessels(false);
-  };
+      setLoadingVessels(false);
+    })();
+  }, []);
 
-  const fetchRosterStatus = useCallback(async (vesselId: string) => {
+  const fetchRoster = useCallback(async (id: string) => {
     setLoadingRoster(true);
-    const { data, error } = await api.crew.roster(vesselId);
-    if (error) {
-      message.error(`Failed to fetch roster: ${error}`);
-    } else {
-      setRosterStatus(data);
-    }
+    const { data } = await api.crew.roster(id);
+    setRosterStatus(data ?? null);
     setLoadingRoster(false);
   }, []);
 
   useEffect(() => {
-    fetchVessels();
-  }, []);
+    if (selectedVessel) fetchRoster(selectedVessel);
+  }, [selectedVessel, fetchRoster]);
 
-  useEffect(() => {
-    if (selectedVessel) {
-      fetchRosterStatus(selectedVessel);
-    }
-  }, [selectedVessel, fetchRosterStatus]);
-
-  const roleColumns = [
-    {
-      title: 'Role',
-      dataIndex: 'role',
-      key: 'role',
-      render: (role: string) => <Text style={{ color: '#e6f7ff' }}>{role.replace(/_/g, ' ')}</Text>,
-    },
-    {
-      title: 'Required',
-      dataIndex: 'required',
-      key: 'required',
-      render: (val: number) => <Text style={{ color: '#fff' }}>{val}</Text>,
-    },
-    {
-      title: 'Actual',
-      dataIndex: 'actual',
-      key: 'actual',
-      render: (val: number) => <Text style={{ color: '#fff' }}>{val}</Text>,
-    },
-    {
-      title: 'Fulfillable',
-      dataIndex: 'fulfillable',
-      key: 'fulfillable',
-      render: (val: number) => (
-        <Tooltip title="Qualified crew available but perhaps not assigned">
-          <Text style={{ color: 'rgba(255,255,255,0.45)' }}>{val}</Text>
-        </Tooltip>
-      ),
-    },
-    {
-      title: 'Status',
-      key: 'status',
-      render: (_: any, record: any) => (
-        <Tag color={record.actual >= record.required ? 'success' : 'error'}>
-          {record.actual >= record.required ? 'MET' : 'SHORTFALL'}
-        </Tag>
-      ),
-    },
-  ];
-
-  const roleData = rosterStatus
+  const roleData: RoleRow[] = rosterStatus
     ? Object.keys(rosterStatus.required).map((role) => ({
         role,
         required: rosterStatus.required[role],
@@ -120,177 +102,121 @@ export default function SafeManningPage() {
       }))
     : [];
 
+  const compliant: boolean = rosterStatus?.compliant ?? false;
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <AppSidebar />
-      <Layout>
-        <AppHeader />
-        <Content
-          style={{
-            margin: '24px',
-            padding: '24px',
-            background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
-            minHeight: 'calc(100vh - 64px - 48px)',
-          }}
+    <DashboardLayout contentClassName="p-4 md:p-6">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8 gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+            <Users size={16} aria-hidden />
+            Safe Manning Compliance
+          </h1>
+          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+            BMA R106 · Real-time minimum safe manning &amp; STCW competency validation
+          </p>
+        </div>
+        <select
+          className={`${termInputCls} w-56`}
+          disabled={loadingVessels}
+          value={selectedVessel ?? ''}
+          onChange={(e) => setSelectedVessel(e.target.value)}
         >
-          <Row justify="space-between" align="middle" style={{ marginBottom: 32 }}>
-            <Col>
-              <Title level={2} style={{ color: '#fff', margin: 0 }}>
-                <TeamOutlined style={{ marginRight: 12, color: '#1890ff' }} />
-                Safe Manning Compliance
-              </Title>
-              <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                BMA R106 Real-time validation of minimum safe manning levels and STCW competency.
-              </Text>
-            </Col>
-            <Col>
-              <Select
-                loading={loadingVessels}
-                value={selectedVessel}
-                onChange={setSelectedVessel}
-                style={{ width: 250 }}
-                placeholder="Select Vessel"
-                options={vessels.map((v) => ({ label: v.name, value: v.id }))}
-              />
-            </Col>
-          </Row>
+          {vessels.map((v) => (
+            <option key={v.id} value={v.id} className="bg-[#050505]">{v.name}</option>
+          ))}
+        </select>
+      </div>
 
-          {loadingRoster ? (
-            <div style={{ textAlign: 'center', padding: '100px' }}>
-              <Spin size="large" />
+      {loadingRoster ? (
+        <div className="flex items-center justify-center py-32">
+          <div className="w-8 h-8 border-2 border-[#33FF33] border-t-transparent animate-spin" />
+        </div>
+      ) : !rosterStatus ? (
+        <Card>
+          <CardContent className="py-16 text-center">
+            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] tracking-widest">
+              — NO ROSTER DATA FOR THIS VESSEL —
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+          {/* Compliance status panel */}
+          <Card accent={!compliant}>
+            <CardHeader>
+              <span className="flex items-center gap-2">
+                {compliant
+                  ? <CheckCircle size={13} className="text-[#33FF33]" />
+                  : <AlertTriangle size={13} className="text-[#FF4B2B]" />}
+                COMPLIANCE STATUS
+              </span>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-6 py-8">
+              {/* Gauge substitute */}
+              <div
+                className="w-32 h-32 border-4 flex items-center justify-center"
+                style={{ borderColor: compliant ? '#33FF33' : '#FF4B2B' }}
+              >
+                <div className="text-center">
+                  <p className="font-mono text-3xl font-bold" style={{ color: compliant ? '#33FF33' : '#FF4B2B' }}>
+                    {compliant ? '100' : '66'}
+                  </p>
+                  <p className="font-mono text-[9px] text-[rgba(51,255,51,0.4)] tracking-widest">%</p>
+                </div>
+              </div>
+
+              <span
+                className="font-mono text-[11px] px-4 py-1.5 border tracking-widest"
+                style={compliant
+                  ? { color: '#33FF33', borderColor: 'rgba(51,255,51,0.4)', background: 'rgba(51,255,51,0.06)' }
+                  : { color: '#FF4B2B', borderColor: 'rgba(255,75,43,0.4)', background: 'rgba(255,75,43,0.06)' }}
+              >
+                {compliant ? 'FULLY COMPLIANT' : 'NON-COMPLIANT'}
+              </span>
+
+              {rosterStatus.discrepancies?.length > 0 && (
+                <div className="w-full">
+                  <p className="font-mono text-[9px] tracking-[0.15em] uppercase text-[rgba(51,255,51,0.3)] mb-3">
+                    IDENTIFIED ISSUES
+                  </p>
+                  <ul className="flex flex-col gap-2">
+                    {rosterStatus.discrepancies.map((item: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <AlertTriangle size={11} className="text-[#FF4B2B] mt-0.5 flex-shrink-0" />
+                        <span className="font-mono text-[11px] text-[rgba(51,255,51,0.6)]">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Manning requirements table */}
+          <div className="flex flex-col gap-4">
+            <Card>
+              <CardHeader>SAFE MANNING REQUIREMENTS (R106)</CardHeader>
+              <CardContent className="p-0">
+                <TerminalTable
+                  data={roleData}
+                  columns={columns}
+                  rowKey={(r) => r.role}
+                  emptyMessage="NO MANNING DATA"
+                />
+              </CardContent>
+            </Card>
+
+            <div className="px-4 py-3 border border-[rgba(0,255,255,0.2)] bg-[rgba(0,255,255,0.03)]">
+              <p className="font-mono text-[11px] text-[rgba(0,255,255,0.6)] leading-relaxed">
+                Safe Manning validation includes checking for valid STCW Certificates of Competency
+                (CoC), Medical Fitness certificates, and specific BMA endorsements where required.
+              </p>
             </div>
-          ) : rosterStatus ? (
-            <Row gutter={[24, 24]}>
-              <Col xs={24} lg={8}>
-                <Card
-                  title={
-                    <Space>
-                      <CheckCircleOutlined
-                        style={{ color: rosterStatus.compliant ? '#52c41a' : '#ff4d4f' }}
-                      />
-                      <Text style={{ color: '#e6f7ff' }}>Compliance Status</Text>
-                    </Space>
-                  }
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                  headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
-                >
-                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <Progress
-                      type="dashboard"
-                      percent={rosterStatus.compliant ? 100 : 66}
-                      status={rosterStatus.compliant ? 'success' : 'exception'}
-                      strokeColor={rosterStatus.compliant ? '#52c41a' : '#ff4d4f'}
-                    />
-                    <div style={{ marginTop: 16 }}>
-                      <Tag
-                        color={rosterStatus.compliant ? 'success' : 'error'}
-                        style={{ fontSize: 16, padding: '4px 12px' }}
-                      >
-                        {rosterStatus.compliant ? 'FULLY COMPLIANT' : 'NON-COMPLIANT'}
-                      </Tag>
-                    </div>
-                  </div>
-
-                  {rosterStatus.discrepancies.length > 0 && (
-                    <div style={{ marginTop: 24 }}>
-                      <Text
-                        strong
-                        style={{
-                          color: 'rgba(255,255,255,0.45)',
-                          display: 'block',
-                          marginBottom: 8,
-                        }}
-                      >
-                        IDENTIFIED ISSUES
-                      </Text>
-                      <List
-                        size="small"
-                        dataSource={rosterStatus.discrepancies}
-                        renderItem={(item: string) => (
-                          <List.Item style={{ border: 'none', padding: '4px 0' }}>
-                            <Space align="start">
-                              <WarningOutlined style={{ color: '#ff4d4f', marginTop: 4 }} />
-                              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>
-                                {item}
-                              </Text>
-                            </Space>
-                          </List.Item>
-                        )}
-                      />
-                    </div>
-                  )}
-                </Card>
-              </Col>
-
-              <Col xs={24} lg={16}>
-                <Card
-                  title={
-                    <Space>
-                      <InfoCircleOutlined style={{ color: '#1890ff' }} />
-                      <Text style={{ color: '#e6f7ff' }}>Safe Manning Requirements (R106)</Text>
-                    </Space>
-                  }
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                  headStyle={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
-                >
-                  <Table
-                    dataSource={roleData}
-                    columns={roleColumns}
-                    pagination={false}
-                    rowKey="role"
-                    className="maritime-table"
-                  />
-                  <div
-                    style={{
-                      marginTop: 24,
-                      padding: 16,
-                      background: 'rgba(24,144,255,0.05)',
-                      borderRadius: 8,
-                    }}
-                  >
-                    <Paragraph style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 12 }}>
-                      <strong>Note:</strong> Safe Manning validation includes checking for valid
-                      STCW Certificates of Competency (CoC), Medical Fitness certificates, and
-                      specific Bahamas Maritime Authority (BMA) endorsements where required.
-                    </Paragraph>
-                  </div>
-                </Card>
-              </Col>
-            </Row>
-          ) : (
-            <Empty description="No roster data available for this vessel" />
-          )}
-
-          <style jsx global>{`
-            .maritime-table .ant-table {
-              background: transparent !important;
-              color: #e6f7ff !important;
-            }
-            .maritime-table .ant-table-thead > tr > th {
-              background: rgba(255, 255, 255, 0.05) !important;
-              color: rgba(255, 255, 255, 0.85) !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-            }
-            .maritime-table .ant-table-tbody > tr > td {
-              border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-            }
-            .maritime-table .ant-table-tbody > tr:hover > td {
-              background: rgba(255, 255, 255, 0.02) !important;
-            }
-            .ant-select-selector {
-              background: rgba(255, 255, 255, 0.05) !important;
-              border: 1px solid rgba(255, 255, 255, 0.1) !important;
-              color: #fff !important;
-            }
-          `}</style>
-        </Content>
-      </Layout>
-    </Layout>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
   );
 }

@@ -1,222 +1,336 @@
 'use client';
 
-import { AppHeader } from '@/components/layout/AppHeader';
-import { AppSidebar } from '@/components/layout/AppSidebar';
-import { GlassCard } from '@/components/ui/GlassCard';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { TerminalTable } from '@/components/ui/TerminalTable';
+import { termInputCls, termLabelCls } from '@/components/ui/TerminalModal';
 import { api } from '@/lib/api';
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  EyeOutlined,
-  HistoryOutlined,
-  SafetyCertificateOutlined,
-} from '@ant-design/icons';
-import {
-  Alert,
-  Badge,
-  Button,
-  Descriptions,
-  Empty,
-  Form,
-  Input,
-  Layout,
-  Modal,
-  Space,
-  Table,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { ColumnDef } from '@tanstack/react-table';
+import { AlertTriangle, CheckCircle, Eye, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 
-const { Content } = Layout;
-const { Title, Text } = Typography;
+/* ── Columns ─────────────────────────────────────────────── */
+const columns: ColumnDef<any, any>[] = [
+  {
+    id: 'crew',
+    header: 'Crew Member',
+    cell: ({ row }) => (
+      <div className="flex flex-col gap-0.5">
+        <span className="font-mono text-[12px] text-[rgba(51,255,51,0.8)]">{row.original.crewName}</span>
+        <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">
+          {row.original.crewRole} · {row.original.vesselName}
+        </span>
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'certType',
+    header: 'Type',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest">
+        {getValue<string>()}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'aiConfidenceScore',
+    header: 'AI Confidence',
+    cell: ({ getValue }) => {
+      const score = getValue<number>() ?? 0;
+      const color = score > 0.8 ? '#33FF33' : score > 0.5 ? '#FFB000' : '#FF4B2B';
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 flex-shrink-0" style={{ background: color }} />
+          <span className="font-mono text-[11px] tabular-nums" style={{ color }}>
+            {(score * 100).toFixed(0)}%
+          </span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: 'uploadedAt',
+    header: 'Uploaded',
+    cell: ({ getValue }) => {
+      const d = getValue<string>();
+      return (
+        <span className="font-mono text-[11px] text-[rgba(51,255,51,0.5)] tabular-nums">
+          {d ? new Date(d).toLocaleString() : 'N/A'}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'isRenewal',
+    header: 'Renewal',
+    cell: ({ getValue }) =>
+      getValue<boolean>() ? (
+        <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)] tracking-widest">
+          RENEWAL
+        </span>
+      ) : null,
+  },
+];
 
+/* ── Verification modal ──────────────────────────────────── */
+interface VerifyForm { certificateNumber: string; expiryDate: string; issuingAuthority: string; }
+interface VerifyModalProps {
+  cert: any;
+  docUrl: string;
+  onClose: () => void;
+  onApprove: (values: VerifyForm) => Promise<void>;
+  onReject: () => void;
+  verifying: boolean;
+}
+
+function VerifyModal({ cert, docUrl, onClose, onApprove, onReject, verifying }: VerifyModalProps) {
+  const [form, setForm] = useState<VerifyForm>({
+    certificateNumber: cert?.aiExtractedCertNumber ?? '',
+    expiryDate: cert?.aiExtractedExpiry ? cert.aiExtractedExpiry.split('T')[0] : '',
+    issuingAuthority: cert?.aiExtractedAuthority ?? '',
+  });
+  const [errors, setErrors] = useState<Partial<VerifyForm>>({});
+
+  function validate(): boolean {
+    const e: Partial<VerifyForm> = {};
+    if (!form.certificateNumber) e.certificateNumber = 'Required';
+    if (!form.expiryDate) e.expiryDate = 'Required';
+    if (!form.issuingAuthority) e.issuingAuthority = 'Required';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
+  async function handleApprove() {
+    if (validate()) await onApprove(form);
+  }
+
+  const score = cert?.aiConfidenceScore ?? 0;
+  const confidenceColor = score > 0.8 ? '#33FF33' : score > 0.5 ? '#FFB000' : '#FF4B2B';
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(5,5,5,0.92)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="bg-[#050505] border border-[rgba(51,255,51,0.2)] flex flex-col"
+        style={{ width: '90vw', maxWidth: '1200px', height: '85vh' }}
+      >
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(51,255,51,0.1)]">
+          <span className="font-mono text-[12px] tracking-[0.12em] uppercase text-[#33FF33] flex items-center gap-2">
+            <Eye size={13} />
+            VERIFYING CERTIFICATION
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={onReject}>
+              <XCircle size={11} className="mr-1 text-[#FF4B2B]" />
+              Reject
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose} disabled={verifying}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleApprove} disabled={verifying}>
+              <CheckCircle size={11} className="mr-1" />
+              {verifying ? 'Approving...' : 'Approve & Validate'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Split body */}
+        <div className="flex flex-1 min-h-0">
+          {/* Document viewer */}
+          <div className="flex-1 bg-black border-r border-[rgba(51,255,51,0.08)] flex items-center justify-center">
+            {docUrl ? (
+              docUrl.toLowerCase().includes('.pdf') || docUrl.includes('pdf') ? (
+                <iframe src={docUrl} className="w-full h-full" style={{ border: 'none' }} />
+              ) : (
+                <div className="flex items-center justify-center w-full h-full p-4">
+                  <img
+                    src={docUrl}
+                    alt="Certificate document"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              )
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <Eye size={48} className="text-[rgba(51,255,51,0.1)]" />
+                <span className="font-mono text-[11px] text-[rgba(51,255,51,0.25)]">
+                  Requesting secure preview...
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Form panel */}
+          <div className="w-[420px] flex-shrink-0 overflow-y-auto p-5 flex flex-col gap-4">
+            <p className="font-mono text-[11px] tracking-[0.1em] uppercase text-[rgba(51,255,51,0.4)]">
+              Extraction Review
+            </p>
+
+            {cert?.aiWarnings?.length > 0 && (
+              <div className="border border-[rgba(255,176,0,0.2)] bg-[rgba(255,176,0,0.03)] px-3 py-2">
+                <p className="font-mono text-[10px] tracking-widest uppercase text-[#FFB000] mb-1 flex items-center gap-1">
+                  <AlertTriangle size={10} />
+                  Extraction Warnings
+                </p>
+                <ul className="flex flex-col gap-1">
+                  {cert.aiWarnings.map((w: string, i: number) => (
+                    <li key={i} className="font-mono text-[11px] text-[rgba(255,176,0,0.7)]">{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Editable fields */}
+            {[
+              { key: 'certificateNumber', label: 'Certificate Number' },
+              { key: 'expiryDate', label: 'Expiry Date', type: 'date' },
+              { key: 'issuingAuthority', label: 'Issuing Authority' },
+            ].map(({ key, label, type }) => (
+              <div key={key} className="flex flex-col gap-1">
+                <label className={`${termLabelCls} ${errors[key as keyof VerifyForm] ? 'text-[#FF4B2B]' : ''}`}>
+                  {label} *
+                </label>
+                <input
+                  type={type ?? 'text'}
+                  className={`${termInputCls} ${errors[key as keyof VerifyForm] ? 'border-[rgba(255,75,43,0.5)]' : ''}`}
+                  value={form[key as keyof VerifyForm]}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, [key]: e.target.value }));
+                    setErrors((e) => { const n = { ...e }; delete n[key as keyof VerifyForm]; return n; });
+                  }}
+                />
+                {errors[key as keyof VerifyForm] && (
+                  <span className="font-mono text-[10px] text-[#FF4B2B]">{errors[key as keyof VerifyForm]}</span>
+                )}
+              </div>
+            ))}
+
+            {/* Metadata */}
+            <div className="border border-[rgba(51,255,51,0.08)] bg-[rgba(51,255,51,0.02)] mt-2">
+              <dl className="font-mono text-[11px]">
+                {[
+                  ['CREW MEMBER', cert?.crewName],
+                  ['ROLE', cert?.crewRole],
+                  ['TYPE', cert?.certType],
+                  ['AI CONFIDENCE', `${(score * 100).toFixed(1)}%`],
+                  cert?.isRenewal ? ['RENEWAL', 'REPLACES PREVIOUS'] : null,
+                ].filter(Boolean).map(([lbl, val]: any) => (
+                  <div key={lbl} className="flex justify-between px-3 py-1.5 border-b border-[rgba(51,255,51,0.05)] last:border-b-0">
+                    <dt className="text-[rgba(51,255,51,0.4)] tracking-wider">{lbl}</dt>
+                    <dd className="text-[rgba(51,255,51,0.8)]" style={lbl === 'AI CONFIDENCE' ? { color: confidenceColor } : {}}>
+                      {val}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/* ── Reject reason modal ─────────────────────────────────── */
+interface RejectModalProps { onConfirm: (reason: string) => void; onClose: () => void; }
+
+function RejectModal({ onConfirm, onClose }: RejectModalProps) {
+  const [reason, setReason] = useState('');
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center"
+      style={{ background: 'rgba(5,5,5,0.85)' }}
+    >
+      <div className="bg-[#050505] border border-[rgba(255,75,43,0.3)] p-6 flex flex-col gap-4 w-[480px]">
+        <p className="font-mono text-[12px] tracking-[0.12em] uppercase text-[#FF4B2B]">Reject Certification</p>
+        <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)] leading-relaxed">
+          Provide a reason for rejection. The document will be marked as REVOKED and a re-upload will be requested.
+        </p>
+        <textarea
+          rows={4}
+          className={`${termInputCls} resize-none`}
+          placeholder="Reason for rejection (e.g. Blurry document, Incorrect type)..."
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={() => { if (reason.trim()) onConfirm(reason); }}
+            disabled={!reason.trim()}
+            className="!text-[#FF4B2B] !border-[rgba(255,75,43,0.4)]"
+          >
+            Confirm Rejection
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────── */
 export default function VerificationQueuePage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCert, setSelectedCert] = useState<any>(null);
-  const [viewModalVisible, setViewModalVisible] = useState(false);
-  const [docUrl, setDocUrl] = useState<string>('');
+  const [docUrl, setDocUrl] = useState('');
   const [verifying, setVerifying] = useState(false);
-  const [form] = Form.useForm();
+  const [rejectOpen, setRejectOpen] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
-    try {
-      const res = await api.certifications.getQueue();
-      if (res.data) {
-        setData(res.data);
-      } else if (res.error) {
-        message.error(res.error);
-      }
-    } catch (err) {
-      message.error('Failed to load verification queue');
-    } finally {
-      setLoading(false);
-    }
+    const res = await api.certifications.getQueue();
+    if (res.data) setData(res.data);
+    setLoading(false);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleOpenVerify = async (record: any) => {
     setSelectedCert(record);
-    setViewModalVisible(true);
     setDocUrl('');
+    const res = await api.documents.getViewUrl(record.certificationId);
+    if (res.data?.url) setDocUrl(res.data.url);
+  };
 
-    // Reset form with AI extracted values
-    form.setFieldsValue({
-      certificateNumber: record.aiExtractedCertNumber,
-      expiryDate: record.aiExtractedExpiry ? record.aiExtractedExpiry.split('T')[0] : null,
-      issuingAuthority: record.aiExtractedAuthority,
-    });
-
-    try {
-      const res = await api.documents.getViewUrl(record.certificationId);
-      if (res.data?.url) {
-        setDocUrl(res.data.url);
-      }
-    } catch (err) {
-      message.error('Failed to load document preview');
+  const handleApprove = async (values: VerifyForm) => {
+    setVerifying(true);
+    const res = await api.certifications.verify(selectedCert.certificationId, values);
+    setVerifying(false);
+    if (!res.error) {
+      setSelectedCert(null);
+      fetchData();
     }
   };
 
-  const handleApprove = async () => {
-    try {
-      setVerifying(true);
-      const values = await form.validateFields();
-      const res = await api.certifications.verify(selectedCert.certificationId, values);
-
-      if (res.error) {
-        message.error(res.error);
-      } else {
-        message.success('Certification approved successfully');
-        setViewModalVisible(false);
-        fetchData();
-      }
-    } catch (err) {
-      // Form validation failed or API error
-    } finally {
-      setVerifying(false);
+  const handleReject = async (reason: string) => {
+    const res = await api.certifications.reject(selectedCert.certificationId, reason);
+    if (!res.error) {
+      setRejectOpen(false);
+      setSelectedCert(null);
+      fetchData();
     }
   };
 
-  const handleReject = async () => {
-    Modal.confirm({
-      title: 'Reject Certification',
-      content: (
-        <div style={{ marginTop: 16 }}>
-          <Text type="secondary">
-            Provide a reason for rejection. The document will be marked as REVOKED and a re-upload
-            will be requested.
-          </Text>
-          <Input.TextArea
-            placeholder="Reason for rejection (e.g. Blurry document, Incorrect type)..."
-            id="rejection-reason"
-            rows={4}
-            style={{ marginTop: 12 }}
-          />
-        </div>
-      ),
-      okText: 'Confirm Rejection',
-      okType: 'danger',
-      onOk: async () => {
-        const reason = (document.getElementById('rejection-reason') as HTMLTextAreaElement).value;
-        if (!reason) {
-          message.error('Rejection reason is required');
-          return Promise.reject();
-        }
-
-        try {
-          const res = await api.certifications.reject(selectedCert.certificationId, reason);
-          if (res.error) {
-            message.error(res.error);
-          } else {
-            message.success('Certification rejected');
-            setViewModalVisible(false);
-            fetchData();
-          }
-        } catch (err) {
-          message.error('Failed to reject certification');
-        }
-      },
-    });
-  };
-
-  const columns = [
+  const tableColumns: ColumnDef<any, any>[] = [
+    ...columns,
     {
-      title: 'Crew Member',
-      dataIndex: 'crewName',
-      key: 'crewName',
-      render: (text: string, record: any) => (
-        <Space direction="vertical" size={0}>
-          <Text strong style={{ color: '#fff' }}>
-            {text}
-          </Text>
-          <Text type="secondary" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-            {record.crewRole} • {record.vesselName}
-          </Text>
-        </Space>
-      ),
-    },
-    {
-      title: 'Type',
-      dataIndex: 'certType',
-      key: 'certType',
-      render: (t: string) => (
-        <Tag color="blue" style={{ background: 'rgba(24, 144, 255, 0.1)', borderColor: '#1890ff' }}>
-          {t}
-        </Tag>
-      ),
-    },
-    {
-      title: 'AI Confidence',
-      dataIndex: 'aiConfidenceScore',
-      key: 'aiConfidenceScore',
-      render: (score: number) => {
-        const color = score > 0.8 ? '#52c41a' : score > 0.5 ? '#faad14' : '#f5222d';
-        return (
-          <Space>
-            <Badge color={color} />
-            <Text style={{ color }}>{(score * 100).toFixed(0)}%</Text>
-          </Space>
-        );
-      },
-    },
-    {
-      title: 'Uploaded At',
-      dataIndex: 'uploadedAt',
-      key: 'uploadedAt',
-      render: (d: string) => (
-        <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: '12px' }}>
-          {new Date(d).toLocaleString()}
-        </Text>
-      ),
-    },
-    {
-      title: 'Renewal',
-      dataIndex: 'isRenewal',
-      key: 'isRenewal',
-      render: (is: boolean) =>
-        is ? (
-          <Tag icon={<HistoryOutlined />} color="cyan">
-            Renewal
-          </Tag>
-        ) : null,
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (_: any, record: any) => (
+      id: 'action',
+      header: '',
+      cell: ({ row }) => (
         <Button
-          type="primary"
-          size="small"
-          ghost
-          icon={<EyeOutlined />}
-          onClick={() => handleOpenVerify(record)}
-          style={{ background: 'rgba(24, 144, 255, 0.1)', border: '1px solid #1890ff' }}
+          size="sm"
+          variant="ghost"
+          icon={<Eye size={11} />}
+          onClick={() => handleOpenVerify(row.original)}
         >
           Review
         </Button>
@@ -225,305 +339,62 @@ export default function VerificationQueuePage() {
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh', background: '#0a1f33' }}>
-      <AppSidebar />
-      <Layout style={{ background: 'transparent' }}>
-        <AppHeader />
-        <Content style={{ margin: '24px', padding: '0' }}>
-          <div style={{ marginBottom: 32 }}>
-            <Title level={2} style={{ color: '#fff', margin: 0 }}>
-              <SafetyCertificateOutlined style={{ marginRight: 12, color: '#1890ff' }} />
-              Document Verification Queue
-            </Title>
-            <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
-              Human assessment required for AI-extracted maritime certifications.
-            </Text>
-          </div>
+    <DashboardLayout contentClassName="p-4 md:p-6">
+      <div className="flex items-start justify-between mb-8 gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+            <ShieldCheck size={16} />
+            Document Verification Queue
+          </h1>
+          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+            Human assessment required for AI-extracted maritime certifications
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          icon={<RefreshCw size={11} className={loading ? 'animate-spin' : ''} />}
+          onClick={fetchData}
+          disabled={loading}
+        >
+          Refresh
+        </Button>
+      </div>
 
-          <GlassCard>
-            <Table
-              columns={columns}
-              dataSource={data}
-              loading={loading}
-              rowKey="certificationId"
-              className="maritime-table"
-              locale={{
-                emptyText: (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={
-                      <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
-                        Verification queue is empty.
-                      </Text>
-                    }
-                  />
-                ),
-              }}
-            />
-          </GlassCard>
+      <Card>
+        <CardHeader>
+          <span className="flex items-center gap-2">
+            <ShieldCheck size={13} />
+            PENDING VERIFICATION ({data.length})
+          </span>
+        </CardHeader>
+        <CardContent className="p-0">
+          <TerminalTable
+            data={data}
+            columns={tableColumns}
+            loading={loading}
+            rowKey={(r) => r.certificationId}
+            emptyMessage="VERIFICATION QUEUE EMPTY"
+          />
+        </CardContent>
+      </Card>
 
-          <Modal
-            title={
-              <Text style={{ color: '#fff', fontSize: '18px' }}>
-                <EyeOutlined style={{ marginRight: 8 }} /> Verifying Certification
-              </Text>
-            }
-            open={viewModalVisible}
-            onCancel={() => setViewModalVisible(false)}
-            width={1300}
-            centered
-            footer={[
-              <Button key="reject" danger onClick={handleReject} icon={<CloseCircleOutlined />}>
-                Reject Document
-              </Button>,
-              <Button
-                key="back"
-                onClick={() => setViewModalVisible(false)}
-                style={{ background: 'transparent', color: 'rgba(255,255,255,0.65)' }}
-              >
-                Cancel
-              </Button>,
-              <Button
-                key="submit"
-                type="primary"
-                loading={verifying}
-                onClick={handleApprove}
-                icon={<CheckCircleOutlined />}
-              >
-                Approve & Validate
-              </Button>,
-            ]}
-            styles={{
-              body: { padding: '0', background: '#0c2f4a' },
-              header: {
-                background: '#0a1f33',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                padding: '16px 24px',
-              },
-              footer: {
-                background: '#0a1f33',
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-                padding: '16px 24px',
-                margin: 0,
-              },
-            }}
-          >
-            <div style={{ display: 'flex', height: '75vh' }}>
-              {/* Left: Document Viewer */}
-              <div
-                style={{
-                  flex: 1,
-                  background: '#000',
-                  position: 'relative',
-                  borderRight: '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
-                {docUrl ? (
-                  docUrl.includes('pdf') || docUrl.includes('PDF') ? (
-                    <iframe src={docUrl} width="100%" height="100%" style={{ border: 'none' }} />
-                  ) : (
-                    <div
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 20,
-                      }}
-                    >
-                      <img
-                        src={docUrl}
-                        alt="Document"
-                        style={{
-                          maxWidth: '100%',
-                          maxHeight: '100%',
-                          objectFit: 'contain',
-                          boxShadow: '0 0 20px rgba(0,0,0,0.5)',
-                        }}
-                      />
-                    </div>
-                  )
-                ) : (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      height: '100%',
-                      color: 'rgba(255,255,255,0.2)',
-                    }}
-                  >
-                    <EyeOutlined style={{ fontSize: 64, marginBottom: 16 }} />
-                    <Text disabled>Requesting secure preview...</Text>
-                  </div>
-                )}
-              </div>
+      {selectedCert && (
+        <VerifyModal
+          cert={selectedCert}
+          docUrl={docUrl}
+          onClose={() => setSelectedCert(null)}
+          onApprove={handleApprove}
+          onReject={() => setRejectOpen(true)}
+          verifying={verifying}
+        />
+      )}
 
-              {/* Right: AI Data & Corrections */}
-              <div
-                style={{
-                  width: 450,
-                  overflowY: 'auto',
-                  padding: '24px',
-                  background: 'rgba(10, 31, 51, 0.4)',
-                }}
-              >
-                <Title level={4} style={{ color: '#fff', marginBottom: 20 }}>
-                  Extraction Review
-                </Title>
-
-                {selectedCert?.aiWarnings?.length > 0 && (
-                  <Alert
-                    type="warning"
-                    showIcon
-                    message="Extraction Warnings"
-                    description={
-                      <ul style={{ paddingLeft: 16, margin: 0, fontSize: '13px' }}>
-                        {selectedCert.aiWarnings.map((w: string, i: number) => (
-                          <li key={i}>{w}</li>
-                        ))}
-                      </ul>
-                    }
-                    style={{
-                      marginBottom: 24,
-                      background: 'rgba(250, 173, 20, 0.05)',
-                      border: '1px solid rgba(250, 173, 20, 0.2)',
-                    }}
-                  />
-                )}
-
-                <Form form={form} layout="vertical" requiredMark={false}>
-                  <Form.Item
-                    label={
-                      <Text style={{ color: 'rgba(255,255,255,0.65)' }}>Certificate Number</Text>
-                    }
-                    name="certificateNumber"
-                    rules={[{ required: true }]}
-                  >
-                    <Input
-                      style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        color: '#fff',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                      }}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    label={<Text style={{ color: 'rgba(255,255,255,0.65)' }}>Expiry Date</Text>}
-                    name="expiryDate"
-                    rules={[{ required: true }]}
-                  >
-                    <Input
-                      type="date"
-                      style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        color: '#fff',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                      }}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    label={
-                      <Text style={{ color: 'rgba(255,255,255,0.65)' }}>Issuing Authority</Text>
-                    }
-                    name="issuingAuthority"
-                    rules={[{ required: true }]}
-                  >
-                    <Input
-                      style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        color: '#fff',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                      }}
-                    />
-                  </Form.Item>
-
-                  <div
-                    style={{
-                      marginTop: 32,
-                      padding: '20px',
-                      background: 'rgba(255,255,255,0.02)',
-                      borderRadius: 8,
-                      border: '1px solid rgba(255,255,255,0.05)',
-                    }}
-                  >
-                    <Descriptions column={1} size="small" colon={false}>
-                      <Descriptions.Item label={<Text type="secondary">Crew Member</Text>}>
-                        <Text style={{ color: '#fff' }}>{selectedCert?.crewName}</Text>
-                      </Descriptions.Item>
-                      <Descriptions.Item label={<Text type="secondary">Role</Text>}>
-                        <Text style={{ color: '#fff' }}>{selectedCert?.crewRole}</Text>
-                      </Descriptions.Item>
-                      <Descriptions.Item label={<Text type="secondary">Type</Text>}>
-                        <Tag color="blue">{selectedCert?.certType}</Tag>
-                      </Descriptions.Item>
-                      <Descriptions.Item label={<Text type="secondary">AI Confidence</Text>}>
-                        <Tag color={selectedCert?.aiConfidenceScore > 0.8 ? 'success' : 'warning'}>
-                          {(selectedCert?.aiConfidenceScore * 100).toFixed(1)}%
-                        </Tag>
-                      </Descriptions.Item>
-                      {selectedCert?.isRenewal && (
-                        <Descriptions.Item label={<Text type="secondary">Renewal</Text>}>
-                          <Tag color="cyan">REPLACES PREVIOUS</Tag>
-                        </Descriptions.Item>
-                      )}
-                    </Descriptions>
-                  </div>
-                </Form>
-              </div>
-            </div>
-          </Modal>
-
-          <style jsx global>{`
-            .maritime-table .ant-table {
-              background: transparent !important;
-              color: #fff !important;
-            }
-            .maritime-table .ant-table-thead > tr > th {
-              background: rgba(255, 255, 255, 0.03) !important;
-              color: rgba(255, 255, 255, 0.45) !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-              font-size: 12px;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-            }
-            .maritime-table .ant-table-tbody > tr > td {
-              border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-            }
-            .maritime-table .ant-table-tbody > tr:hover > td {
-              background: rgba(255, 255, 255, 0.02) !important;
-            }
-
-            .ant-btn-primary.ant-btn-background-ghost {
-              background: rgba(24, 144, 255, 0.1) !important;
-            }
-            .ant-modal-content {
-              background: #0a1f33 !important;
-              padding: 0 !important;
-              overflow: hidden;
-              border: 1px solid rgba(255, 255, 255, 0.1);
-            }
-            .ant-modal-header {
-              background: #0a1f33 !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-              margin-bottom: 0 !important;
-            }
-            .ant-modal-title {
-              color: #fff !important;
-            }
-            .ant-descriptions-item-label {
-              color: rgba(255, 255, 255, 0.45) !important;
-              padding-bottom: 8px !important;
-            }
-            .ant-descriptions-item-content {
-              color: #fff !important;
-              padding-bottom: 8px !important;
-            }
-          `}</style>
-        </Content>
-      </Layout>
-    </Layout>
+      {rejectOpen && (
+        <RejectModal
+          onConfirm={handleReject}
+          onClose={() => setRejectOpen(false)}
+        />
+      )}
+    </DashboardLayout>
   );
 }

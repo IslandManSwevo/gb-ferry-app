@@ -1,9 +1,6 @@
-import { ClockCircleOutlined } from '@ant-design/icons';
-import { Typography } from 'antd';
+import { Clock } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
-
-const { Text, Title } = Typography;
 
 interface DepartureCountdownProps {
   departureTime: string;
@@ -11,121 +8,62 @@ interface DepartureCountdownProps {
   className?: string;
 }
 
+type Urgency = 'normal' | 'warning' | 'critical';
+
+const URGENCY_COLOR: Record<Urgency, string> = {
+  critical: '#FF4B2B',
+  warning:  '#FFB000',
+  normal:   '#33FF33',
+};
+
 export const DepartureCountdown: React.FC<DepartureCountdownProps> = ({
   departureTime,
   sailingLabel,
   className,
 }) => {
   const [timeRemaining, setTimeRemaining] = useState('');
-  const [urgencyLevel, setUrgencyLevel] = useState<'normal' | 'warning' | 'critical'>('normal');
+  const [urgency, setUrgency] = useState<Urgency>('normal');
 
   useEffect(() => {
-    const updateCountdown = () => {
-      const now = dayjs();
+    function update() {
       const departure = dayjs(departureTime);
+      if (!departure.isValid()) { setTimeRemaining('--:--'); return; }
+      const diff = departure.diff(dayjs());
+      if (diff <= 0) { setTimeRemaining('Departed'); return; }
 
-      if (!departure.isValid()) {
-        setTimeRemaining('--:--');
-        return;
-      }
+      const hours   = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      const total   = hours * 60 + minutes;
 
-      const diff = departure.diff(now);
+      setUrgency(total < 15 ? 'critical' : total < 120 ? 'warning' : 'normal');
+      setTimeRemaining(hours > 0 ? `${hours}h ${minutes}m` : minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`);
+    }
 
-      if (diff <= 0) {
-        setTimeRemaining('Departed');
-        return;
-      }
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      // Determine urgency level
-      const totalMinutes = hours * 60 + minutes;
-      if (totalMinutes < 15) {
-        setUrgencyLevel('critical');
-      } else if (totalMinutes < 120) {
-        setUrgencyLevel('warning');
-      } else {
-        setUrgencyLevel('normal');
-      }
-
-      // Format display
-      if (hours > 0) {
-        setTimeRemaining(`${hours}h ${minutes}m`);
-      } else if (minutes > 0) {
-        setTimeRemaining(`${minutes}m ${seconds}s`);
-      } else {
-        setTimeRemaining(`${seconds}s`);
-      }
-    };
-
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-
-    return () => clearInterval(interval);
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
   }, [departureTime]);
 
-  const getColor = () => {
-    switch (urgencyLevel) {
-      case 'critical':
-        return '#ff4d4f';
-      case 'warning':
-        return '#faad14';
-      default:
-        return '#52c41a';
-    }
-  };
-
-  const isPulsing = urgencyLevel === 'critical';
+  const color = URGENCY_COLOR[urgency];
 
   return (
-    <div className={className} style={{ textAlign: 'center' }}>
+    <div className={`flex flex-col items-center gap-2 text-center ${className ?? ''}`}>
       {sailingLabel && (
-        <Text
-          style={{
-            color: 'rgba(255,255,255,0.65)',
-            fontSize: 14,
-            display: 'block',
-            marginBottom: 8,
-          }}
-        >
-          {sailingLabel}
-        </Text>
+        <span className="font-mono text-[12px] text-[rgba(51,255,51,0.5)]">{sailingLabel}</span>
       )}
       <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 12,
-          animation: isPulsing ? 'pulse 1.5s ease-in-out infinite' : 'none',
-        }}
+        className="flex items-center gap-3"
+        style={{ animation: urgency === 'critical' ? 'pulse 1.5s ease-in-out infinite' : 'none' }}
       >
-        <ClockCircleOutlined style={{ fontSize: 32, color: getColor() }} />
-        <Title level={1} style={{ color: getColor(), margin: 0, fontWeight: 700, fontSize: 48 }}>
+        <Clock size={28} style={{ color }} />
+        <span className="font-mono tabular-nums font-bold" style={{ color, fontSize: 48, lineHeight: 1 }}>
           {timeRemaining}
-        </Title>
+        </span>
       </div>
-      <Text
-        style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, display: 'block', marginTop: 4 }}
-      >
-        {urgencyLevel === 'critical'
-          ? 'URGENT - Final boarding'
-          : urgencyLevel === 'warning'
-            ? 'Boarding soon'
-            : 'On schedule'}
-      </Text>
-      <style jsx>{`
-        @keyframes pulse {
-          0%,
-          100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.6;
-          }
-        }
-      `}</style>
+      <span className="font-mono text-[11px] tracking-widest" style={{ color: 'rgba(51,255,51,0.4)' }}>
+        {urgency === 'critical' ? 'URGENT — FINAL BOARDING' : urgency === 'warning' ? 'BOARDING SOON' : 'ON SCHEDULE'}
+      </span>
     </div>
   );
 };

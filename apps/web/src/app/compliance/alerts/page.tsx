@@ -1,54 +1,26 @@
 'use client';
 
-import { AppHeader } from '@/components/layout/AppHeader';
-import { AppSidebar } from '@/components/layout/AppSidebar';
-import { AlertOutlined } from '@ant-design/icons';
-import { Card, Empty, Layout, Space, Typography } from 'antd';
-
-const { Content } = Layout;
-const { Title, Text } = Typography;
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Card, CardContent } from '@/components/ui/card';
+import { Bell } from 'lucide-react';
 
 export default function ComplianceAlertsPage() {
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <AppSidebar />
-      <Layout>
-        <AppHeader />
-        <Content
-          style={{
-            margin: '24px',
-            padding: '24px',
-            background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
-            minHeight: 'calc(100vh - 64px - 48px)',
-          }}
-        >
-          <Card
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              textAlign: 'center',
-              padding: '60px 0',
-            }}
-          >
-            <Empty
-              image={<AlertOutlined style={{ fontSize: 64, color: '#faad14' }} />}
-              description={
-                <Space direction="vertical">
-                  <Title level={3} style={{ color: '#fff' }}>
-                    Compliance Alerts Center
-                  </Title>
-                  <Text style={{ color: 'rgba(255,255,255,0.65)' }}>
-                    Real-time monitoring for regulatory violations and certificate expirations.
-                  </Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    No active alerts at this time. All fleet systems are within safe parameters.
-                  </Text>
-                </Space>
-              }
-            />
-          </Card>
-        </Content>
-      </Layout>
-    </Layout>
+    <DashboardLayout contentClassName="p-6">
+      <Card>
+        <CardContent className="py-16 flex flex-col items-center gap-4">
+          <Bell size={48} className="text-[rgba(51,255,51,0.15)]" aria-hidden />
+          <h2 className="font-mono text-[13px] tracking-[0.12em] uppercase text-[#33FF33]">
+            Compliance Alerts Center
+          </h2>
+          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)] text-center max-w-sm">
+            Real-time monitoring for regulatory violations and certificate expirations.
+          </p>
+          <p className="font-mono text-[10px] text-[rgba(51,255,51,0.3)] tracking-wider">
+            — NO ACTIVE ALERTS — ALL SYSTEMS NOMINAL —
+          </p>
+        </CardContent>
+      </Card>
+    </DashboardLayout>
   );
 }

@@ -14,6 +14,7 @@
     "@ant-design/nextjs-registry": "^1.0.0",
     "@gbferry/dto": "workspace:*",
     "antd": "^5.15.0",
+    "@tanstack/react-table": "^8.21.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.10",

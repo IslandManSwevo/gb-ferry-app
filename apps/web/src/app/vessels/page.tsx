@@ -1,535 +1,467 @@
 'use client';
 
-import { AppHeader } from '@/components/layout/AppHeader';
-import { AppSidebar } from '@/components/layout/AppSidebar';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { TerminalModal, Field, SelectField, termInputCls } from '@/components/ui/TerminalModal';
+import { TerminalTable } from '@/components/ui/TerminalTable';
 import { api } from '@/lib/api';
 import { useCanAccess } from '@/lib/auth/roles';
-import {
-  AppstoreOutlined,
-  CompassOutlined,
-  ContainerOutlined,
-  DashboardOutlined,
-  GlobalOutlined,
-  PlusOutlined,
-  SearchOutlined,
-  TableOutlined,
-} from '@ant-design/icons';
-import {
-  Badge,
-  Button,
-  Col,
-  Divider,
-  Form,
-  Input,
-  InputNumber,
-  Layout,
-  message,
-  Modal,
-  Progress,
-  Row,
-  Segmented,
-  Select,
-  Skeleton,
-  Space,
-  Table,
-  Tag,
-  Typography,
-} from 'antd';
-
+import { ColumnDef } from '@tanstack/react-table';
+import { AlertTriangle, Anchor, FileText, Globe, LayoutGrid, List, Lock, Plus, Search } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-const { Content } = Layout;
-const { Title, Text } = Typography;
+/* ── Status helpers ──────────────────────────────────────── */
+function statusConfig(status: string) {
+  if (status === 'ACTIVE')
+    return { label: 'IN SERVICE', color: '#33FF33', border: 'rgba(51,255,51,0.4)', bg: 'rgba(51,255,51,0.06)' };
+  if (status === 'UNDER_MAINTENANCE')
+    return { label: 'MAINTENANCE', color: '#FFB000', border: 'rgba(255,176,0,0.4)', bg: 'rgba(255,176,0,0.06)' };
+  return { label: 'OUT OF SERVICE', color: '#FF4B2B', border: 'rgba(255,75,43,0.4)', bg: 'rgba(255,75,43,0.06)' };
+}
 
+/* ── List columns ─────────────────────────────────────────── */
+const listColumns: ColumnDef<any, any>[] = [
+  {
+    id: 'identity',
+    header: 'Vessel Identity',
+    cell: ({ row }) => (
+      <div className="flex flex-col gap-0.5">
+        <span className="font-mono text-[12px] text-[#33FF33] font-semibold">{row.original.name}</span>
+        <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">IMO: {row.original.imoNumber}</span>
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'type',
+    header: 'Class/Type',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[10px] px-2 py-0.5 border border-[rgba(0,255,255,0.3)] text-[#00FFFF] bg-[rgba(0,255,255,0.04)]">
+        {String(getValue<string>()).replace(/_/g, ' ')}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'flagState',
+    header: 'Flag State',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[11px] text-[rgba(51,255,51,0.7)]">{getValue<string>()}</span>
+    ),
+  },
+  {
+    accessorKey: 'grossTonnage',
+    header: 'GT',
+    cell: ({ getValue }) => (
+      <span className="font-mono text-[12px] tabular-nums text-[rgba(51,255,51,0.7)]">
+        {(getValue<number>() ?? 0).toLocaleString()}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ getValue }) => {
+      const { label, color, border, bg } = statusConfig(getValue<string>());
+      return (
+        <span className="font-mono text-[10px] px-2 py-0.5 border tracking-widest"
+          style={{ color, borderColor: border, background: bg }}>
+          {label}
+        </span>
+      );
+    },
+  },
+  {
+    id: 'actions',
+    header: '',
+    cell: ({ row }) => (
+      <div className="flex gap-2">
+        <a href={`/vessels/${row.original.id}`}
+          className="font-mono text-[10px] text-[#00FFFF] hover:text-[rgba(0,255,255,0.7)] tracking-widest transition-colors">
+          DASHBOARD
+        </a>
+        <a href={`/vessels/${row.original.id}/documents`}
+          className="font-mono text-[10px] text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] tracking-widest transition-colors">
+          DOCS
+        </a>
+      </div>
+    ),
+  },
+];
+
+/* ── Grid card ───────────────────────────────────────────── */
+function VesselCard({ vessel }: { vessel: any }) {
+  const { label, color, border } = statusConfig(vessel.status);
+  return (
+    <div className="border border-[rgba(51,255,51,0.15)] bg-[#050505] p-4 flex flex-col gap-3"
+      style={{ borderLeftColor: color, borderLeftWidth: '3px' }}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-mono text-[13px] text-[#33FF33] font-semibold">{vessel.name}</span>
+          <span className="font-mono text-[10px] text-[rgba(51,255,51,0.4)]">IMO: {vessel.imoNumber}</span>
+        </div>
+        <span className="font-mono text-[9px] px-1.5 py-0.5 border tracking-widest flex-shrink-0"
+          style={{ color, borderColor: border, background: `${color}0d` }}>
+          {label}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-[rgba(51,255,51,0.06)] pt-3">
+        {[
+          ['TYPE', String(vessel.type ?? '').replace(/_/g, ' ')],
+          ['FLAG', vessel.flagState],
+          ['GT', (vessel.grossTonnage ?? 0).toLocaleString()],
+          ['BUILT', vessel.yearBuilt ?? '—'],
+        ].map(([lbl, val]) => (
+          <div key={lbl} className="flex flex-col gap-0.5">
+            <span className="font-mono text-[9px] tracking-[0.15em] text-[rgba(51,255,51,0.3)]">{lbl}</span>
+            <span className="font-mono text-[11px] text-[rgba(51,255,51,0.8)]">{val}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2 border-t border-[rgba(51,255,51,0.06)] pt-3">
+        <a href={`/vessels/${vessel.id}/documents`}
+          className="flex items-center gap-1 font-mono text-[10px] text-[rgba(51,255,51,0.5)] hover:text-[#33FF33] transition-colors tracking-widest">
+          <FileText size={11} />DOCS
+        </a>
+        <a href={`/vessels/${vessel.id}`}
+          className="ml-auto flex items-center gap-1 font-mono text-[10px] text-[#00FFFF] hover:text-[rgba(0,255,255,0.7)] transition-colors tracking-widest">
+          <Globe size={11} />FLEET OPS
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/* ── Register form ───────────────────────────────────────── */
+interface RegisterForm {
+  name: string;
+  imoNumber: string;
+  type: string;
+  flagState: string;
+  portOfRegistry: string;
+  grossTonnage: string;
+  netTonnage: string;
+  lengthOverall: string;
+  yearBuilt: string;
+}
+
+const INITIAL_FORM: RegisterForm = {
+  name: '',
+  imoNumber: '',
+  type: 'PASSENGER_FERRY',
+  flagState: 'BHS',
+  portOfRegistry: 'Nassau',
+  grossTonnage: '',
+  netTonnage: '',
+  lengthOverall: '',
+  yearBuilt: '',
+};
+
+/* ── RBAC gate ───────────────────────────────────────────── */
+function AccessDenied() {
+  return (
+    <DashboardLayout contentClassName="p-4 md:p-6 flex items-center justify-center">
+      <div className="max-w-md w-full border border-[rgba(51,255,51,0.15)] bg-[#050505] px-8 py-12 flex flex-col items-center gap-6 text-center">
+        <div className="w-16 h-16 border-2 border-[rgba(51,255,51,0.2)] flex items-center justify-center">
+          <Lock size={28} className="text-[rgba(51,255,51,0.5)]" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <h2 className="font-mono text-[13px] tracking-[0.12em] uppercase text-[#33FF33]">
+            Registry Access Restricted
+          </h2>
+          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.45)] leading-relaxed">
+            Fleet registry and vessel status data is reserved for authorized operational staff.
+            Authenticate with a higher clearance role to view the registry.
+          </p>
+        </div>
+        <Button variant="ghost" onClick={() => window.history.back()}>Return to Dashboard</Button>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────── */
 export default function VesselsPage() {
-  const canAccessPage = useCanAccess('vessels.view');
+  const canAccess = useCanAccess('vessels.view');
   const [vessels, setVessels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchText, setSearchText] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form] = Form.useForm();
+  const [form, setForm] = useState<RegisterForm>(INITIAL_FORM);
+  const [errors, setErrors] = useState<Partial<Record<keyof RegisterForm, string>>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const fetchVessels = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await api.vessels.list();
-    if (error) {
-      message.error('Failed to load vessel registry');
-    } else if (data) {
-      setVessels(data.items || []);
-    }
+    const { data } = await api.vessels.list();
+    setVessels(data?.items ?? []);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchVessels();
-  }, [fetchVessels]);
+  useEffect(() => { fetchVessels(); }, [fetchVessels]);
 
-  const handleRegister = async () => {
-    try {
-      const values = await form.validateFields();
-      setSubmitting(true);
-      const { error } = await api.vessels.create(values);
-      if (error) {
-        message.error(error || 'Failed to register vessel');
-      } else {
-        message.success('Vessel registered successfully');
-        setIsModalOpen(false);
-        form.resetFields();
-        fetchVessels();
-      }
-    } catch (err) {
-      // Form validation error
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  if (!canAccess) return <AccessDenied />;
 
-  const filteredVessels = vessels.filter(
+  const filtered = vessels.filter(
     (v) =>
       v.name?.toLowerCase().includes(searchText.toLowerCase()) ||
       v.imoNumber?.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const columns = [
-    {
-      title: 'Vessel Identity',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text: string, record: any) => (
-        <Space direction="vertical" size={0}>
-          <Text strong style={{ color: '#1890ff' }}>
-            {text}
-          </Text>
-          <Text type="secondary" style={{ fontSize: '11px' }}>
-            IMO: {record.imoNumber}
-          </Text>
-        </Space>
-      ),
-    },
-    {
-      title: 'Class/Type',
-      dataIndex: 'type',
-      key: 'type',
-      render: (text: string) => <Tag color="blue">{text}</Tag>,
-    },
-    {
-      title: 'Flag State',
-      dataIndex: 'flagState',
-      key: 'flagState',
-    },
-    {
-      title: 'Tonnage (GT)',
-      dataIndex: 'grossTonnage',
-      key: 'grossTonnage',
-      render: (val: number) => val?.toLocaleString(),
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const statusMap: Record<string, any> = {
-          ACTIVE: { status: 'ok', label: 'In Service' },
-          UNDER_MAINTENANCE: { status: 'warning', label: 'Maintenance' },
-          OUT_OF_SERVICE: { status: 'critical', label: 'Out of Service' },
-        };
-        const config = statusMap[status] || { status: 'warning', label: status };
-        return <StatusBadge status={config.status} label={config.label} compact />;
-      },
-    },
-    {
-      title: 'Compliance',
-      key: 'compliance',
-      render: () => <Progress percent={100} size="small" status="success" />,
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: () => (
-        <Space size="middle">
-          <Button type="link" size="small" style={{ color: '#1890ff' }}>
-            DASHBOARD
-          </Button>
-          <Button type="link" size="small">
-            DOCUMENTS
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+  function field(key: keyof RegisterForm, value: string) {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((e) => { const n = { ...e }; delete n[key]; return n; });
+  }
 
-  const renderGridView = () => (
-    <Row gutter={[24, 24]}>
-      {loading
-        ? Array(6)
-            .fill(0)
-            .map((_, i) => (
-              <Col xs={24} md={12} lg={8} key={i}>
-                <GlassCard>
-                  <Skeleton active />
-                </GlassCard>
-              </Col>
-            ))
-        : filteredVessels.map((vessel) => (
-            <Col xs={24} md={12} lg={8} key={vessel.id}>
-              <GlassCard
-                hoverable
-                style={{
-                  borderLeft:
-                    vessel.status === 'ACTIVE' ? '4px solid #52c41a' : '4px solid #faad14',
-                  transition: 'all 0.3s',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <Space direction="vertical" size={0}>
-                    <Title level={4} style={{ margin: 0, color: '#e6f7ff' }}>
-                      {vessel.name}
-                    </Title>
-                    <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>
-                      IMO: {vessel.imoNumber}
-                    </Text>
-                  </Space>
-                  <Badge status={vessel.status === 'ACTIVE' ? 'success' : 'warning'} />
-                </div>
+  function validate(): boolean {
+    const e: Partial<Record<keyof RegisterForm, string>> = {};
+    if (!form.name) e.name = 'Vessel name required';
+    if (!form.imoNumber) e.imoNumber = 'IMO number required';
+    if (!form.type) e.type = 'Select vessel type';
+    if (!form.grossTonnage || isNaN(Number(form.grossTonnage))) e.grossTonnage = 'Enter gross tonnage';
+    if (!form.netTonnage || isNaN(Number(form.netTonnage))) e.netTonnage = 'Enter net tonnage';
+    if (!form.lengthOverall || isNaN(Number(form.lengthOverall))) e.lengthOverall = 'Enter LOA';
+    if (!form.yearBuilt || isNaN(Number(form.yearBuilt))) e.yearBuilt = 'Enter year built';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
 
-                <Divider style={{ margin: '12px 0', borderColor: 'rgba(255,255,255,0.1)' }} />
-
-                <Row gutter={[8, 8]}>
-                  <Col span={12}>
-                    <Space direction="vertical" size={0}>
-                      <Text style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-                        TYPE
-                      </Text>
-                      <Text style={{ color: '#e6f7ff' }}>{vessel.type}</Text>
-                    </Space>
-                  </Col>
-                  <Col span={12}>
-                    <Space direction="vertical" size={0}>
-                      <Text style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-                        FLAG
-                      </Text>
-                      <Text style={{ color: '#e6f7ff' }}>{vessel.flagState}</Text>
-                    </Space>
-                  </Col>
-                  <Col span={24} style={{ marginTop: '8px' }}>
-                    <Text style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>
-                      DOCUMENT COMPLIANCE
-                    </Text>
-                    <Progress percent={92} size="small" strokeColor="#52c41a" />
-                  </Col>
-                </Row>
-
-                <Divider style={{ margin: '12px 0', borderColor: 'rgba(255,255,255,0.1)' }} />
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Button ghost size="small" icon={<ContainerOutlined />}>
-                    Docs
-                  </Button>
-                  <Button type="primary" size="small" icon={<DashboardOutlined />}>
-                    Fleet Ops
-                  </Button>
-                </div>
-              </GlassCard>
-            </Col>
-          ))}
-      {!loading && filteredVessels.length === 0 && (
-        <Col span={24}>
-          <div style={{ textAlign: 'center', padding: '100px 0' }}>
-            <CompassOutlined style={{ fontSize: 48, color: 'rgba(255,255,255,0.2)' }} />
-            <Text style={{ display: 'block', marginTop: 16, color: 'rgba(255,255,255,0.45)' }}>
-              No vessels matching your search criteria
-            </Text>
-          </div>
-        </Col>
-      )}
-    </Row>
-  );
-
-  if (!canAccessPage) {
-    return (
-      <Layout style={{ minHeight: '100vh' }}>
-        <AppSidebar />
-        <Layout>
-          <AppHeader />
-          <Content
-            style={{
-              margin: '24px',
-              padding: '24px',
-              background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
-              minHeight: 'calc(100vh - 64px - 48px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <GlassCard style={{ maxWidth: 600, padding: 40, textAlign: 'center' }}>
-              <Space direction="vertical" size="large">
-                <div
-                  style={{
-                    width: 80,
-                    height: 80,
-                    background: 'rgba(24, 144, 255, 0.1)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto',
-                  }}
-                >
-                  <GlobalOutlined style={{ fontSize: 40, color: '#1890ff' }} />
-                </div>
-                <div>
-                  <Title level={3} style={{ color: '#fff', marginBottom: 8 }}>
-                    Registry Access Restricted
-                  </Title>
-                  <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    Fleet registry and vessel status data is reserved for authorized operational
-                    staff. Please authenticate with a higher clearance role to view the registry.
-                  </Text>
-                </div>
-                <Button type="primary" size="large" onClick={() => window.history.back()}>
-                  Return to Dashboard
-                </Button>
-              </Space>
-            </GlassCard>
-          </Content>
-        </Layout>
-      </Layout>
-    );
+  async function handleRegister() {
+    if (!validate()) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const { error } = await api.vessels.create({
+      ...form,
+      grossTonnage: Number(form.grossTonnage),
+      netTonnage: Number(form.netTonnage),
+      lengthOverall: Number(form.lengthOverall),
+      yearBuilt: Number(form.yearBuilt),
+      status: 'ACTIVE',
+    });
+    setSubmitting(false);
+    if (error) {
+      setSubmitError(String(error));
+    } else {
+      setModalOpen(false);
+      setForm(INITIAL_FORM);
+      setErrors({});
+      fetchVessels();
+    }
   }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <AppSidebar />
-      <Layout>
-        <AppHeader />
-        <Content
-          style={{
-            margin: '24px',
-            padding: '24px',
-            background: 'linear-gradient(135deg, #0a1f33 0%, #0c2f4a 45%, #0b3a5d 100%)',
-            minHeight: 'calc(100vh - 64px - 48px)',
-          }}
-        >
-          <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-            <Col>
-              <Title level={2} style={{ color: '#fff', margin: 0 }}>
-                <GlobalOutlined style={{ marginRight: 12 }} />
-                Fleet Registry
-              </Title>
-              <Text style={{ color: 'rgba(255,255,255,0.75)' }}>
-                Managing {vessels.length} active vessels across Group Bahama routes
-              </Text>
-            </Col>
-            <Col>
-              <Space size="middle">
-                <Segmented
-                  value={viewMode}
-                  onChange={(v) => setViewMode(v as any)}
-                  options={[
-                    { value: 'grid', icon: <AppstoreOutlined /> },
-                    { value: 'list', icon: <TableOutlined /> },
-                  ]}
-                  style={{ background: 'rgba(255,255,255,0.1)', color: '#fff' }}
-                />
-                <Button 
-                  type="primary" 
-                  icon={<PlusOutlined />} 
-                  size="large"
-                  onClick={() => setIsModalOpen(true)}
-                >
-                  Register New Vessel
-                </Button>
-              </Space>
-            </Col>
-          </Row>
+    <DashboardLayout contentClassName="p-4 md:p-6">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8 gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-mono text-[15px] tracking-[0.06em] uppercase text-[#33FF33] font-semibold flex items-center gap-2">
+            <Anchor size={16} aria-hidden />
+            Fleet Registry
+          </h1>
+          <p className="font-mono text-[11px] text-[rgba(51,255,51,0.4)]">
+            {vessels.length} vessel{vessels.length !== 1 ? 's' : ''} · Grand Bahama routes
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* View toggle */}
+          <div className="flex border border-[rgba(51,255,51,0.2)]">
+            <button
+              className={`px-3 py-2 font-mono text-[10px] tracking-widest transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-[rgba(51,255,51,0.1)] text-[#33FF33]'
+                  : 'text-[rgba(51,255,51,0.4)] hover:text-[#33FF33]'
+              }`}
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid size={13} aria-label="Grid view" />
+            </button>
+            <button
+              className={`px-3 py-2 font-mono text-[10px] tracking-widest transition-colors border-l border-[rgba(51,255,51,0.2)] ${
+                viewMode === 'list'
+                  ? 'bg-[rgba(51,255,51,0.1)] text-[#33FF33]'
+                  : 'text-[rgba(51,255,51,0.4)] hover:text-[#33FF33]'
+              }`}
+              onClick={() => setViewMode('list')}
+            >
+              <List size={13} aria-label="List view" />
+            </button>
+          </div>
+          <Button icon={<Plus size={13} />} onClick={() => setModalOpen(true)}>
+            Register Vessel
+          </Button>
+        </div>
+      </div>
 
-          <GlassCard style={{ marginBottom: 24 }}>
-            <Input
-              placeholder="Search by vessel name or IMO number..."
-              prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.45)' }} />}
-              size="large"
-              allowClear
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff',
-              }}
+      {/* Search */}
+      <div className="mb-6 relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[rgba(51,255,51,0.3)]" />
+        <input
+          type="text"
+          placeholder="Search by vessel name or IMO number..."
+          className={`${termInputCls} pl-8`}
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+      </div>
+
+      {/* Grid / List */}
+      {viewMode === 'grid' ? (
+        loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="border border-[rgba(51,255,51,0.06)] bg-[#050505] p-4 h-40 animate-pulse" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <Anchor size={40} className="text-[rgba(51,255,51,0.1)]" />
+            <p className="font-mono text-[11px] text-[rgba(51,255,51,0.25)] tracking-widest">
+              {searchText ? '— NO VESSELS MATCHING SEARCH —' : '— NO VESSELS REGISTERED —'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((v) => <VesselCard key={v.id} vessel={v} />)}
+          </div>
+        )
+      ) : (
+        <Card>
+          <CardHeader>
+            <span className="flex items-center gap-2">
+              <List size={13} />
+              VESSEL REGISTRY
+            </span>
+          </CardHeader>
+          <CardContent className="p-0">
+            <TerminalTable
+              data={filtered}
+              columns={listColumns}
+              loading={loading}
+              rowKey={(r) => r.id}
+              emptyMessage="NO VESSELS REGISTERED"
             />
-          </GlassCard>
+          </CardContent>
+        </Card>
+      )}
 
-          {viewMode === 'grid' ? (
-            renderGridView()
-          ) : (
-            <GlassCard>
-              <Table
-                columns={columns}
-                dataSource={filteredVessels}
-                loading={loading}
-                rowKey="id"
-                pagination={{ pageSize: 10 }}
-                style={{ background: 'transparent' }}
-                className="maritime-table"
-              />
-            </GlassCard>
-          )}
-
-          <style jsx global>{`
-            .maritime-table .ant-table {
-              background: transparent !important;
-              color: #e6f7ff !important;
-            }
-            .maritime-table .ant-table-thead > tr > th {
-              background: rgba(255, 255, 255, 0.05) !important;
-              color: rgba(255, 255, 255, 0.85) !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-            }
-            .maritime-table .ant-table-tbody > tr > td {
-              border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-            }
-            .maritime-table .ant-table-tbody > tr:hover > td {
-              background: rgba(255, 255, 255, 0.02) !important;
-            }
-            .ant-segmented-item-selected {
-              background-color: rgba(24, 144, 255, 0.5) !important;
-              color: #fff !important;
-            }
-            .ant-segmented-item {
-              color: rgba(255, 255, 255, 0.65);
-            }
-          `}</style>
-        </Content>
-      </Layout>
-
-      <Modal
-        title="Register New Vessel"
-        open={isModalOpen}
-        onOk={handleRegister}
-        onCancel={() => setIsModalOpen(false)}
-        confirmLoading={submitting}
-        width={800}
-        styles={{
-          body: { background: '#0c2f4a', color: '#fff', padding: '24px' },
-          mask: { backdropFilter: 'blur(4px)' },
-        }}
+      {/* Register modal */}
+      <TerminalModal
+        open={modalOpen}
+        title="REGISTER NEW VESSEL"
+        onClose={() => { setModalOpen(false); setForm(INITIAL_FORM); setErrors({}); setSubmitError(null); }}
+        footer={
+          <div className="flex items-center gap-3">
+            {submitError && (
+              <span className="font-mono text-[11px] text-[#FF4B2B] flex items-center gap-1">
+                <AlertTriangle size={11} />
+                {submitError}
+              </span>
+            )}
+            <Button variant="ghost" onClick={() => setModalOpen(false)} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button onClick={handleRegister} disabled={submitting}>
+              {submitting ? 'Registering...' : 'Register Vessel'}
+            </Button>
+          </div>
+        }
       >
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{
-            flagState: 'BHS',
-            portOfRegistry: 'Nassau',
-            status: 'ACTIVE',
-            type: 'PASSENGER_FERRY',
-          }}
-        >
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item
-                name="name"
-                label={<Text style={{ color: '#e6f7ff' }}>Vessel Name</Text>}
-                rules={[{ required: true, message: 'Vessel name is required' }]}
-              >
-                <Input placeholder="e.g. Grand Bahama Express" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="imoNumber"
-                label={<Text style={{ color: '#e6f7ff' }}>IMO Number</Text>}
-                rules={[{ required: true, message: 'IMO number is required' }]}
-              >
-                <Input placeholder="e.g. IMO9876543" />
-              </Form.Item>
-            </Col>
-          </Row>
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Field
+              label="Vessel Name"
+              required
+              error={errors.name}
+              placeholder="e.g. Grand Bahama Express"
+              value={form.name}
+              onChange={(e) => field('name', e.target.value)}
+            />
+            <Field
+              label="IMO Number"
+              required
+              error={errors.imoNumber}
+              placeholder="e.g. IMO9876543"
+              value={form.imoNumber}
+              onChange={(e) => field('imoNumber', e.target.value)}
+            />
+          </div>
 
-          <Row gutter={24}>
-            <Col span={8}>
-              <Form.Item
-                name="type"
-                label={<Text style={{ color: '#e6f7ff' }}>Vessel Type</Text>}
-                rules={[{ required: true }]}
-              >
-                <Select
-                  options={[
-                    { label: 'Passenger Ferry', value: 'PASSENGER_FERRY' },
-                    { label: 'Ro-Ro Passenger', value: 'RO_RO_PASSENGER' },
-                    { label: 'High Speed Craft', value: 'HIGH_SPEED_CRAFT' },
-                    { label: 'Cargo', value: 'CARGO' },
-                    { label: 'Tanker', value: 'TANKER' },
-                    { label: 'Other', value: 'OTHER' },
-                  ]}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="flagState" label={<Text style={{ color: '#e6f7ff' }}>Flag State</Text>}>
-                <Input placeholder="BHS" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="portOfRegistry"
-                label={<Text style={{ color: '#e6f7ff' }}>Port of Registry</Text>}
-              >
-                <Input placeholder="Nassau" />
-              </Form.Item>
-            </Col>
-          </Row>
+          <div className="grid grid-cols-3 gap-4">
+            <SelectField
+              label="Vessel Type"
+              required
+              error={errors.type}
+              value={form.type}
+              onChange={(e) => field('type', e.target.value)}
+            >
+              {[
+                ['PASSENGER_FERRY', 'Passenger Ferry'],
+                ['RO_RO_PASSENGER', 'Ro-Ro Passenger'],
+                ['HIGH_SPEED_CRAFT', 'High Speed Craft'],
+                ['CARGO', 'Cargo'],
+                ['TANKER', 'Tanker'],
+                ['OTHER', 'Other'],
+              ].map(([v, l]) => (
+                <option key={v} value={v} className="bg-[#050505]">{l}</option>
+              ))}
+            </SelectField>
+            <Field
+              label="Flag State"
+              placeholder="BHS"
+              value={form.flagState}
+              onChange={(e) => field('flagState', e.target.value)}
+            />
+            <Field
+              label="Port of Registry"
+              placeholder="Nassau"
+              value={form.portOfRegistry}
+              onChange={(e) => field('portOfRegistry', e.target.value)}
+            />
+          </div>
 
-          <Row gutter={24}>
-            <Col span={6}>
-              <Form.Item
-                name="grossTonnage"
-                label={<Text style={{ color: '#e6f7ff' }}>Gross Tonnage</Text>}
-                rules={[{ required: true }]}
-              >
-                <InputNumber style={{ width: '100%' }} min={0} />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                name="netTonnage"
-                label={<Text style={{ color: '#e6f7ff' }}>Net Tonnage</Text>}
-                rules={[{ required: true }]}
-              >
-                <InputNumber style={{ width: '100%' }} min={0} />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                name="lengthOverall"
-                label={<Text style={{ color: '#e6f7ff' }}>Length (LOA)</Text>}
-                rules={[{ required: true }]}
-              >
-                <InputNumber style={{ width: '100%' }} min={0} step={0.1} />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                name="yearBuilt"
-                label={<Text style={{ color: '#e6f7ff' }}>Year Built</Text>}
-                rules={[{ required: true }]}
-              >
-                <InputNumber style={{ width: '100%' }} min={1900} max={new Date().getFullYear()} />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </Modal>
-    </Layout>
+          <div className="grid grid-cols-4 gap-4">
+            <Field
+              label="Gross Tonnage"
+              type="number"
+              required
+              error={errors.grossTonnage}
+              placeholder="0"
+              value={form.grossTonnage}
+              onChange={(e) => field('grossTonnage', e.target.value)}
+            />
+            <Field
+              label="Net Tonnage"
+              type="number"
+              required
+              error={errors.netTonnage}
+              placeholder="0"
+              value={form.netTonnage}
+              onChange={(e) => field('netTonnage', e.target.value)}
+            />
+            <Field
+              label="Length (LOA m)"
+              type="number"
+              required
+              error={errors.lengthOverall}
+              placeholder="0.0"
+              value={form.lengthOverall}
+              onChange={(e) => field('lengthOverall', e.target.value)}
+            />
+            <Field
+              label="Year Built"
+              type="number"
+              required
+              error={errors.yearBuilt}
+              placeholder={String(new Date().getFullYear())}
+              value={form.yearBuilt}
+              onChange={(e) => field('yearBuilt', e.target.value)}
+            />
+          </div>
+        </div>
+      </TerminalModal>
+    </DashboardLayout>
   );
 }
