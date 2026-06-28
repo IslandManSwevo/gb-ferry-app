@@ -1,64 +1,94 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────
    DESIGN SYSTEM: Industrial Brutalist / Tactical Telemetry
    GB Ferry Maritime Ops Command Center
+   Tailwind v4 — all custom tokens defined in @theme {}
+   ───────────────────────────────────────────────────────── */
+
+@theme {
+  /* Typography */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  --font-geist-sans: var(--font-sans);
+  --font-ibm-plex-mono: var(--font-mono);
+
+  /* ── Core palette ── */
+  --color-terminal: #050505;
+  --color-phosphor: #33FF33;
+  --color-phosphor-dim: rgba(51, 255, 51, 0.6);
+  --color-phosphor-faint: rgba(51, 255, 51, 0.3);
+  --color-phosphor-glow: rgba(51, 255, 51, 0.15);
+  --color-phosphor-ghost: rgba(51, 255, 51, 0.08);
+  --color-vermilion: #FF4B2B;
+  --color-cyan-data: #00FFFF;
+  --color-amber-warn: #FFB000;
+  --color-foreground: #eaeaea;
+
+  /* shadcn/ui CSS variable aliases (inline = resolve at runtime) */
+  --color-background: var(--background);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  /* Radius — zero everywhere */
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-full: 0px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   CSS CUSTOM PROPERTIES — shadcn/ui semantic tokens
    ───────────────────────────────────────────────────────── */
 
 @layer base {
   :root {
-    /* Core terminal palette */
-    --background: 0 0% 2%;           /* #050505 Terminal Black */
-    --foreground: 0 0% 92%;          /* #EAEAEA White phosphor */
-
-    --card: 0 0% 4%;
-    --card-foreground: 0 0% 92%;
-
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 92%;
-
-    --primary: 120 100% 60%;         /* #33FF33 Phosphor Glow */
-    --primary-foreground: 0 0% 2%;
-
-    --secondary: 120 100% 60% / 0.08;
-    --secondary-foreground: 120 100% 60%;
-
-    --muted: 0 0% 100% / 0.06;
-    --muted-foreground: 0 0% 100% / 0.45;
-
-    --accent: 120 100% 60% / 0.12;
-    --accent-foreground: 120 100% 60%;
-
-    --destructive: 11 100% 56%;      /* #FF4B2B Vermilion */
-    --destructive-foreground: 0 0% 92%;
-
-    --border: 120 100% 60% / 0.2;
-    --input: 120 100% 60% / 0.15;
-    --ring: 120 100% 60%;
-
-    /* Typography fonts — loaded in layout.tsx */
-    --font-geist-sans: 'Geist', system-ui, sans-serif;
-    --font-ibm-plex-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    /* shadcn/ui required CSS variables (HSL triplets for Tailwind opacity modifiers) */
+    --background: #050505;
+    --foreground: #eaeaea;
+    --card: #0a0a0a;
+    --card-foreground: #eaeaea;
+    --popover: #0a0a0a;
+    --popover-foreground: #eaeaea;
+    --primary: #33FF33;
+    --primary-foreground: #050505;
+    --secondary: rgba(51, 255, 51, 0.08);
+    --secondary-foreground: #33FF33;
+    --muted: rgba(255, 255, 255, 0.06);
+    --muted-foreground: rgba(255, 255, 255, 0.45);
+    --accent: rgba(51, 255, 51, 0.12);
+    --accent-foreground: #33FF33;
+    --destructive: #FF4B2B;
+    --destructive-foreground: #eaeaea;
+    --border: rgba(51, 255, 51, 0.2);
+    --input: rgba(51, 255, 51, 0.15);
+    --ring: #33FF33;
 
     /* Design system semantic tokens */
-    --color-phosphor: #33FF33;
-    --color-vermilion: #FF4B2B;
-    --color-cyan-data: #00FFFF;
-    --color-amber-warn: #FFB000;
-    --color-terminal-black: #050505;
-
-    /* Border rule — always phosphor faint */
+    --color-phosphor-hex: #33FF33;
     --border-terminal: 1px solid rgba(51, 255, 51, 0.2);
   }
 
-  /* Global resets for design system compliance */
+  /* Global resets for design system */
   * {
-    margin: 0;
-    padding: 0;
     box-sizing: border-box;
-    /* Enforce zero border-radius everywhere */
     border-radius: 0 !important;
   }
 
@@ -67,35 +97,36 @@
     height: 100%;
     background-color: #050505;
     color: #eaeaea;
-    font-family: var(--font-geist-sans);
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* All data values, IDs, timestamps must use monospace */
+  /* All telemetry/data values use monospace */
   data,
   samp,
   kbd,
   output,
   code,
   pre,
-  time,
-  .font-mono {
-    font-family: var(--font-ibm-plex-mono);
+  time {
+    font-family: var(--font-mono);
   }
 }
 
+/* ─────────────────────────────────────────────────────────
+   COMPONENT CLASSES — design system primitives
+   ───────────────────────────────────────────────────────── */
+
 @layer components {
-  /* ── Terminal module container ─────────────────────────── */
   .terminal-module {
     background: #050505;
     border: 1px solid rgba(51, 255, 51, 0.2);
     padding: 1rem;
   }
 
-  /* ── Section header (uppercase monospace label) ────────── */
   .terminal-label {
-    font-family: var(--font-ibm-plex-mono);
+    font-family: var(--font-mono);
     font-size: 0.625rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -103,15 +134,14 @@
     line-height: 1.2;
   }
 
-  /* ── Phosphor value display ────────────────────────────── */
   .telemetry-value {
-    font-family: var(--font-ibm-plex-mono);
+    font-family: var(--font-mono);
     color: #00FFFF;
     font-size: 0.875rem;
     letter-spacing: 0.05em;
   }
 
-  /* ── CRT scanline overlay (apply to page root) ─────────── */
+  /* CRT scanlines overlay — apply .crt-scanlines to page root */
   .crt-scanlines {
     position: relative;
   }
@@ -130,10 +160,9 @@
     z-index: 9999;
   }
 
-  /* ── Alert / critical status ───────────────────────────── */
   .status-critical {
     color: #FF4B2B;
-    font-family: var(--font-ibm-plex-mono);
+    font-family: var(--font-mono);
     font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -141,7 +170,7 @@
 
   .status-warning {
     color: #FFB000;
-    font-family: var(--font-ibm-plex-mono);
+    font-family: var(--font-mono);
     font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -149,13 +178,12 @@
 
   .status-ok {
     color: #33FF33;
-    font-family: var(--font-ibm-plex-mono);
+    font-family: var(--font-mono);
     font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
-  /* ── ASCII bracket decoration ──────────────────────────── */
   .bracket-label::before {
     content: '[ ';
     color: rgba(51, 255, 51, 0.4);
@@ -165,7 +193,7 @@
     color: rgba(51, 255, 51, 0.4);
   }
 
-  /* ── Grid divider (gap:1px parent/child contrast trick) ── */
+  /* Gap-border trick — use gap:1px + contrasting bg to create razor-thin dividers */
   .terminal-grid {
     display: grid;
     gap: 1px;
@@ -176,8 +204,11 @@
   }
 }
 
+/* ─────────────────────────────────────────────────────────
+   UTILITY CLASSES
+   ───────────────────────────────────────────────────────── */
+
 @layer utilities {
-  /* Phosphor glow text shadow */
   .glow-phosphor {
     text-shadow: 0 0 8px rgba(51, 255, 51, 0.6);
   }
@@ -187,37 +218,21 @@
   .glow-cyan {
     text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
   }
-
-  /* Phosphor border glow */
   .border-glow {
     box-shadow: 0 0 0 1px rgba(51, 255, 51, 0.3), 0 0 8px rgba(51, 255, 51, 0.1);
-  }
-
-  /* No rounded corners utility (already forced globally, but explicit) */
-  .corners-sharp {
-    border-radius: 0 !important;
   }
 }
 
 /* ─────────────────────────────────────────────────────────
    SCROLLBAR — terminal aesthetic
    ───────────────────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: #050505;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(51, 255, 51, 0.3);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(51, 255, 51, 0.6);
-}
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #050505; }
+::-webkit-scrollbar-thumb { background: rgba(51, 255, 51, 0.3); }
+::-webkit-scrollbar-thumb:hover { background: rgba(51, 255, 51, 0.6); }
 
 /* ─────────────────────────────────────────────────────────
-   PRINT STYLES — manifests
+   PRINT STYLES
    ───────────────────────────────────────────────────────── */
 @media print {
   .no-print { display: none !important; }
@@ -227,8 +242,7 @@
 
 /* ─────────────────────────────────────────────────────────
    LEGACY ANT DESIGN OVERRIDES
-   Kept during migration — remove when page-by-page migration
-   is complete and antd dependency is dropped.
+   Remove when page-by-page migration is complete.
    ───────────────────────────────────────────────────────── */
 .maritime-table .ant-table {
   background: transparent !important;
